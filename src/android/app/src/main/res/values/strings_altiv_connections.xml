@@ -3,4 +3,7 @@
     <!-- ALTIV Fase 1: onboarding MCP discreto, preservando o fluxo de autenticação existente. -->
     <string name="altiv_mcp_empty_intro">Connect an MCP server by URL or JSON. For supported services, sign in through your browser.</string>
     <string name="altiv_mcp_empty_connect_button">Set up MCP connection</string>
+    <string name="altiv_mcp_quick_title">Quick connect</string>
+    <string name="altiv_mcp_quick_footer">Choose a verified remote service to prefill its details. Save and authorize it before using its tools. Other servers can be added with +.</string>
+    <string name="altiv_mcp_preset_hint">The service URL has been prefilled. Review it, then sign in via your browser if the server supports it. Saving alone does not verify the connection.</string>
 </resources>
