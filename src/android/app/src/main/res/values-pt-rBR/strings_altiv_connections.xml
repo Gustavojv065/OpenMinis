@@ -57,4 +57,7 @@
     <string name="mcp_dcr_registration_unreadable">Não foi possível ler a resposta do registro.</string>
     <string name="mcp_dcr_http_status">%1$s retornou HTTP %2$d.</string>
     <string name="mcp_dcr_unreadable">%1$s retornou dados que não puderam ser lidos.</string>
+    <string name="altiv_mcp_quick_title">Conexões rápidas</string>
+    <string name="altiv_mcp_quick_footer">Escolha um serviço remoto para preencher a configuração. Salve e autorize o acesso antes de usar as ferramentas. Outros servidores podem ser adicionados pelo botão +.</string>
+    <string name="altiv_mcp_preset_hint">A URL do serviço foi preenchida. Confira os dados e entre pelo navegador se o servidor permitir. Salvar não significa que a conexão foi testada.</string>
 </resources>
