@@ -126,10 +126,14 @@ fun MCPIntegrationsScreen(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        stringResource(R.string.mcp_empty_action),
+                        stringResource(R.string.altiv_mcp_empty_intro),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    MinisTextButton(onClick = { showAddSheet = true }) {
+                        Text(stringResource(R.string.altiv_mcp_empty_connect_button))
+                    }
                 }
             } else {
                 servers.forEachIndexed { index, server ->
