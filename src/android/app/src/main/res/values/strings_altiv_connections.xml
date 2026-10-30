@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ALTIV Fase 1: onboarding MCP discreto, preservando o fluxo de autenticação existente. -->
+    <string name="altiv_mcp_empty_intro">Connect an MCP server by URL or JSON. For supported services, sign in through your browser.</string>
+    <string name="altiv_mcp_empty_connect_button">Set up MCP connection</string>
+</resources>
