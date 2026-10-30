@@ -81,6 +81,21 @@ jobs:
           cp deps/build/rclone/rclone.aar src/android/app/libs/rclone.aar
           test -s src/android/app/libs/rclone.aar
 
+      - name: Give Kotlin compilation enough memory on CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The first CI run failed in compileGithubDebugKotlin with
+          # OutOfMemoryError: GC overhead limit exceeded (2 GiB heap).
+          # Override the default only in the ephemeral Actions workspace.
+          sed -i 's/^org\\.gradle\\.jvmargs=.*/org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -Dfile.encoding=UTF-8/' src/android/gradle.properties
+          grep -q '^org.gradle.jvmargs=-Xmx5g ' src/android/gradle.properties
+          {
+            echo 'kotlin.compiler.execution.strategy=in-process'
+            echo 'org.gradle.workers.max=2'
+            echo 'org.gradle.parallel=false'
+          } >> src/android/gradle.properties
+
       - name: Run MCP quick-connect unit tests
         working-directory: src/android
         shell: bash
