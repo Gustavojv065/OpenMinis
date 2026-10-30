@@ -52,6 +52,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.openminis.app.R
 import com.openminis.app.data.repository.MCPRepository
+import com.openminis.app.mcp.MCPQuickConnectCatalog
+import com.openminis.app.mcp.MCPQuickConnectPreset
 import com.openminis.app.mcp.oauth.MCPOAuthConfig
 import com.openminis.app.mcp.oauth.MCPOAuthController
 import com.openminis.app.mcp.oauth.MCPOAuthSignInLogic
@@ -88,6 +90,8 @@ fun MCPIntegrationsScreen(
     }
 
     var showAddSheet by remember { mutableStateOf(false) }
+    // A catalog row pre-fills the ADD form. It never saves or authorizes on tap.
+    var selectedQuickPreset by remember { mutableStateOf<MCPQuickConnectPreset?>(null) }
     // [T-mcp-review-fixes-android] FIX 1: tapping a row opens the form in EDIT
     // mode (matches iOS). null = the sheet is for adding a new server.
     var editServer by remember { mutableStateOf<MCPRepository.MCPServerConfig?>(null) }
@@ -165,6 +169,28 @@ fun MCPIntegrationsScreen(
                 }
             }
         }
+        Spacer(Modifier.height(16.dp))
+        SettingsSection(
+            header = stringResource(R.string.altiv_mcp_quick_title),
+            footer = stringResource(R.string.altiv_mcp_quick_footer),
+        ) {
+            MCPQuickConnectCatalog.presets.forEachIndexed { index, preset ->
+                SettingsRow(
+                    title = preset.label,
+                    subtitle = preset.url,
+                    showChevron = true,
+                    showDivider = index < MCPQuickConnectCatalog.presets.lastIndex,
+                    onClick = {
+                        val alreadyConfigured = servers.firstOrNull { it.id == preset.id }
+                        if (alreadyConfigured != null) {
+                            editServer = alreadyConfigured
+                        } else {
+                            selectedQuickPreset = preset
+                        }
+                    },
+                )
+            }
+        }
         Spacer(Modifier.height(24.dp))
     }
 
@@ -175,6 +201,17 @@ fun MCPIntegrationsScreen(
             editServer = null,
             onDismiss = { showAddSheet = false },
             onRequestDelete = {},
+        )
+    }
+
+    selectedQuickPreset?.let { preset ->
+        MCPAddSheet(
+            mcpRepository = mcpRepository,
+            envVarRepository = envVarRepository,
+            editServer = null,
+            onDismiss = { selectedQuickPreset = null },
+            onRequestDelete = {},
+            quickPreset = preset,
         )
     }
 
@@ -229,6 +266,7 @@ private fun MCPAddSheet(
     editServer: MCPRepository.MCPServerConfig?,
     onDismiss: () -> Unit,
     onRequestDelete: () -> Unit,
+    quickPreset: MCPQuickConnectPreset? = null,
 ) {
     // [T-android-mcp-sheet-ime-occlusion] GH#44: skipPartiallyExpanded so the
     // sheet opens full-height — at half-height the soft keyboard left no room
@@ -257,6 +295,14 @@ private fun MCPAddSheet(
                 style = MaterialTheme.typography.titleMedium,
             )
 
+            if (quickPreset != null) {
+                Text(
+                    stringResource(R.string.altiv_mcp_preset_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
             if (!isEdit) {
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
@@ -273,6 +319,7 @@ private fun MCPAddSheet(
                     mcpRepository = mcpRepository,
                     envVarRepository = envVarRepository,
                     editServer = editServer,
+                    quickPreset = quickPreset,
                     onDone = onDismiss,
                     onRequestDelete = onRequestDelete,
                 )
@@ -289,6 +336,7 @@ private fun MCPFormTab(
     mcpRepository: MCPRepository,
     envVarRepository: com.openminis.app.data.repository.EnvVarRepository?,
     editServer: MCPRepository.MCPServerConfig?,
+    quickPreset: MCPQuickConnectPreset?,
     onDone: () -> Unit,
     onRequestDelete: () -> Unit,
 ) {
@@ -316,9 +364,9 @@ private fun MCPFormTab(
     // both are url-only, so an SSE edit defaults to the HTTP affordance — the
     // saved entry is byte-identical either way).
     var transport by remember { mutableIntStateOf(if (editServer?.isStdio == true) 2 else 0) }
-    var name by remember { mutableStateOf(editServer?.id ?: "") }
+    var name by remember(quickPreset?.id) { mutableStateOf(editServer?.id ?: quickPreset?.id.orEmpty()) }
     var note by remember { mutableStateOf(editServer?.note ?: "") }
-    var url by remember { mutableStateOf(editServer?.url ?: "") }
+    var url by remember(quickPreset?.id) { mutableStateOf(editServer?.url ?: quickPreset?.url.orEmpty()) }
     var headers by remember { mutableStateOf(mapToLines(editServer?.headers, ": ")) }
     var command by remember { mutableStateOf(editServer?.command ?: "") }
     var args by remember { mutableStateOf(editServer?.args?.joinToString(" ") ?: "") }
@@ -335,7 +383,12 @@ private fun MCPFormTab(
     // (encrypted), never pre-filled from JSON (it isn't stored there).
     val oauthScope = androidx.compose.runtime.rememberCoroutineScope()
     val oauthController = remember { com.openminis.app.mcp.oauth.MCPOAuthController(context, http = mcpOAuthHttp) }
-    var authKind by remember { mutableStateOf(MCPOAuthSignInLogic.authKind(editServer?.oauth)) }
+    var authKind by remember(quickPreset?.id) {
+        mutableStateOf(
+            if (quickPreset != null) MCPOAuthSignInLogic.AuthKind.BROWSER
+            else MCPOAuthSignInLogic.authKind(editServer?.oauth),
+        )
+    }
     val manualOAuth = editServer?.oauth?.takeIf { !it.isDynamic }
     var oauthClientId by remember { mutableStateOf(manualOAuth?.clientId ?: "") }
     var oauthClientSecret by remember {
