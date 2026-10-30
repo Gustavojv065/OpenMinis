@@ -88,7 +88,7 @@ jobs:
           # The first CI run failed in compileGithubDebugKotlin with
           # OutOfMemoryError: GC overhead limit exceeded (2 GiB heap).
           # Override the default only in the ephemeral Actions workspace.
-          sed -i 's/^org\\.gradle\\.jvmargs=.*/org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -Dfile.encoding=UTF-8/' src/android/gradle.properties
+          sed -i 's/^org[.]gradle[.]jvmargs=.*/org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=768m -XX:+UseG1GC -Dfile.encoding=UTF-8/' src/android/gradle.properties
           grep -q '^org.gradle.jvmargs=-Xmx5g ' src/android/gradle.properties
           {
             echo 'kotlin.compiler.execution.strategy=in-process'
