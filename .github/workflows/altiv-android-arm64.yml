@@ -117,9 +117,11 @@ jobs:
           APK='src/android/app/build/outputs/apk/github/debug/app-github-debug.apk'
           test -s "$APK"
           unzip -Z1 "$APK" > "$RUNNER_TEMP/apk-files.txt"
+          # Android asset packaging can auto-decompress a .tar.gz file to .tar.
+          # RootfsManager.kt supports both formats at runtime; verify both
+          # acceptable names and the actual archive contents.
           for required in \
             'assets/proot-aarch64' \
-            'assets/alpine-minirootfs.tar.gz' \
             'lib/arm64-v8a/libproot.so' \
             'lib/arm64-v8a/libproot-loader.so' \
             'lib/arm64-v8a/libproot-loader32.so'; do
@@ -128,6 +130,18 @@ jobs:
               exit 1
             fi
           done
+          if grep -Fxq 'assets/alpine-minirootfs.tar.gz' "$RUNNER_TEMP/apk-files.txt"; then
+            ROOTFS_ENTRY='assets/alpine-minirootfs.tar.gz'
+            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tzf - > /dev/null
+          elif grep -Fxq 'assets/alpine-minirootfs.tar' "$RUNNER_TEMP/apk-files.txt"; then
+            ROOTFS_ENTRY='assets/alpine-minirootfs.tar'
+            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tf - > /dev/null
+          else
+            echo '::error::Missing Alpine rootfs: expected .tar.gz or .tar APK asset'
+            grep -E '^assets/.*(alpine|rootfs)' "$RUNNER_TEMP/apk-files.txt" || true
+            exit 1
+          fi
+          echo "Verified Alpine rootfs in APK: $ROOTFS_ENTRY"
           sha256sum "$APK" > "$APK.sha256"
           ls -lh "$APK" "$APK.sha256"
 
