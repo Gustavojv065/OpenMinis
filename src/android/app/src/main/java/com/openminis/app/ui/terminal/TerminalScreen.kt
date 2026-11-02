@@ -34,11 +34,15 @@ import androidx.compose.material.icons.filled.Eject
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardHide
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.PauseCircle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalConfiguration
 import android.content.res.Configuration
 import android.content.ClipData
@@ -182,6 +186,8 @@ fun TerminalScreen(
     // resolver and aren't reachable here, so we still consume them to avoid
     // leaking a stale pendingUrl back to chat on next attach.
     var previewUrl by remember { mutableStateOf<String?>(null) }
+    var showLocalPreviewDialog by remember { mutableStateOf(false) }
+    var localPreviewPort by remember { mutableStateOf("3000") }
     val pendingUrl by MinisOpenUrlBroker.pendingUrl.collectAsStateEffect()
     LaunchedEffect(pendingUrl) {
         val uri = pendingUrl ?: return@LaunchedEffect
@@ -261,6 +267,7 @@ fun TerminalScreen(
                     terminalSession.stop()
                     onBack()
                 },
+                onLocalPreview = { showLocalPreviewDialog = true },
                 onClear = {
                     // T310: send Ctrl+U (NAK, 0x15) so readline kills any
                     // half-typed line in the shell. Otherwise those chars
@@ -307,6 +314,42 @@ fun TerminalScreen(
             )
         }
 
+        if (showLocalPreviewDialog) {
+            val validatedUrl = LocalPreviewAddress.fromPortInput(localPreviewPort)
+            AlertDialog(
+                onDismissRequest = { showLocalPreviewDialog = false },
+                title = { Text("Prévia localhost") },
+                text = {
+                    Column {
+                        Text("Inicie o servidor no terminal e informe a porta. A página abrirá no navegador interno.")
+                        OutlinedTextField(
+                            value = localPreviewPort,
+                            onValueChange = { localPreviewPort = it.take(5) },
+                            label = { Text("Porta do servidor") },
+                            singleLine = true,
+                            isError = validatedUrl == null,
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = validatedUrl != null,
+                        onClick = {
+                            if (validatedUrl != null) {
+                                previewUrl = validatedUrl
+                                showLocalPreviewDialog = false
+                            }
+                        },
+                    ) { Text("Abrir prévia") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLocalPreviewDialog = false }) {
+                        Text("Cancelar")
+                    }
+                },
+            )
+        }
+
         previewUrl?.let { url ->
             com.openminis.app.ui.components.UrlPreviewSheet(
                 url = url,
@@ -330,6 +373,7 @@ private fun <T> kotlinx.coroutines.flow.StateFlow<T>.collectAsStateEffect(): and
 private fun TerminalTopBar(
     onClose: () -> Unit,
     onClear: () -> Unit,
+    onLocalPreview: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -354,6 +398,12 @@ private fun TerminalTopBar(
             ),
         )
         Spacer(modifier = Modifier.weight(1f))
+        CircularIconButton(
+            icon = Icons.Default.Language,
+            contentDescription = "Abrir prévia localhost",
+            tint = TerminalGreen,
+            onClick = onLocalPreview,
+        )
         CircularIconButton(
             icon = Icons.Default.Brush,
             contentDescription = stringResource(R.string.terminal_clear),
