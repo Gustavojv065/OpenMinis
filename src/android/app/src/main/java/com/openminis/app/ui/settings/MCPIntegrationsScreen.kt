@@ -54,6 +54,7 @@ import com.openminis.app.R
 import com.openminis.app.data.repository.MCPRepository
 import com.openminis.app.mcp.MCPQuickConnectCatalog
 import com.openminis.app.mcp.MCPQuickConnectPreset
+import com.openminis.app.mcp.SupabaseMcpProjectScope
 import com.openminis.app.mcp.oauth.MCPOAuthConfig
 import com.openminis.app.mcp.oauth.MCPOAuthController
 import com.openminis.app.mcp.oauth.MCPOAuthSignInLogic
@@ -92,6 +93,8 @@ fun MCPIntegrationsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     // A catalog row pre-fills the ADD form. It never saves or authorizes on tap.
     var selectedQuickPreset by remember { mutableStateOf<MCPQuickConnectPreset?>(null) }
+    var showSupabaseProjectDialog by remember { mutableStateOf(false) }
+    var supabaseProjectRef by remember { mutableStateOf("") }
     // [T-mcp-review-fixes-android] FIX 1: tapping a row opens the form in EDIT
     // mode (matches iOS). null = the sheet is for adding a new server.
     var editServer by remember { mutableStateOf<MCPRepository.MCPServerConfig?>(null) }
@@ -190,8 +193,60 @@ fun MCPIntegrationsScreen(
                     },
                 )
             }
+            SettingsRow(
+                title = "Supabase (por projeto)",
+                subtitle = "Conexão guiada, limitada a um projeto e somente leitura",
+                showChevron = true,
+                showDivider = false,
+                onClick = { showSupabaseProjectDialog = true },
+            )
         }
         Spacer(Modifier.height(24.dp))
+    }
+
+    if (showSupabaseProjectDialog) {
+        val scopedPreset = SupabaseMcpProjectScope.create(supabaseProjectRef)
+        AlertDialog(
+            onDismissRequest = { showSupabaseProjectDialog = false },
+            title = { Text("Conectar Supabase") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Informe o ID do projeto Supabase. O acesso será somente leitura e restrito a esse projeto.")
+                    DialogTextField(
+                        value = supabaseProjectRef,
+                        onValueChange = { supabaseProjectRef = it.take(48) },
+                        placeholder = "Referência do projeto (project_ref)",
+                        singleLine = true,
+                    )
+                    if (supabaseProjectRef.isNotBlank() && scopedPreset == null) {
+                        Text(
+                            "Informe 8 a 32 letras minúsculas ou números, sem espaços ou símbolos.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                MinisTextButton(
+                    enabled = scopedPreset != null,
+                    onClick = {
+                        if (scopedPreset != null) {
+                            val existing = servers.firstOrNull { it.id == scopedPreset.id }
+                            if (existing != null) editServer = existing
+                            else selectedQuickPreset = scopedPreset
+                            showSupabaseProjectDialog = false
+                            supabaseProjectRef = ""
+                        }
+                    },
+                ) { Text("Continuar") }
+            },
+            dismissButton = {
+                MinisTextButton(onClick = { showSupabaseProjectDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     if (showAddSheet) {
@@ -571,7 +626,7 @@ private fun MCPFormTab(
             placeholder = stringResource(R.string.mcp_form_name_placeholder),
             singleLine = true,
             // Editing keys by name/id; renaming would orphan the row, so lock it.
-            enabled = !isEdit,
+            enabled = !isEdit && quickPreset?.id?.startsWith("supabase-") != true,
         )
 
         if (isUrlTransport) {
@@ -939,6 +994,12 @@ private fun MCPFormTab(
         fun buildServerFromForm(): MCPRepository.MCPServerConfig? {
             if (name.isBlank()) {
                 errorText = context.getString(R.string.mcp_form_error_no_name); return null
+            }
+            if (name.trim().startsWith("supabase-") &&
+                !SupabaseMcpProjectScope.isSafeConfiguration(name.trim(), url.trim(), isUrlTransport)
+            ) {
+                errorText = "Supabase requer ID de projeto e modo somente leitura na conexão guiada."
+                return null
             }
             return if (isUrlTransport) {
                 if (url.isBlank()) {
