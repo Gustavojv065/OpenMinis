@@ -16,4 +16,5 @@
     <string name="altiv_health_limit">Limite de uso / créditos</string>
     <string name="altiv_health_timeout">Tempo esgotado</string>
     <string name="altiv_health_failed">Falha na resposta</string>
+    <string name="altiv_health_routing_hint">Os resultados dão prioridade aos modelos que responderam durante a troca automática por até 10 minutos. Todos os modelos configurados continuam disponíveis. Os testes não iniciam em segundo plano.</string>
 </resources>
