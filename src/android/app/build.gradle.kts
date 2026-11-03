@@ -158,6 +158,19 @@ android {
             buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
             buildConfigField("boolean", "IN_APP_INSTALL", "true")
         }
+        // ALTIV DEV AI: separate app identity so it installs alongside
+        // com.openminis.app, without replacing the user's Minis data.
+        // Keep namespace/class names unchanged for existing Activities,
+        // permissions and the PRoot/terminal runtime.
+        create("altiv") {
+            dimension = "distribution"
+            applicationId = "online.altiv.devai"
+            versionNameSuffix = "-altiv-test"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+            buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
+            buildConfigField("boolean", "IN_APP_INSTALL", "false")
+            buildConfigField("String", "RELEASE_REPO", "\"Gustavojv065/OpenMinis\"")
+        }
     }
 
     compileOptions {
@@ -234,6 +247,11 @@ val storeDevVariants = providers.gradleProperty("minis.storeDev").map { it.toBoo
 androidComponents {
     beforeVariants(selector().withFlavor("distribution" to "store")) { variant ->
         if (variant.buildType != "release" && !storeDevVariants) variant.enable = false
+    }
+    // Never publish a release-signed variant of the experimental ALTIV app.
+    // Building it requires an explicit :app:assembleAltivDebug invocation.
+    beforeVariants(selector().withFlavor("distribution" to "altiv")) { variant ->
+        if (variant.buildType != "debug") variant.enable = false
     }
 }
 for (buildType in listOf("debug", "release", "perf")) {
