@@ -7795,7 +7795,7 @@ class ChatViewModel(
         }
         // Honour recent opt-in connectivity tests, without dropping any
         // candidate or changing the user's configured fallback group.
-        return com.openminis.app.data.model.AltivModelHealthRegistry.prioritize(result) { it.entryId }
+        return com.openminis.app.data.model.AltivModelHealthRegistry.prioritize(result, entryId = { it.entryId })
     }
 
     /**
@@ -7885,7 +7885,7 @@ class ChatViewModel(
         }
         // The default-primary group for single-entry chats uses the same
         // short-lived ranking as normal group fallback.
-        return com.openminis.app.data.model.AltivModelHealthRegistry.prioritize(out) { it.entryId }
+        return com.openminis.app.data.model.AltivModelHealthRegistry.prioritize(out, entryId = { it.entryId })
     }
 
     /**
