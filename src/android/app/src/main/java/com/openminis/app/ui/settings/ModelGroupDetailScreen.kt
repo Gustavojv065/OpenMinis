@@ -96,6 +96,7 @@ fun ModelGroupDetailScreen(
     val config by providerRepository.config.collectAsState()
     val group = config.modelGroups.find { it.id == groupId }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showHealthSheet by remember { mutableStateOf(false) }
 
     if (group == null) {
         onBack()
@@ -429,6 +430,18 @@ fun ModelGroupDetailScreen(
                 }
             }
 
+            // ALTIV: explicit, bounded batch connectivity check of group members.
+            item {
+                MinisOutlinedButton(
+                    onClick = { showHealthSheet = true },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    enabled = memberIds.isNotEmpty(),
+                ) {
+                    Text(stringResource(R.string.altiv_health_open))
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+
             // ── Session Defaults (T312, mirrors iOS ModelGroupDetailView) ────
             item {
                 SettingsSection(
@@ -625,6 +638,16 @@ fun ModelGroupDetailScreen(
                 Spacer(Modifier.height(20.dp))
             }
         }
+    }
+
+    if (showHealthSheet) {
+        AltivGroupHealthSheet(
+            entries = group.memberEntryIds.mapNotNull { memberId ->
+                config.modelEntries.find { it.id == memberId }
+            },
+            providerRepository = providerRepository,
+            onDismiss = { showHealthSheet = false },
+        )
     }
 
     quotaSheetInstanceId?.let { id ->
