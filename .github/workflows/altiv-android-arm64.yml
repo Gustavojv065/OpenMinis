@@ -101,24 +101,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon :app:testDebugUnitTest \
+          ./gradlew --no-daemon :app:testAltivDebugUnitTest \
             --tests 'com.openminis.app.mcp.MCPQuickConnectCatalogTest' \
             --tests 'com.openminis.app.mcp.SupabaseMcpProjectScopeTest' \
             --tests 'com.openminis.app.ui.terminal.LocalPreviewAddressTest'
 
-      - name: Compile Android ARM64 debug APK
+      - name: Compile dedicated ALTIV DEV AI Android ARM64 APK
         working-directory: src/android
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon :app:assembleDebug
+          ./gradlew --no-daemon :app:assembleAltivDebug
 
       - name: Verify APK contains executable Linux sandbox and ARM64 runtime
         shell: bash
         run: |
           set -euo pipefail
-          APK='src/android/app/build/outputs/apk/github/debug/app-github-debug.apk'
+          APK='src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk'
           test -s "$APK"
+          # App identity must not collide with the installed Minis APK.
+          BADGING="$("$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt" dump badging "$APK")"
+          grep -Fq "package: name='online.altiv.devai'" <<< "$BADGING"
+          grep -Fq "application-label:'ALTIV DEV AI'" <<< "$BADGING"
           unzip -Z1 "$APK" > "$RUNNER_TEMP/apk-files.txt"
           # Android asset packaging can auto-decompress a .tar.gz file to .tar.
           # RootfsManager.kt supports both formats at runtime; verify both
@@ -151,9 +155,9 @@ jobs:
       - name: Publish downloadable debug APK and checksum
         uses: actions/upload-artifact@v4
         with:
-          name: altiv-openminis-arm64-debug-${{ github.run_number }}
+          name: altiv-dev-ai-independent-arm64-${{ github.run_number }}
           path: |
-            src/android/app/build/outputs/apk/github/debug/app-github-debug.apk
-            src/android/app/build/outputs/apk/github/debug/app-github-debug.apk.sha256
+            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk
+            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.sha256
           if-no-files-found: error
           retention-days: 14
