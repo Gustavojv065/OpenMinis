@@ -165,7 +165,7 @@ fun SoulSettingsScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         val parsed = withContext(Dispatchers.IO) {
             SoulStore.ensureExists(context)
-            SoulStore.load(context) ?: SoulMDParser.parse(SoulStore.DEFAULT_CONTENT)
+            SoulStore.load(context) ?: SoulMDParser.parse(SoulStore.defaultContentFor(context))
         }
         name = parsed.metadata.name
         preservedEmoji = parsed.metadata.emoji
@@ -453,7 +453,7 @@ fun SoulSettingsScreen(onBack: () -> Unit) {
             text = { Text(stringResource(R.string.soul_restore_confirm_body)) },
             confirmButton = {
                 MinisButton(onClick = {
-                    val parsed = SoulMDParser.parse(SoulStore.DEFAULT_CONTENT)
+                    val parsed = SoulMDParser.parse(SoulStore.defaultContentFor(context))
                     name = parsed.metadata.name
                     preservedEmoji = parsed.metadata.emoji
                     icon = parsed.metadata.icon
