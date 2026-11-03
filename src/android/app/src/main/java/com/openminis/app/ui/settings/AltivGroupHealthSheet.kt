@@ -110,7 +110,27 @@ internal fun AltivGroupHealthSheet(
                                     results.indices.forEach { i ->
                                         coroutineContext.ensureActive()
                                         results[i] = AltivModelHealthProbe.Result(AltivModelHealthProbe.Status.RUNNING)
-                                        results[i] = AltivModelHealthProbe.check(selectedEntries[i], providerRepository, context)
+                                        val response = AltivModelHealthProbe.check(
+                                            selectedEntries[i], providerRepository, context,
+                                        )
+                                        results[i] = response
+                                        // Share only this model's short-lived pass/fail with
+                                        // the user's existing group fallback. No keys, text
+                                        // or provider requests are stored or started here.
+                                        when (response.status) {
+                                            AltivModelHealthProbe.Status.WORKING ->
+                                                com.openminis.app.data.model.AltivModelHealthRegistry.record(
+                                                    selectedEntries[i].id, working = true,
+                                                )
+                                            AltivModelHealthProbe.Status.AUTH_FAILED,
+                                            AltivModelHealthProbe.Status.RATE_LIMITED,
+                                            AltivModelHealthProbe.Status.TIMEOUT,
+                                            AltivModelHealthProbe.Status.FAILED ->
+                                                com.openminis.app.data.model.AltivModelHealthRegistry.record(
+                                                    selectedEntries[i].id, working = false,
+                                                )
+                                            else -> Unit
+                                        }
                                     }
                                 } catch (cancel: CancellationException) {
                                     throw cancel
