@@ -23,6 +23,25 @@ internal object SupabaseMcpProjectScope {
         )
     }
 
+    /**
+     * The user can paste either a Supabase project ref or the URL displayed in
+     * the Supabase Dashboard. Never use the provided URL for network requests:
+     * extract an allowlisted project ref and build our own read-only URL.
+     */
+    fun createFromUserInput(input: String): MCPQuickConnectPreset? {
+        val value = input.trim()
+        if (!value.startsWith("https://")) return create(value)
+        val dashboard = try { java.net.URI(value) } catch (_: Exception) { return null }
+        if (dashboard.scheme != "https" ||
+            dashboard.host != "supabase.com" ||
+            dashboard.port != -1 ||
+            dashboard.userInfo != null
+        ) return null
+        val segments = dashboard.path.split("/")
+        if (segments.size < 4 || segments[1] != "dashboard" || segments[2] != "project") return null
+        return create(segments[3])
+    }
+
     /** Prevent accidental removal of project scope/read-only in guided entries. */
     fun isSafeConfiguration(serverId: String, url: String, isUrlTransport: Boolean): Boolean {
         if (!isUrlTransport || !serverId.startsWith(prefix)) return false
