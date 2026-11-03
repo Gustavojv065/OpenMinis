@@ -10,12 +10,12 @@ class AltivModelHealthProbeTest {
     @Test
     fun `detects auth errors, quota errors and timeouts without leaking details`() {
         val probe = AltivModelHealthProbe
-        assertEquals(probe.Status.AUTH_FAILED, probe.classifyError("HTTP 401 unauthorized"))
-        assertEquals(probe.Status.AUTH_FAILED, probe.classifyError("HTTP 403 forbidden"))
-        assertEquals(probe.Status.RATE_LIMITED, probe.classifyError("HTTP 429 rate limit"))
-        assertEquals(probe.Status.RATE_LIMITED, probe.classifyError("insufficient_quota"))
-        assertEquals(probe.Status.TIMEOUT, probe.classifyError("request timed out"))
-        assertEquals(probe.Status.FAILED, probe.classifyError("HTTP 500 internal error"))
+        assertEquals(AltivModelHealthProbe.Status.AUTH_FAILED, probe.classifyError("HTTP 401 unauthorized"))
+        assertEquals(AltivModelHealthProbe.Status.AUTH_FAILED, probe.classifyError("HTTP 403 forbidden"))
+        assertEquals(AltivModelHealthProbe.Status.RATE_LIMITED, probe.classifyError("HTTP 429 rate limit"))
+        assertEquals(AltivModelHealthProbe.Status.RATE_LIMITED, probe.classifyError("insufficient_quota"))
+        assertEquals(AltivModelHealthProbe.Status.TIMEOUT, probe.classifyError("request timed out"))
+        assertEquals(AltivModelHealthProbe.Status.FAILED, probe.classifyError("HTTP 500 internal error"))
     }
 
     @Test
