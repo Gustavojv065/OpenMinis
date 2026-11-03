@@ -104,7 +104,8 @@ jobs:
           ./gradlew --no-daemon :app:testAltivDebugUnitTest \
             --tests 'com.openminis.app.mcp.MCPQuickConnectCatalogTest' \
             --tests 'com.openminis.app.mcp.SupabaseMcpProjectScopeTest' \
-            --tests 'com.openminis.app.ui.terminal.LocalPreviewAddressTest'
+            --tests 'com.openminis.app.ui.terminal.LocalPreviewAddressTest' \
+            --tests 'com.openminis.app.ui.settings.AltivModelHealthProbeTest'
 
       - name: Compile dedicated ALTIV DEV AI Android ARM64 APK
         working-directory: src/android
