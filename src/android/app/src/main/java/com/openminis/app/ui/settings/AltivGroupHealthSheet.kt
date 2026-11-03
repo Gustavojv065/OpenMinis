@@ -93,6 +93,11 @@ internal fun AltivGroupHealthSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
+            Text(
+                stringResource(R.string.altiv_health_routing_hint),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
             if (entries.size > selectedEntries.size) {
                 Text(
                     stringResource(R.string.altiv_health_cap, selectedEntries.size, entries.size),
