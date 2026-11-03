@@ -177,6 +177,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.openminis.app.BuildConfig
+import com.openminis.app.ui.components.AppBrandLogo
 import com.openminis.app.R
 import com.openminis.app.data.db.ChatSessionEntity
 import com.openminis.app.data.db.FolderEntity
@@ -3548,12 +3550,18 @@ private fun OnboardingLanding(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = Icons.Default.AutoAwesome,
-            contentDescription = null,
-            modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
+        // Show the ALTIV launcher brand rather than the upstream sparkle on
+        // the first-run experience. Leave the original Minis flavor unchanged.
+        if (BuildConfig.FLAVOR == "altiv") {
+            AppBrandLogo(modifier = Modifier.size(80.dp))
+        } else {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                modifier = Modifier.size(56.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
         Spacer(Modifier.height(16.dp))
 
         Text(
