@@ -60,4 +60,18 @@
     <string name="altiv_mcp_quick_title">Conexões rápidas</string>
     <string name="altiv_mcp_quick_footer">Escolha um serviço remoto para preencher a configuração. Salve e autorize o acesso antes de usar as ferramentas. Outros servidores podem ser adicionados pelo botão +.</string>
     <string name="altiv_mcp_preset_hint">A URL do serviço foi preenchida. Confira os dados e entre pelo navegador se o servidor permitir. Salvar não significa que a conexão foi testada.</string>
+    <!-- Atalhos ALTIV para provedores extras de chave API. -->
+    <string name="altiv_other_api_providers">Outros provedores (chave API)</string>
+    <string name="altiv_other_api_providers_footer">Selecione um provedor para preencher a URL da API. Informe sua própria chave; gratuidade, limites e cobranças dependem do serviço. É possível editar o endereço e escolher os modelos.</string>
+    <string name="altiv_api_nvidia_desc">Modelos NVIDIA e parceiros via API</string>
+    <string name="altiv_api_groq_desc">Inferência rápida; plano gratuito limitado</string>
+    <string name="altiv_api_cerebras_desc">Inferência rápida; consulte créditos de teste</string>
+    <string name="altiv_api_mistral_desc">Modelos Mistral; consulte os limites atuais</string>
+    <string name="altiv_api_huggingface_desc">Vários modelos; consulte o token e os limites</string>
+    <string name="altiv_api_opencode_desc">Modelos de programação; consulte saldo e plano</string>
+    <string name="altiv_api_deepseek_desc">Modelos DeepSeek; verifique seu saldo</string>
+    <string name="altiv_api_together_desc">Modelos abertos; pode exigir recarga inicial</string>
+    <string name="altiv_api_fireworks_desc">Inferência de modelos abertos; verifique os créditos</string>
+    <string name="altiv_api_siliconflow_desc">Modelos de IA; disponibilidade depende da região</string>
+    <string name="altiv_api_deepinfra_desc">Modelos hospedados; verifique os créditos</string>
 </resources>
