@@ -98,7 +98,7 @@ class AltivModelHealthProbeTest {
         val viewModel = File("src/main/java/com/openminis/app/ui/chat/ChatViewModel.kt").readText()
         assertTrue(healthSheet.contains("AltivModelHealthRegistry.record("))
         assertFalse(healthSheet.contains("LaunchedEffect"))
-        assertTrue(viewModel.contains("AltivModelHealthRegistry.prioritize(result)"))
-        assertTrue(viewModel.contains("AltivModelHealthRegistry.prioritize(out)"))
+        assertTrue(viewModel.contains("AltivModelHealthRegistry.prioritize(result, entryId = { it.entryId })"))
+        assertTrue(viewModel.contains("AltivModelHealthRegistry.prioritize(out, entryId = { it.entryId })"))
     }
 }
