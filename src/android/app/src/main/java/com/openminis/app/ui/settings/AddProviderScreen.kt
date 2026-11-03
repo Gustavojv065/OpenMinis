@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.openminis.app.auth.OpenAIOAuthManager
 import com.openminis.app.auth.OpenRouterOAuthManager
+import com.openminis.app.data.model.ApiProviderTemplate
 import com.openminis.app.data.model.ProviderCredential
 import com.openminis.app.data.model.ProviderInstance
 import com.openminis.app.data.model.ProviderType
@@ -102,6 +103,7 @@ fun AddProviderScreen(
     var selectedVoiceTemplate by remember {
         mutableStateOf<com.openminis.app.data.model.VoiceProviderTemplate?>(null)
     }
+    var selectedApiTemplate by remember { mutableStateOf<ApiProviderTemplate?>(null) }
 
     // Unified back handler: reuse each step's onBack so predictive-back gesture
     // and the top-bar arrow behave identically (go back to prior step, not exit).
@@ -115,10 +117,11 @@ fun AddProviderScreen(
             AddProviderStep.CONFIGURE -> {
                 // Voice-template entry skipped the credential step entirely —
                 // back returns straight to the type/template list.
-                if (selectedVoiceTemplate != null) {
+                if (selectedVoiceTemplate != null || selectedApiTemplate != null) {
                     step = AddProviderStep.CHOOSE_TYPE
                     selectedType = null
                     selectedVoiceTemplate = null
+                    selectedApiTemplate = null
                 } else {
                     val creds = availableCredentials(selectedType!!)
                     if (creds.size == 1) {
@@ -140,6 +143,8 @@ fun AddProviderScreen(
         AddProviderStep.CHOOSE_TYPE -> ChooseProviderScreen(
             onBack = handleBack,
             onSelect = { type ->
+                selectedApiTemplate = null
+                selectedVoiceTemplate = null
                 selectedType = type
                 val creds = availableCredentials(type)
                 if (creds.size == 1) {
@@ -150,7 +155,15 @@ fun AddProviderScreen(
                     step = AddProviderStep.CHOOSE_CREDENTIAL
                 }
             },
+            onSelectApiTemplate = { template ->
+                selectedApiTemplate = template
+                selectedVoiceTemplate = null
+                selectedType = ProviderType.openAI
+                selectedCredential = ProviderCredential.apiKey
+                step = AddProviderStep.CONFIGURE
+            },
             onSelectVoiceTemplate = { template ->
+                selectedApiTemplate = null
                 // Mirror iOS applyVoiceTemplate: pick the underlying protocol,
                 // force API-key credential, jump straight to configure.
                 selectedVoiceTemplate = template
@@ -172,6 +185,7 @@ fun AddProviderScreen(
             credentialType = selectedCredential!!,
             providerRepository = providerRepository,
             voiceTemplate = selectedVoiceTemplate,
+            apiTemplate = selectedApiTemplate,
             onBack = handleBack,
             onSaved = onSaved,
         )
@@ -251,6 +265,7 @@ private fun ChooseProviderScreen(
     onBack: () -> Unit,
     onSelect: (ProviderType) -> Unit,
     onSelectVoiceTemplate: (com.openminis.app.data.model.VoiceProviderTemplate) -> Unit = {},
+    onSelectApiTemplate: (ApiProviderTemplate) -> Unit = {},
 ) {
     SettingsScaffold(
         title = stringResource(R.string.provider_list_add_provider),
@@ -317,6 +332,40 @@ private fun ChooseProviderScreen(
                     iconColor = iconColor,
                     onClick = { onSelect(type) },
                     showDivider = index < offeredTypes.size - 1,
+                )
+            }
+        }
+
+
+        // ALTIV: direct presets use the existing OpenAI-compatible protocol
+        // and skip credential selection to start with the API key form.
+        val apiTemplates = ApiProviderTemplate.all
+        SettingsSection(
+            header = stringResource(R.string.altiv_other_api_providers),
+            footer = stringResource(R.string.altiv_other_api_providers_footer),
+        ) {
+            apiTemplates.forEachIndexed { index, template ->
+                val subtitleRes = when (template.id) {
+                    "nvidia" -> R.string.altiv_api_nvidia_desc
+                    "groq" -> R.string.altiv_api_groq_desc
+                    "cerebras" -> R.string.altiv_api_cerebras_desc
+                    "mistral" -> R.string.altiv_api_mistral_desc
+                    "huggingface" -> R.string.altiv_api_huggingface_desc
+                    "opencode" -> R.string.altiv_api_opencode_desc
+                    "deepseek" -> R.string.altiv_api_deepseek_desc
+                    "together" -> R.string.altiv_api_together_desc
+                    "fireworks" -> R.string.altiv_api_fireworks_desc
+                    "siliconflow" -> R.string.altiv_api_siliconflow_desc
+                    "deepinfra" -> R.string.altiv_api_deepinfra_desc
+                    else -> R.string.add_provider_subtitle_openai
+                }
+                SettingsRow(
+                    title = template.name,
+                    subtitle = stringResource(subtitleRes),
+                    icon = Icons.Default.Cloud,
+                    iconColor = Color(0xFF42A5F5),
+                    onClick = { onSelectApiTemplate(template) },
+                    showDivider = index < apiTemplates.lastIndex,
                 )
             }
         }
@@ -436,6 +485,7 @@ private fun ConfigureProviderScreen(
     credentialType: ProviderCredential,
     providerRepository: ProviderRepository,
     voiceTemplate: com.openminis.app.data.model.VoiceProviderTemplate? = null,
+    apiTemplate: ApiProviderTemplate? = null,
     onBack: () -> Unit,
     onSaved: () -> Unit,
 ) {
@@ -443,7 +493,7 @@ private fun ConfigureProviderScreen(
     // A voice template preseeds its vendor name instead of the protocol name.
     val config by providerRepository.config.collectAsState()
     val defaultLabel = remember(config) {
-        val baseName = voiceTemplate?.name ?: providerType.displayName
+        val baseName = voiceTemplate?.name ?: apiTemplate?.name ?: providerType.displayName
         val existingLabels = config.instances.map { it.label }.toSet()
         if (baseName !in existingLabels) baseName
         else {
@@ -471,7 +521,7 @@ private fun ConfigureProviderScreen(
         if (!labelEdited) label = defaultLabel
     }
     var apiKey by remember { mutableStateOf("") }
-    var customBaseURL by remember { mutableStateOf(voiceTemplate?.baseURL ?: "") }
+    var customBaseURL by remember { mutableStateOf(voiceTemplate?.baseURL ?: apiTemplate?.baseURL ?: "") }
 
     SettingsScaffold(
         title = stringResource(R.string.add_provider_configure_provider, providerType.displayName),
@@ -506,7 +556,7 @@ private fun ConfigureProviderScreen(
                 customBaseURL = customBaseURL,
                 onCustomBaseURLChange = { customBaseURL = it },
                 providerRepository = providerRepository,
-                initialAppendV1 = voiceTemplate?.appendV1,
+                initialAppendV1 = voiceTemplate?.appendV1 ?: apiTemplate?.appendV1,
                 onSaved = onSaved,
             )
             ProviderCredential.oauth -> OAuthConfigSection(
