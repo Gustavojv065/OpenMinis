@@ -118,7 +118,12 @@ fun AboutScreen(onBack: () -> Unit) {
                 // LocalInAppBrowserLauncher ambient defaults to a no-op when
                 // no InAppBrowserHost is in the tree above this screen — and
                 // nothing wraps Settings, so the row used to be a dead tap.
-                onClick = { openExternalUrl(context, "https://github.com/OpenMinis/OpenMinis") },
+                onClick = {
+                    val repo = if (BuildConfig.FLAVOR == "altiv")
+                        "https://github.com/Gustavojv065/OpenMinis"
+                    else "https://github.com/OpenMinis/OpenMinis"
+                    openExternalUrl(context, repo)
+                },
                 trailing = { ExternalLinkIcon() },
                 showDivider = false,
             )
@@ -127,7 +132,9 @@ fun AboutScreen(onBack: () -> Unit) {
         // T122: surface the existing UpdateChecker entry on the About screen.
         // The composable was already implemented but never wired anywhere, so
         // users had no way to trigger a check.
-        CheckUpdateSection()
+        // The ALTIV test APK intentionally has no in-app update installer
+        // or signed release channel yet. Keep the upstream update UI intact.
+        if (BuildConfig.FLAVOR != "altiv") CheckUpdateSection()
 
         Spacer(Modifier.height(24.dp))
     }
