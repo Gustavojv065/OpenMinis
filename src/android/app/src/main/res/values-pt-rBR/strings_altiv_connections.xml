@@ -60,4 +60,21 @@
     <string name="altiv_mcp_quick_title">Conexões rápidas</string>
     <string name="altiv_mcp_quick_footer">Escolha um serviço remoto para preencher a configuração. Salve e autorize o acesso antes de usar as ferramentas. Outros servidores podem ser adicionados pelo botão +.</string>
     <string name="altiv_mcp_preset_hint">A URL do serviço foi preenchida. Confira os dados e entre pelo navegador se o servidor permitir. Salvar não significa que a conexão foi testada.</string>
+    <!-- Teste de disponibilidade sob demanda em grupos selecionados pelo usuário. -->
+    <string name="altiv_health_open">Testar IAs deste grupo</string>
+    <string name="altiv_health_title">Teste de disponibilidade das IAs</string>
+    <string name="altiv_health_warning">Nada é testado automaticamente. Toque em Iniciar para enviar uma mensagem curta (até 32 tokens de saída) a cada IA, uma por vez. O uso da API pode consumir créditos ou gerar cobranças. Nenhuma conversa ou chave de API é enviada a outros provedores.</string>
+    <string name="altiv_health_cap">Testando os primeiros %1$d de %2$d modelos. Divida grupos grandes para testar os demais.</string>
+    <string name="altiv_health_start">Iniciar testes</string>
+    <string name="altiv_health_summary">Respondendo: %1$d de %2$d modelos</string>
+    <string name="altiv_health_waiting">Não testado</string>
+    <string name="altiv_health_running">Testando…</string>
+    <string name="altiv_health_working">Respondeu com sucesso</string>
+    <string name="altiv_health_no_key">Sem credencial</string>
+    <string name="altiv_health_disabled">Indisponível ou desativado</string>
+    <string name="altiv_health_incompatible">Modelo não textual</string>
+    <string name="altiv_health_auth">Erro de autenticação</string>
+    <string name="altiv_health_limit">Limite de uso / créditos</string>
+    <string name="altiv_health_timeout">Tempo esgotado</string>
+    <string name="altiv_health_failed">Falha na resposta</string>
 </resources>
