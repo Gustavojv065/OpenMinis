@@ -410,22 +410,35 @@ fun SettingsScreen(
                         openExternalUrl(context, buildBugReportUrl())
                     },
                 )
-                FeedbackSheetItem(
-                    icon = Icons.AutoMirrored.Outlined.Send,
-                    title = stringResource(R.string.settings_feedback_telegram),
-                    onClick = {
-                        showFeedbackSheet = false
-                        openExternalUrl(context, "https://t.me/+2NzhOJuzRyI1YmM1")
-                    },
-                )
-                FeedbackSheetItem(
-                    icon = Icons.Outlined.Email,
-                    title = stringResource(R.string.settings_feedback_email),
-                    onClick = {
-                        showFeedbackSheet = false
-                        openExternalUrl(context, buildFeedbackMailto())
-                    },
-                )
+                if (BuildConfig.FLAVOR == "altiv") {
+                    // ALTIV feedback must never send the user's diagnostics
+                    // to the unrelated original project's Telegram/email.
+                    FeedbackSheetItem(
+                        icon = Icons.AutoMirrored.Outlined.Send,
+                        title = stringResource(R.string.settings_feedback_telegram),
+                        onClick = {
+                            showFeedbackSheet = false
+                            openExternalUrl(context, "https://wa.me/5565992666940")
+                        },
+                    )
+                } else {
+                    FeedbackSheetItem(
+                        icon = Icons.AutoMirrored.Outlined.Send,
+                        title = stringResource(R.string.settings_feedback_telegram),
+                        onClick = {
+                            showFeedbackSheet = false
+                            openExternalUrl(context, "https://t.me/+2NzhOJuzRyI1YmM1")
+                        },
+                    )
+                    FeedbackSheetItem(
+                        icon = Icons.Outlined.Email,
+                        title = stringResource(R.string.settings_feedback_email),
+                        onClick = {
+                            showFeedbackSheet = false
+                            openExternalUrl(context, buildFeedbackMailto())
+                        },
+                    )
+                }
             }
         }
     }
@@ -500,7 +513,7 @@ private fun buildBugReportUrl(): String {
         |-------|-------|
         | Platform | Android |
         | OS Version | Android $osVersion (API $sdkInt) |
-        | Minis Version | $versionName (build $versionCode) |
+        | ${if (BuildConfig.FLAVOR == "altiv") "ALTIV DEV AI" else "Minis"} Version | $versionName (build $versionCode) |
         | Device Model | $manufacturer $model |
 
         ## 🔁 Steps to Reproduce
@@ -529,7 +542,9 @@ private fun buildBugReportUrl(): String {
     // since URLEncoder turns spaces into '+' which GitHub also accepts but
     // the spec calls for the literal "[Bug] " form.
     val title = java.net.URLEncoder.encode("[Bug] ", "UTF-8")
-    return "https://github.com/OpenMinis/OpenMinis/issues/new" +
+    val repository = if (BuildConfig.FLAVOR == "altiv")
+        "Gustavojv065/OpenMinis" else "OpenMinis/OpenMinis"
+    return "https://github.com/$repository/issues/new" +
         "?template=bug_report.md" +
         "&title=$title" +
         "&body=$encodedBody"
