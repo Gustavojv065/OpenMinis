@@ -45,4 +45,60 @@ class AltivModelHealthProbeTest {
         assertTrue(group.contains("FallbackStrategy.always"))
         assertTrue(group.contains("AltivGroupHealthSheet("))
     }
+
+    @Test
+    fun `working models precede unknown and recently failing models, stably`() {
+        val registry = com.openminis.app.data.model.AltivModelHealthRegistry
+        registry.clear()
+        val now = 100_000L
+        registry.record("fail", working = false, checkedAtMillis = now)
+        registry.record("ok", working = true, checkedAtMillis = now)
+        val ranked = registry.prioritize(
+            listOf("fail", "unknown1", "ok", "unknown2"),
+            entryId = { it }, nowMillis = now + 1_000,
+        )
+        assertEquals(listOf("ok", "unknown1", "unknown2", "fail"), ranked)
+        registry.clear()
+    }
+
+    @Test
+    fun `health hints expire and restore the configured order`() {
+        val registry = com.openminis.app.data.model.AltivModelHealthRegistry
+        registry.clear()
+        val now = 200_000L
+        registry.record("failed", working = false, checkedAtMillis = now)
+        registry.record("ok", working = true, checkedAtMillis = now)
+        assertEquals(
+            listOf("failed", "untested", "ok"),
+            registry.prioritize(
+                listOf("failed", "untested", "ok"),
+                entryId = { it },
+                nowMillis = now + registry.MAX_AGE_MS,
+            ),
+        )
+        registry.clear()
+    }
+
+    @Test
+    fun `fresh test updates previous failure and does not remove candidates`() {
+        val registry = com.openminis.app.data.model.AltivModelHealthRegistry
+        registry.clear()
+        registry.record("one", working = false, checkedAtMillis = 10_000L)
+        registry.record("one", working = true, checkedAtMillis = 20_000L)
+        val candidates = listOf("two", "one", "three")
+        val ranked = registry.prioritize(candidates, entryId = { it }, nowMillis = 20_100L)
+        assertEquals(listOf("one", "two", "three"), ranked)
+        assertEquals(candidates.size, ranked.size)
+        registry.clear()
+    }
+
+    @Test
+    fun `router only uses already selected group candidates and never probes automatically`() {
+        val healthSheet = File("src/main/java/com/openminis/app/ui/settings/AltivGroupHealthSheet.kt").readText()
+        val viewModel = File("src/main/java/com/openminis/app/ui/chat/ChatViewModel.kt").readText()
+        assertTrue(healthSheet.contains("AltivModelHealthRegistry.record("))
+        assertFalse(healthSheet.contains("LaunchedEffect"))
+        assertTrue(viewModel.contains("AltivModelHealthRegistry.prioritize(result)"))
+        assertTrue(viewModel.contains("AltivModelHealthRegistry.prioritize(out)"))
+    }
 }
