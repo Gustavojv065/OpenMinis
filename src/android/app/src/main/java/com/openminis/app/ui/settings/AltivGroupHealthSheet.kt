@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -124,7 +125,7 @@ internal fun AltivGroupHealthSheet(
                     Text(stringResource(R.string.altiv_health_start))
                 }
                 OutlinedButton(onClick = close) {
-                    Text(stringResource(R.string.common_close))
+                    Text(stringResource(R.string.quicktest_done))
                 }
             }
             val workingCount = results.count { it.status == AltivModelHealthProbe.Status.WORKING }
@@ -143,7 +144,7 @@ internal fun AltivGroupHealthSheet(
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (result.status == AltivModelHealthProbe.Status.RUNNING) {
-                            CircularProgressIndicator(strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         }
                         Text(
                             stringResource(statusLabels.getValue(result.status)),
