@@ -16,4 +16,5 @@
     <string name="altiv_health_limit">Rate limit / quota</string>
     <string name="altiv_health_timeout">Timed out</string>
     <string name="altiv_health_failed">Failed to respond</string>
+    <string name="altiv_health_routing_hint">Results help prioritize working models during automatic fallback for up to 10 minutes. All configured models remain eligible. Tests never start in the background.</string>
 </resources>
