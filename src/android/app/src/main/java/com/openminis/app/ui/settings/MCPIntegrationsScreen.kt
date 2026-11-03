@@ -95,6 +95,17 @@ fun MCPIntegrationsScreen(
     var selectedQuickPreset by remember { mutableStateOf<MCPQuickConnectPreset?>(null) }
     var showSupabaseProjectDialog by remember { mutableStateOf(false) }
     var supabaseProjectRef by remember { mutableStateOf("") }
+    var supabaseBusy by remember { mutableStateOf(false) }
+    var supabaseStatus by remember { mutableStateOf<String?>(null) }
+    var supabaseError by remember { mutableStateOf<String?>(null) }
+    val supabaseAuthScope = androidx.compose.runtime.rememberCoroutineScope()
+    val supabaseOAuthController = remember {
+        MCPOAuthController(screenContext, http = mcpOAuthHttp)
+    }
+    val supabaseConnections = servers.filter {
+        it.id.startsWith("supabase-") &&
+            SupabaseMcpProjectScope.isSafeConfiguration(it.id, it.url.orEmpty(), !it.isStdio)
+    }
     // [T-mcp-review-fixes-android] FIX 1: tapping a row opens the form in EDIT
     // mode (matches iOS). null = the sheet is for adding a new server.
     var editServer by remember { mutableStateOf<MCPRepository.MCPServerConfig?>(null) }
@@ -109,6 +120,52 @@ fun MCPIntegrationsScreen(
             }
         },
     ) {
+        // Direct first-class entry: the user never needs to type MCP JSON,
+        // authorization headers, server URL or OAuth client credentials.
+        SettingsSection(
+            header = "Integrações de desenvolvimento",
+            footer = "A conexão inicial é restrita a um projeto e somente leitura.",
+        ) {
+            SettingsRow(
+                title = "Supabase",
+                subtitle = if (supabaseConnections.isEmpty()) {
+                    "Conectar meu projeto pelo navegador"
+                } else {
+                    "${supabaseConnections.size} projeto(s) configurado(s) • Adicionar outro"
+                },
+                showChevron = true,
+                showDivider = supabaseConnections.isNotEmpty(),
+                onClick = {
+                    supabaseProjectRef = ""
+                    supabaseError = null
+                    supabaseStatus = null
+                    showSupabaseProjectDialog = true
+                },
+            )
+            supabaseConnections.forEachIndexed { index, server ->
+                val ref = server.id.removePrefix("supabase-")
+                val authorized = supabaseOAuthController.isAuthorized(server.id)
+                SettingsRow(
+                    title = "Projeto $ref",
+                    subtitle = if (authorized) {
+                        "Autorizado neste aparelho • Toque para gerenciar"
+                    } else {
+                        "Aguardando autorização • Toque para entrar"
+                    },
+                    showChevron = true,
+                    showDivider = index < supabaseConnections.lastIndex,
+                    onClick = {
+                        if (authorized) editServer = server else {
+                            supabaseProjectRef = ref
+                            supabaseError = null
+                            supabaseStatus = null
+                            showSupabaseProjectDialog = true
+                        }
+                    },
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
         SettingsSection(
             header = stringResource(R.string.mcp_section_servers),
             footer = stringResource(R.string.mcp_section_footer),
@@ -193,34 +250,53 @@ fun MCPIntegrationsScreen(
                     },
                 )
             }
-            SettingsRow(
-                title = "Supabase (por projeto)",
-                subtitle = "Conexão guiada, limitada a um projeto e somente leitura",
-                showChevron = true,
-                showDivider = false,
-                onClick = { showSupabaseProjectDialog = true },
-            )
         }
         Spacer(Modifier.height(24.dp))
     }
 
     if (showSupabaseProjectDialog) {
-        val scopedPreset = SupabaseMcpProjectScope.create(supabaseProjectRef)
+        val scopedPreset = SupabaseMcpProjectScope.createFromUserInput(supabaseProjectRef)
         AlertDialog(
-            onDismissRequest = { showSupabaseProjectDialog = false },
+            onDismissRequest = { if (!supabaseBusy) showSupabaseProjectDialog = false },
             title = { Text("Conectar Supabase") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Informe o ID do projeto Supabase. O acesso será somente leitura e restrito a esse projeto.")
+                    Text("1. Abra o painel Supabase e copie o link do projeto.")
+                    Text("2. Cole o link aqui e entre com sua conta no navegador.")
                     DialogTextField(
                         value = supabaseProjectRef,
-                        onValueChange = { supabaseProjectRef = it.take(48) },
-                        placeholder = "Referência do projeto (project_ref)",
+                        onValueChange = {
+                            if (!supabaseBusy) {
+                                supabaseProjectRef = it.take(300)
+                                supabaseError = null
+                            }
+                        },
+                        placeholder = "ID ou link do projeto Supabase",
                         singleLine = true,
+                    )
+                    Text(
+                        "Exemplo: supabase.com/dashboard/project/SEU_ID",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (supabaseProjectRef.isNotBlank() && scopedPreset == null) {
                         Text(
-                            "Informe 8 a 32 letras minúsculas ou números, sem espaços ou símbolos.",
+                            "Informe o ID do projeto ou cole o link do painel Supabase.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Text(
+                        "Segurança: um único projeto, acesso somente leitura, sem solicitar tokens.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (supabaseStatus != null) {
+                        Text(supabaseStatus!!, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (supabaseError != null) {
+                        Text(
+                            supabaseError!!,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -229,22 +305,95 @@ fun MCPIntegrationsScreen(
             },
             confirmButton = {
                 MinisTextButton(
-                    enabled = scopedPreset != null,
+                    enabled = scopedPreset != null && !supabaseBusy,
                     onClick = {
-                        if (scopedPreset != null) {
-                            val existing = servers.firstOrNull { it.id == scopedPreset.id }
-                            if (existing != null) editServer = existing
-                            else selectedQuickPreset = scopedPreset
-                            showSupabaseProjectDialog = false
-                            supabaseProjectRef = ""
+                        val preset = scopedPreset ?: return@MinisTextButton
+                        val existing = servers.firstOrNull { it.id == preset.id }
+                        if (existing != null &&
+                            !SupabaseMcpProjectScope.isSafeConfiguration(
+                                existing.id, existing.url.orEmpty(), !existing.isStdio,
+                            )
+                        ) {
+                            supabaseError = "Já existe uma integração com esse nome e outra configuração. Revise-a antes de continuar."
+                            return@MinisTextButton
+                        }
+                        supabaseBusy = true
+                        supabaseError = null
+                        supabaseStatus = "Preparando autenticação segura…"
+                        supabaseAuthScope.launch {
+                            try {
+                                val outcome = supabaseOAuthController.signIn(
+                                    server = preset.id,
+                                    serverUrl = preset.url,
+                                    persist = { discovered ->
+                                        mcpRepository.add(
+                                            MCPRepository.MCPServerConfig(
+                                                id = preset.id,
+                                                note = "Supabase: projeto restrito, somente leitura",
+                                                url = preset.url,
+                                                enabled = true,
+                                                oauth = MCPOAuthSignInLogic.browserBlock(discovered),
+                                                createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                                            ),
+                                        )
+                                    },
+                                    progress = { phase ->
+                                        supabaseAuthScope.launch {
+                                            supabaseStatus = when (phase) {
+                                                MCPOAuthController.SignInPhase.DISCOVERING ->
+                                                    "Verificando autorização do Supabase…"
+                                                MCPOAuthController.SignInPhase.REGISTERING_AGAIN ->
+                                                    "Atualizando autorização…"
+                                                MCPOAuthController.SignInPhase.WAITING_FOR_BROWSER ->
+                                                    "Entre e autorize a conexão no navegador."
+                                                MCPOAuthController.SignInPhase.FINISHING ->
+                                                    "Concluindo autorização…"
+                                            }
+                                        }
+                                    },
+                                )
+                                when (outcome) {
+                                    is MCPOAuthController.SignInOutcome.SignedIn -> {
+                                        supabaseProjectRef = ""
+                                        supabaseStatus = null
+                                        showSupabaseProjectDialog = false
+                                    }
+                                    is MCPOAuthController.SignInOutcome.DiscoveryFailed -> {
+                                        supabaseError = mcpDiscoveryMessage(screenContext, outcome.error)
+                                    }
+                                    is MCPOAuthController.SignInOutcome.NotSignedIn -> {
+                                        supabaseError = when (val result = outcome.result) {
+                                            MCPOAuthController.Result.Cancelled ->
+                                                "Login cancelado. Nenhum acesso foi autorizado."
+                                            MCPOAuthController.Result.Denied ->
+                                                "Autorização recusada no Supabase."
+                                            MCPOAuthController.Result.TimedOut ->
+                                                "Tempo de login esgotado. Tente novamente."
+                                            MCPOAuthController.Result.ClientRejected ->
+                                                "O Supabase recusou o aplicativo. Tente novamente."
+                                            MCPOAuthController.Result.GrantRejected ->
+                                                "Autorização inválida. Tente novamente."
+                                            is MCPOAuthController.Result.Failed ->
+                                                "Falha na conexão: ${result.message}"
+                                            MCPOAuthController.Result.Success -> null
+                                        }
+                                    }
+                                }
+                            } catch (error: Exception) {
+                                supabaseError = "Não foi possível concluir a conexão: ${error.message ?: "erro inesperado"}"
+                            } finally {
+                                supabaseBusy = false
+                                supabaseStatus = null
+                            }
                         }
                     },
-                ) { Text("Continuar") }
+                ) { Text(if (supabaseBusy) "Conectando…" else "Entrar com Supabase") }
             },
             dismissButton = {
-                MinisTextButton(onClick = { showSupabaseProjectDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
+                MinisTextButton(
+                    enabled = !supabaseBusy,
+                    onClick = { showSupabaseProjectDialog = false },
+                ) { Text(stringResource(R.string.cancel)) }
             },
         )
     }
