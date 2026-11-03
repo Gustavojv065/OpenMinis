@@ -1,6 +1,8 @@
 package com.openminis.app.ui.onboarding
 
 import com.openminis.app.R
+import com.openminis.app.BuildConfig
+import com.openminis.app.ui.components.AppBrandLogo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -79,6 +81,10 @@ private fun WelcomeStep(onNext: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(32.dp),
         ) {
+            if (BuildConfig.FLAVOR == "altiv") {
+                AppBrandLogo(modifier = Modifier.size(104.dp))
+                Spacer(Modifier.height(16.dp))
+            }
             Text(
                 stringResource(R.string.onboarding_welcome_title),
                 style = MaterialTheme.typography.headlineLarge,
