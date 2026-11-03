@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="altiv_health_open">Test AI models in this group</string>
+    <string name="altiv_health_title">AI model health check</string>
+    <string name="altiv_health_warning">Nothing runs automatically. Tap Start to send a short message (up to 32 output tokens) to each model, one at a time. API usage may consume credits or incur charges. No conversation or API key is sent to other providers.</string>
+    <string name="altiv_health_cap">Testing the first %1$d of %2$d models. Split large groups to test more.</string>
+    <string name="altiv_health_start">Start tests</string>
+    <string name="altiv_health_summary">Responding: %1$d of %2$d models</string>
+    <string name="altiv_health_waiting">Not tested</string>
+    <string name="altiv_health_running">Testing…</string>
+    <string name="altiv_health_working">Responded successfully</string>
+    <string name="altiv_health_no_key">No credential</string>
+    <string name="altiv_health_disabled">Unavailable or disabled</string>
+    <string name="altiv_health_incompatible">Not a text model</string>
+    <string name="altiv_health_auth">Authentication failed</string>
+    <string name="altiv_health_limit">Rate limit / quota</string>
+    <string name="altiv_health_timeout">Timed out</string>
+    <string name="altiv_health_failed">Failed to respond</string>
+</resources>
