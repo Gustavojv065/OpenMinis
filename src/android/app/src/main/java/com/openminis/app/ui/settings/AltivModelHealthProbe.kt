@@ -41,10 +41,10 @@ internal object AltivModelHealthProbe {
     fun classifyError(message: String?): Status {
         val text = message.orEmpty().lowercase()
         return when {
-            Regex("""(^|\\D)(401|403)(\\D|$)""").containsMatchIn(text) ||
+            Regex("""(^|\D)(401|403)(\D|$)""").containsMatchIn(text) ||
                 "unauthorized" in text || "invalid api key" in text ||
                 "authentication" in text -> Status.AUTH_FAILED
-            Regex("""(^|\\D)429(\\D|$)""").containsMatchIn(text) ||
+            Regex("""(^|\D)429(\D|$)""").containsMatchIn(text) ||
                 "rate limit" in text || "quota" in text -> Status.RATE_LIMITED
             "timeout" in text || "timed out" in text -> Status.TIMEOUT
             else -> Status.FAILED
