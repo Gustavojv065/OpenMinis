@@ -23,6 +23,37 @@ class SupabaseMcpProjectScopeTest {
             .forEach { assertNull(SupabaseMcpProjectScope.create(it)) }
     }
 
+    @Test fun `accepts dashboard link without trusting its query string`() {
+        val ref = "abcdefghijklmnopqrst"
+        val expected = requireNotNull(SupabaseMcpProjectScope.create(ref))
+        assertEquals(expected, SupabaseMcpProjectScope.createFromUserInput(ref))
+        assertEquals(
+            expected,
+            SupabaseMcpProjectScope.createFromUserInput("https://supabase.com/dashboard/project/$ref/editor"),
+        )
+        assertEquals(
+            expected,
+            SupabaseMcpProjectScope.createFromUserInput(
+                "https://supabase.com/dashboard/project/$ref?mode=write",
+            ),
+        )
+    }
+
+    @Test fun `refuses foreign domains insecure links and missing scope`() {
+        val ref = "abcdefghijklmnopqrst"
+        listOf(
+            "https://evil.com/dashboard/project/$ref",
+            "http://supabase.com/dashboard/project/$ref",
+            "https://supabase.com.evil.com/dashboard/project/$ref",
+            "https://user@supabase.com/dashboard/project/$ref",
+            "https://supabase.com:8443/dashboard/project/$ref",
+            "https://supabase.com/dashboard/projects/$ref",
+            "https://supabase.com/dashboard/project/",
+            "https://supabase.com/dashboard/project/../../foo",
+            "https://supabase.com/dashboard/project/$ref&read_only=false",
+        ).forEach { assertNull(SupabaseMcpProjectScope.createFromUserInput(it)) }
+    }
+
     @Test fun `rejects removing read only or replacing project`() {
         val preset = requireNotNull(SupabaseMcpProjectScope.create("abcdefghijklmnopqrst"))
         assertFalse(SupabaseMcpProjectScope.isSafeConfiguration(preset.id, preset.url.replace("true", "false"), true))
