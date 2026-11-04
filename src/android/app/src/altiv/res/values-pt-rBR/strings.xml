@@ -7,6 +7,7 @@
     <string name="a11y_service_summary">Backend de automação da interface para o ALTIV DEV AI</string>
     <string name="about_github_repository">Código-fonte do ALTIV DEV AI</string>
     <string name="about_minis_tagline">O ALTIV DEV AI é um agente de IA para conversar, programar e usar ferramentas no Android. Suas chaves e arquivos ficam no dispositivo; as mensagens são enviadas ao provedor de IA selecionado.</string>
+    <string name="agent_loop_section_footer">Durante uma tarefa, o ALTIV DEV AI chama esses modelos para subtarefas como gerar uma imagem ou resumir um texto — coisas que o modelo dele não faz. Também dá para chamá-los pelo terminal, com minis-model-use. Só esses ficam visíveis para o Agente.</string>
     <string name="agent_loop_section_title">Modelos que o ALTIV DEV AI pode chamar durante a execução</string>
     <string name="app_name">ALTIV DEV AI</string>
     <string name="battery_opt_request_subtitle">Toque para permitir que o ALTIV DEV AI funcione sem interrupções</string>
@@ -19,6 +20,7 @@
     <string name="crash_freq_email_subject">Relatório de falha do ALTIV DEV AI %1$s</string>
     <string name="crash_safe_mode_restart_needed">O ALTIV DEV AI precisa reiniciar para concluir a recuperação. Toque no ícone do app de novo.</string>
     <string name="kimi_login_instructions">Abra a página de verificação e digite este código para autorizar o ALTIV DEV AI:</string>
+    <string name="mcp_section_footer">Os servidores MCP permitem ao ALTIV DEV AI usar ferramentas externas. Adicione um servidor por URL ou JSON e autorize o acesso quando necessário. Os arquivos e comandos internos de configuração são gerenciados pelo aplicativo.</string>
     <string name="mic_permission_message">A entrada por voz precisa da permissão de microfone. Toque em Abrir configurações para concedê-la ao ALTIV DEV AI.</string>
     <string name="newer_db_body">Esta cópia do ALTIV DEV AI é mais antiga do que a versão que criou seus dados, então não consegue abri-los com segurança.\n\nNada foi excluído — suas conversas continuam intactas neste aparelho. Reinstale a versão mais nova do ALTIV DEV AI e tudo estará lá.</string>
     <string name="notif_config_confirm_body_multi">%d mudanças precisam da sua análise — abra o ALTIV DEV AI para aprovar ou recusar.</string>
