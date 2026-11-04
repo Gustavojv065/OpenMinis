@@ -65,4 +65,7 @@
     <string name="voice_panel_no_engine_open_providers">Provedores do ALTIV DEV AI</string>
     <string name="webapp_activity_label">ALTIV DEV AI WebApp</string>
     <string name="webapp_open_in_minis">Abrir no ALTIV DEV AI</string>
+    <!-- Branding ALTIV em mensagens complementares de rede e arquivos. -->
+    <string name="network_tailscale_footer">Funciona dentro do ALTIV DEV AI, sem perfil de VPN: só as conexões do próprio ALTIV DEV AI chegam à sua tailnet, e só enquanto o ALTIV DEV AI está em execução. “Usar rotas de sub-rede” faz os endereços compartilhados por outros dispositivos (como uma rede doméstica) passarem pelo Tailscale.</string>
+    <string name="filebrowser_delete_mount_point_refused">“%1$s” é uma pasta que o ALTIV DEV AI monta aqui, por isso não pode ser apagada no navegador de arquivos. Nada foi apagado. Para remover uma pasta externa, use Configurações › Montar pastas externas.</string>
 </resources>
