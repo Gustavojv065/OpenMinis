@@ -47,6 +47,10 @@ android {
         // `release`. Kept separate from BuildConfig.DEBUG so a non-debuggable
         // build can still carry the tooling.
         buildConfigField("boolean", "DEV_TOOLS", "false")
+        // ALTIV paid service configuration is public/non-secret. Leave empty
+        // until a separate dedicated Supabase project has been provisioned.
+        buildConfigField("String", "ALTIV_COMMERCIAL_URL", "\"\"")
+        buildConfigField("String", "ALTIV_COMMERCIAL_PUBLISHABLE_KEY", "\"\"")
 
         // System prompt prefix required by Anthropic for Claude Code OAuth
         // credentials. Empty in the public mirror (see provider-customization.properties).
@@ -170,6 +174,14 @@ android {
             buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
             buildConfigField("boolean", "IN_APP_INSTALL", "false")
             buildConfigField("String", "RELEASE_REPO", "\"Gustavojv065/OpenMinis\"")
+            // CI/production may inject a Supabase URL and publishable key.
+            // NEVER use a service_role key or secret here: BuildConfig is public.
+            val commercialUrl = (System.getenv("ALTIV_COMMERCIAL_URL") ?: "")
+                .trim().replace("\\", "").replace("\"", "")
+            val publishableKey = (System.getenv("ALTIV_COMMERCIAL_PUBLISHABLE_KEY") ?: "")
+                .trim().replace("\\", "").replace("\"", "")
+            buildConfigField("String", "ALTIV_COMMERCIAL_URL", "\"$commercialUrl\"")
+            buildConfigField("String", "ALTIV_COMMERCIAL_PUBLISHABLE_KEY", "\"$publishableKey\"")
         }
     }
 
