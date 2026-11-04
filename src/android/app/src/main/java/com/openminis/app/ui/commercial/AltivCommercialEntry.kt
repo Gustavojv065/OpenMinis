@@ -16,7 +16,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PasswordVisualTransformation
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -115,7 +115,7 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            AppBrandLogo(modifier = Modifier.padding(6.dp))
+            AppBrandLogo(modifier = Modifier.padding(6.dp).height(104.dp))
             Text("ALTIV DEV AI", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text("Conta e assinatura", style = MaterialTheme.typography.titleMedium)
             when (phase) {
