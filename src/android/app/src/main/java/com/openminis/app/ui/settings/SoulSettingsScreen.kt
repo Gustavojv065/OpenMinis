@@ -96,8 +96,11 @@ import kotlinx.coroutines.withContext
 fun SoulSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // Display only: preserve the SOUL.md format and any user-set identity.
+    val defaultAgentName = if (context.packageName == "online.altiv.devai")
+        "ALTIV DEV AI" else SoulMetadata.DEFAULT.name
 
-    var name by remember { mutableStateOf(SoulMetadata.DEFAULT.name) }
+    var name by remember { mutableStateOf(defaultAgentName) }
     var style by remember { mutableStateOf(SoulMetadata.DEFAULT.style) }
     var lang by remember { mutableStateOf(SoulMetadata.DEFAULT.lang) }
     var body by remember { mutableStateOf("") }
@@ -183,7 +186,7 @@ fun SoulSettingsScreen(onBack: () -> Unit) {
         // it loaded, and the screen would open already dirty.
         baseline = SoulFile(
             metadata = SoulMetadata(
-                name = parsed.metadata.name.ifBlank { SoulMetadata.DEFAULT.name },
+                name = parsed.metadata.name.ifBlank { defaultAgentName },
                 emoji = parsed.metadata.emoji.ifBlank { SoulMetadata.DEFAULT.emoji },
                 icon = parsed.metadata.icon,
                 style = parsed.metadata.style,
@@ -200,7 +203,7 @@ fun SoulSettingsScreen(onBack: () -> Unit) {
 
     val currentFile = SoulFile(
         metadata = SoulMetadata(
-            name = name.ifBlank { SoulMetadata.DEFAULT.name },
+            name = name.ifBlank { defaultAgentName },
             emoji = preservedEmoji.ifBlank { SoulMetadata.DEFAULT.emoji },
             icon = icon,
             style = style,
@@ -309,7 +312,7 @@ fun SoulSettingsScreen(onBack: () -> Unit) {
                 }
                 Column(modifier = Modifier.padding(start = 4.dp)) {
                     Text(
-                        text = name.ifBlank { "Minis" },
+                        text = name.ifBlank { defaultAgentName },
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
