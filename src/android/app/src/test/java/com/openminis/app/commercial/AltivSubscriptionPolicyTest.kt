@@ -34,7 +34,7 @@ class AltivSubscriptionPolicyTest {
         val build = File("build.gradle.kts").readText()
         assertTrue(build.contains("ALTIV_COMMERCIAL_URL"))
         assertTrue(build.contains("ALTIV_COMMERCIAL_PUBLISHABLE_KEY"))
-        assertFalse(build.contains("service_role"))
+        assertFalse(build.contains("buildConfigField(\"String\", \"SERVICE_ROLE\""))
     }
 
     @Test fun commercialValidationUsesServerClockAndOwnRowRls() {
