@@ -598,16 +598,28 @@ class MainActivity : ComponentActivity() {
                     onDispose { job.cancel() }
                 }
 
-                AppNavigation(
-                    chatRepository = app.chatRepository,
-                    providerRepository = app.providerRepository,
-                    envVarRepository = app.envVarRepository,
-                    skillRepository = app.skillRepository,
-                    mcpRepository = app.mcpRepository,
-                    memoryRepository = app.memoryRepository,
-                    navController = navController,
-                    initialDeepLink = launchDeepLink,
-                )
+                // The ALTIV variant gets an account entry point. The original
+                // Minis distribution retains its existing navigation unchanged.
+                // Local files remain accessible if the paid service is offline.
+                val appNavigationContent: @androidx.compose.runtime.Composable () -> Unit = {
+                    AppNavigation(
+                        chatRepository = app.chatRepository,
+                        providerRepository = app.providerRepository,
+                        envVarRepository = app.envVarRepository,
+                        skillRepository = app.skillRepository,
+                        mcpRepository = app.mcpRepository,
+                        memoryRepository = app.memoryRepository,
+                        navController = navController,
+                        initialDeepLink = launchDeepLink,
+                    )
+                }
+                if (BuildConfig.FLAVOR == "altiv") {
+                    com.openminis.app.ui.commercial.AltivCommercialEntry {
+                        appNavigationContent()
+                    }
+                } else {
+                    appNavigationContent()
+                }
 
                 // T-config: root-level minis-config confirm dialog.
                 // Bound to ConfigConfirmationGate.pending — the gate
