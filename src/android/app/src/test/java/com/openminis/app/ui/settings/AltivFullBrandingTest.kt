@@ -40,8 +40,8 @@ class AltivFullBrandingTest {
     @Test fun altivMcpScreenDoesNotDisplayUpstreamToolOrFilesystemDetails() {
         for (locale in listOf("values", "values-pt-rBR")) {
             val xml = appFile("src/altiv/res/$locale/strings.xml")
-            val footer = Regex("""<string name="mcp_section_footer">([\\s\\S]*?)</string>""")
-                .find(xml)?.groupValues?.get(1)
+            val footer = xml.substringAfter("""<string name="mcp_section_footer">""", "")
+                .substringBefore("</string>")
             assertTrue(locale, footer?.contains("ALTIV DEV AI") == true)
             assertFalse(locale, footer.orEmpty().contains("minis-mcp-cli"))
             assertFalse(locale, footer.orEmpty().contains("/var/minis/"))
