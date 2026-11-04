@@ -356,15 +356,36 @@ lang: "auto"
 """
 
     /**
-     * Create SOUL.md with [DEFAULT_CONTENT] iff it does not exist yet.
-     * Safe to call on every launch — never overwrites existing user edits.
+     * ALTIV keeps the upstream Soul format and tools, but brands the default
+     * assistant name only in its own Android package. Never rewrite custom
+     * personalities, memory, saved keys, or existing chat sessions.
+     */
+    fun defaultContentFor(context: Context): String =
+        if (context.packageName == "online.altiv.devai") {
+            DEFAULT_CONTENT.replace("name: \"Minis\"", "name: \"ALTIV DEV AI\"")
+        } else {
+            DEFAULT_CONTENT
+        }
+
+    /**
+     * Seed the identity for new installs. The one safe migration is the
+     * upstream default file byte-for-byte, which has no user customization.
+     * Any user-modified SOUL.md remains unchanged.
      */
     fun ensureExists(context: Context) {
         val file = fileLocation(context)
-        if (file.exists()) return
         try {
+            if (file.exists()) {
+                if (context.packageName == "online.altiv.devai" &&
+                    file.readText() == DEFAULT_CONTENT
+                ) {
+                    file.writeText(defaultContentFor(context))
+                    AppLogger.info(TAG, "rebranded untouched ALTIV default SOUL.md")
+                }
+                return
+            }
             file.parentFile?.mkdirs()
-            file.writeText(DEFAULT_CONTENT)
+            file.writeText(defaultContentFor(context))
             AppLogger.info(TAG, "seeded SOUL.md at ${file.absolutePath}")
         } catch (t: Throwable) {
             AppLogger.warning(TAG, "ensureExists failed: ${t.message}")

@@ -106,7 +106,8 @@ jobs:
             --tests 'com.openminis.app.mcp.SupabaseMcpProjectScopeTest' \
             --tests 'com.openminis.app.ui.terminal.LocalPreviewAddressTest' \
             --tests 'com.openminis.app.ui.settings.AltivModelHealthProbeTest' \
-            --tests 'com.openminis.app.data.model.ApiProviderTemplateTest'
+            --tests 'com.openminis.app.data.model.ApiProviderTemplateTest' \
+            --tests 'com.openminis.app.ui.settings.AltivBrandingConsistencyTest'
 
       - name: Compile dedicated ALTIV DEV AI Android ARM64 APK
         working-directory: src/android
