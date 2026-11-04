@@ -7,6 +7,7 @@
     <string name="a11y_service_summary">UI-layer automation backend for ALTIV DEV AI</string>
     <string name="about_github_repository">ALTIV DEV AI source code</string>
     <string name="about_minis_tagline">ALTIV DEV AI is an AI agent for chat, coding and tools on Android. Keys and files stay on your device; messages are sent to your selected AI provider.</string>
+    <string name="agent_loop_section_footer">During a ALTIV DEV AI task, the agent calls these models for sub-tasks such as generating an image or summarizing text — work its own model can\'t do. Also callable from the terminal via minis-model-use. Only these are visible to the Agent.</string>
     <string name="agent_loop_section_title">Models ALTIV DEV AI Can Call at Runtime</string>
     <string name="app_name">ALTIV DEV AI</string>
     <string name="backup_notif_local_pending">Kept in ALTIV DEV AI only. Open the app to save it to your device or share it.</string>
@@ -26,6 +27,7 @@
     <string name="crash_freq_email_subject">ALTIV DEV AI Crash Report %1$s</string>
     <string name="crash_safe_mode_restart_needed">ALTIV DEV AI needs to restart to finish recovering. Please tap the app icon again.</string>
     <string name="kimi_login_instructions">Open the verification page and enter this code to authorize ALTIV DEV AI:</string>
+    <string name="mcp_section_footer">MCP servers let ALTIV DEV AI use external tools. Add a server using a URL or JSON and authorize access when required. Internal configuration files and commands are managed by the application.</string>
     <string name="mcp_signin_intro">ALTIV DEV AI will find this service\'s sign-in page automatically. No Client ID needed.</string>
     <string name="mcp_signin_reset_message">You are signed out and ALTIV DEV AI forgets its registration with the service. The next sign-in registers again.</string>
     <string name="mic_permission_message">Voice input needs microphone permission. Tap Open Settings to allow it for ALTIV DEV AI.</string>
