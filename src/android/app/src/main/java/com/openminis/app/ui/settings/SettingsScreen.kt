@@ -400,14 +400,17 @@ fun SettingsScreen(
                     onClick = onAboutClick,
                     badge = updateBadge,
                 )
-                SettingsItem(
-                    icon = Icons.Outlined.FrontHand,
-                    iconColor = Color(0xFF007AFF),
-                    title = stringResource(R.string.settings_privacy_policy),
-                    subtitle = null,
-                    // iOS canonical URL — ContentView.swift / AddProviderView.swift
-                    onClick = { openExternalUrl(context, "https://openminis.github.io/privacy-policy.html") },
-                )
+                // Do not present the upstream application's privacy policy as
+                // ALTIV's own. Publish the ALTIV policy before commercial launch.
+                if (BuildConfig.FLAVOR != "altiv") {
+                    SettingsItem(
+                        icon = Icons.Outlined.FrontHand,
+                        iconColor = Color(0xFF007AFF),
+                        title = stringResource(R.string.settings_privacy_policy),
+                        subtitle = null,
+                        onClick = { openExternalUrl(context, "https://openminis.github.io/privacy-policy.html") },
+                    )
+                }
                 SettingsItem(
                     icon = Icons.Outlined.Feedback,
                     iconColor = Color(0xFF007AFF),
