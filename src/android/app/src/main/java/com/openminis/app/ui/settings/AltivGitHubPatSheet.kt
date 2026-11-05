@@ -199,9 +199,11 @@ internal fun AltivGitHubPatSheet(
             confirmButton = {
                 TextButton(onClick = {
                     mcpRepository.delete(AltivGitHubPatConfig.ID)
-                    envVarRepository?.entries?.value?.firstOrNull {
-                        it.key == AltivGitHubPatConfig.ENV_NAME
-                    }?.let { envVarRepository.delete(it.id) }
+                    envVarRepository?.let { vault ->
+                        vault.entries.value.firstOrNull {
+                            it.key == AltivGitHubPatConfig.ENV_NAME
+                        }?.let { entry -> vault.delete(entry.id) }
+                    }
                     MCPOAuthController(context).purge(AltivGitHubPatConfig.ID)
                     confirmRemoval = false
                     onDismiss()
