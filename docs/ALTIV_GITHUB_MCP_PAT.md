@@ -31,3 +31,38 @@ O servidor Github MCP remoto é documentado em https://github.com/github/github-
 - Atualizar/revogar o token, testar on/off, remoção, retorno ao chat, fechamento/reabertura do aplicativo.
 - Garantir que Notion, Vercel, Supabase, localhost, chaves de IA e branding ALTIV continuam funcionando.
 - Compilar, executar testes Kotlin e confirmar assinatura/instalação no aparelho antes de merge e release.
+
+
+## Verificação de repositórios no painel (nova implementação)
+
+Ao tocar **Testar token, listar repositórios e conectar**, o ALTIV valida
+`GET https://api.github.com/user` e consulta, com paginação,
+`GET https://api.github.com/user/repos?per_page=100&type=all&sort=full_name&page=N`.
+O endpoint de repositórios requer **Metadata: Read** para PAT fine-grained.
+A tela permanece aberta para exibir a conta, a quantidade de repositórios
+visíveis pelo token e os primeiros 100 nomes. A quantidade pode ser parcial
+quando há mais de 1.000 repositórios, caso em que a tela sinaliza isso.
+
+- Se a chave estiver salva, revalida a lista ao reabrir a tela; um token armazenado
+  ou um toggle ligado sozinho não significa que os repositórios estejam acessíveis.
+- Falha 401/403, token revogado ou consulta de repositórios negada **não** confirma
+  a conexão e mostra uma mensagem sem expor a credencial.
+- Token válido com zero repositórios é mostrado explicitamente (não é tratado
+  como acesso comprovado a repositórios).
+- A lista fica em memória da tela, não grava nomes no JSON MCP e nunca grava o PAT
+  em texto claro.
+- **Diferença importante:** listar repositórios remotos pela API não cria
+  um clone Git em `/var/minis/workspace`. Um comando `git remote -v` nessa
+  pasta pode continuar vazio enquanto o MCP funciona. Para trabalhar com
+  arquivos locais, o usuário deve escolher e clonar um repositório explicitamente.
+- A lista usa a API REST do GitHub, portanto não substitui o teste da sessão
+  MCP, nem garante que a ferramenta chamada pelo agente esteja operando.
+  Após conectar, abrir uma conversa nova e solicitar ao agente que liste
+  os repositórios **usando o GitHub MCP**, não apenas o shell local.
+
+### Regressão
+
+Rodar `AltivGitHubPatConfigTest` e `AltivGitHubRepositoryAccessTest` na CI ARM64.
+Em aparelho, testar token válido, token revogado, token com zero repositórios,
+com várias páginas, desativação do servidor, abertura da tela com token salvo,
+e preservação dos demais servidores (Vercel, Notion e Supabase).
