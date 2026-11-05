@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.data.repository.EnvVarRepository
 import com.openminis.app.data.repository.MCPRepository
 import com.openminis.app.mcp.AltivGitHubPatConfig
-import com.openminis.app.mcp.oauth.MCPOAuthStore
+import com.openminis.app.mcp.oauth.MCPOAuthController
 import com.openminis.app.ui.components.DialogTextField
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -168,7 +168,7 @@ internal fun AltivGitHubPatSheet(
                                 return@launch
                             }
                             // Explicit switch from old OAuth to token-based auth.
-                            MCPOAuthStore.purge(context, AltivGitHubPatConfig.ID)
+                            MCPOAuthController(context).purge(AltivGitHubPatConfig.ID)
                             token = ""
                             onDismiss()
                         } finally {
@@ -202,7 +202,7 @@ internal fun AltivGitHubPatSheet(
                     envVarRepository?.entries?.value?.firstOrNull {
                         it.key == AltivGitHubPatConfig.ENV_NAME
                     }?.let { envVarRepository.delete(it.id) }
-                    MCPOAuthStore.purge(context, AltivGitHubPatConfig.ID)
+                    MCPOAuthController(context).purge(AltivGitHubPatConfig.ID)
                     confirmRemoval = false
                     onDismiss()
                 }) { Text("Remover") }
