@@ -119,7 +119,7 @@ jobs:
             --tests 'com.openminis.app.ui.settings.AltivBrandingConsistencyTest' \
             --tests 'com.openminis.app.ui.settings.AltivFullBrandingTest' \
             --tests 'com.openminis.app.commercial.AltivSubscriptionPolicyTest' \
-            --tests 'com.openminis.app.mcp.AltivGitHubPatConfigTest'
+            --tests 'com.openminis.app.mcp.AltivGitHubPatConfigTest' \
             --tests 'com.openminis.app.mcp.AltivGitHubRepositoryAccessTest'
 
       - name: Version APK independently of ephemeral CI checkouts
