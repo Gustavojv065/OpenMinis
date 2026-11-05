@@ -126,8 +126,17 @@ fun MCPIntegrationsScreen(
         // authorization headers, server URL or OAuth client credentials.
         SettingsSection(
             header = "Integrações de desenvolvimento",
-            footer = "A conexão inicial é restrita a um projeto e somente leitura.",
+            footer = "Conecte cada serviço com as permissões mínimas necessárias.",
         ) {
+            if (BuildConfig.FLAVOR == "altiv") {
+                SettingsRow(
+                    title = "GitHub",
+                    subtitle = "Conectar só com token • sem OAuth, Client ID ou Client Secret",
+                    showChevron = true,
+                    showDivider = true,
+                    onClick = { showGitHubPatSheet = true },
+                )
+            }
             SettingsRow(
                 title = "Supabase",
                 subtitle = if (supabaseConnections.isEmpty()) {
@@ -425,6 +434,10 @@ fun MCPIntegrationsScreen(
             editServer = null,
             onDismiss = { showAddSheet = false },
             onRequestDelete = {},
+            onConnectGitHub = {
+                showAddSheet = false
+                showGitHubPatSheet = true
+            },
         )
     }
 
@@ -435,6 +448,10 @@ fun MCPIntegrationsScreen(
             editServer = null,
             onDismiss = { selectedQuickPreset = null },
             onRequestDelete = {},
+            onConnectGitHub = {
+                selectedQuickPreset = null
+                showGitHubPatSheet = true
+            },
             quickPreset = preset,
         )
     }
@@ -449,6 +466,10 @@ fun MCPIntegrationsScreen(
             onRequestDelete = {
                 editServer = null
                 deleteId = server.id
+            },
+            onConnectGitHub = {
+                editServer = null
+                showGitHubPatSheet = true
             },
         )
     }
@@ -490,6 +511,7 @@ private fun MCPAddSheet(
     editServer: MCPRepository.MCPServerConfig?,
     onDismiss: () -> Unit,
     onRequestDelete: () -> Unit,
+    onConnectGitHub: () -> Unit,
     quickPreset: MCPQuickConnectPreset? = null,
 ) {
     // [T-android-mcp-sheet-ime-occlusion] GH#44: skipPartiallyExpanded so the
@@ -546,6 +568,7 @@ private fun MCPAddSheet(
                     quickPreset = quickPreset,
                     onDone = onDismiss,
                     onRequestDelete = onRequestDelete,
+                    onConnectGitHub = onConnectGitHub,
                 )
             } else {
                 MCPImportTab(mcpRepository = mcpRepository, onDone = onDismiss)
@@ -563,6 +586,7 @@ private fun MCPFormTab(
     quickPreset: MCPQuickConnectPreset?,
     onDone: () -> Unit,
     onRequestDelete: () -> Unit,
+    onConnectGitHub: () -> Unit,
 ) {
     val context = LocalContext.current
     val isEdit = editServer != null
@@ -770,6 +794,22 @@ private fun MCPFormTab(
     val isUrlTransport = transport != 2
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // The generic "Add server" entry must never ask ALTIV GitHub users for
+        // OAuth settings. Redirect the reserved github ID to the dedicated PAT
+        // sheet even when they typed the name manually instead of using presets.
+        if (BuildConfig.FLAVOR == "altiv" &&
+            name.trim().equals("github", ignoreCase = true)) {
+            Text(
+                "No ALTIV DEV AI, o GitHub usa somente um token. " +
+                    "Não é necessário preencher URL, OAuth, Client ID ou Client Secret.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            androidx.compose.material3.Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onConnectGitHub,
+            ) { Text("Conectar GitHub com token") }
+            return@Column
+        }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             SegmentedButton(
                 selected = transport == 0,
