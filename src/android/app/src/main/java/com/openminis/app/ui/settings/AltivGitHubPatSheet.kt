@@ -105,6 +105,11 @@ internal fun AltivGitHubPatSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                "Após conectar, inicie uma nova conversa para carregar a credencial no ambiente de ferramentas.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             TextButton(
                 onClick = {
                     context.startActivity(Intent(Intent.ACTION_VIEW,
