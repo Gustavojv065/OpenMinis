@@ -114,6 +114,12 @@ jobs:
       - name: Compile dedicated ALTIV DEV AI Android ARM64 APK
         working-directory: src/android
         shell: bash
+        # Public Supabase project URL and publishable key only. Same Supabase
+        # Auth project as the ALTIV DEV Web Master panel.
+        # NEVER include service_role or sb_secret_ keys in APK builds.
+        env:
+          ALTIV_COMMERCIAL_URL: ${{ secrets.ALTIV_COMMERCIAL_URL }}
+          ALTIV_COMMERCIAL_PUBLISHABLE_KEY: ${{ secrets.ALTIV_COMMERCIAL_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
           ./gradlew --no-daemon :app:assembleAltivDebug
