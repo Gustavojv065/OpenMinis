@@ -16,40 +16,10 @@ import com.openminis.app.data.repository.MCPRepository
 import com.openminis.app.mcp.AltivGitHubPatConfig
 import com.openminis.app.mcp.oauth.MCPOAuthController
 import com.openminis.app.ui.components.DialogTextField
-import kotlinx.coroutines.Dispatchers
+import com.openminis.app.mcp.AltivGitHubRepositoryAccess
+import com.openminis.app.mcp.AltivGitHubRepositoryScan
+import com.openminis.app.mcp.AltivGitHubAccessException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.util.concurrent.TimeUnit
-
-/** No PAT is logged, persisted in servers.json or returned to the model. */
-private object AltivGitHubPatVerifier {
-    private val http = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
-
-    suspend fun check(token: String): String? = withContext(Dispatchers.IO) {
-        try {
-            http.newCall(
-                Request.Builder().url("https://api.github.com/user")
-                    .header("Authorization", "Bearer $token")
-                    .header("Accept", "application/vnd.github+json")
-                    .header("X-GitHub-Api-Version", "2022-11-28")
-                    .get().build()
-            ).execute().use { response ->
-                when (response.code) {
-                    200 -> null
-                    401 -> "Token inválido ou revogado. Revise no GitHub."
-                    403 -> "O GitHub recusou a credencial. Confira permissões e políticas da conta."
-                    429 -> "Muitas tentativas. Tente novamente mais tarde."
-                    else -> "Falha ao verificar o token (HTTP " + response.code + ")."
-                }
-            }
-        } catch (_: Exception) {
-            "Não foi possível contatar o GitHub. Confira sua conexão."
-        }
-    }
-}
 
 /** Dedicated ALTIV GitHub form: one PAT field, no Client ID/Secret/OAuth. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,10 +28,12 @@ internal fun AltivGitHubPatSheet(
     mcpRepository: MCPRepository,
     envVarRepository: EnvVarRepository?,
     onDismiss: () -> Unit,
+    onRepositoriesChecked: (Int?, Boolean) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val repoInspector = remember { AltivGitHubRepositoryAccess() }
     val envEntries by (envVarRepository?.entries?.collectAsState()
         ?: remember { mutableStateOf(emptyList<EnvVarRepository.EnvVarEntry>()) })
     val servers by mcpRepository.servers.collectAsState()
@@ -73,6 +45,29 @@ internal fun AltivGitHubPatSheet(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmRemoval by remember { mutableStateOf(false) }
+    var scan by remember { mutableStateOf<AltivGitHubRepositoryScan?>(null) }
+    var status by remember { mutableStateOf<String?>(null) }
+
+    // Refresh the previously saved token's access when the user reopens this sheet.
+    LaunchedEffect(hasToken, existing?.enabled) {
+        if (!hasToken || existing?.enabled != true || scan != null || busy) return@LaunchedEffect
+        val saved = envVarRepository?.getValue(AltivGitHubPatConfig.ENV_NAME).orEmpty()
+        if (saved.isBlank()) return@LaunchedEffect
+        busy = true
+        try {
+            val verified = repoInspector.inspect(saved)
+            scan = verified
+            status = "Token validado e GitHub MCP configurado."
+            onRepositoriesChecked(verified.repositories.size, verified.complete)
+        } catch (failure: AltivGitHubAccessException) {
+            scan = null
+            status = null
+            error = failure.message
+            onRepositoriesChecked(null, false)
+        } finally {
+            busy = false
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -94,7 +89,13 @@ internal fun AltivGitHubPatSheet(
             Text("Token de acesso GitHub", style = MaterialTheme.typography.labelLarge)
             DialogTextField(
                 value = token,
-                onValueChange = { token = it.take(700); error = null },
+                onValueChange = {
+                    token = it.take(700)
+                    error = null
+                    scan = null
+                    status = null
+                    onRepositoriesChecked(null, false)
+                },
                 placeholder = if (hasToken) "Deixe vazio para usar o token salvo" else "Cole seu token aqui",
                 visualTransformation = PasswordVisualTransformation(),
                 enabled = !busy,
@@ -106,7 +107,7 @@ internal fun AltivGitHubPatSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "Após conectar, inicie uma nova conversa para carregar a credencial no ambiente de ferramentas.",
+                "Esta lista mostra repositórios remotos. Ela não clona arquivos na pasta local. Abra uma nova conversa para carregar o MCP no agente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -117,7 +118,50 @@ internal fun AltivGitHubPatSheet(
                 }, enabled = !busy,
             ) { Text("Criar token no GitHub") }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            if (busy) CircularProgressIndicator()
+            if (busy) {
+                Text("Verificando conta e repositórios no GitHub...")
+                CircularProgressIndicator()
+            }
+            status?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            scan?.let { result ->
+                Text("Conta: @" + result.account, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    (if (result.complete) result.repositories.size.toString()
+                     else "Pelo menos " + result.repositories.size) +
+                        " repositório(s) acessível(is) por este token",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (result.repositories.isEmpty()) {
+                    Text(
+                        "Token válido, mas nenhum repositório retornado. Revise os repositórios " +
+                            "selecionados e a permissão Metadata: Read no GitHub.",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                } else {
+                    result.repositories.take(100).forEach { repository ->
+                        Text(
+                            "• " + repository.fullName +
+                                (if (repository.isPrivate) " (privado)" else " (público)"),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    if (result.repositories.size > 100) {
+                        Text(
+                            "Exibindo os primeiros 100; os demais foram contabilizados.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                if (!result.complete) Text(
+                    "Lista parcial: limite de 1.000 repositórios por consulta.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "A lista confirma acesso pela API GitHub, não que já exista um clone " +
+                        "no workspace ou que a sessão MCP tenha sido iniciada.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             Button(
                 enabled = !busy && (token.isNotBlank() || hasToken),
                 modifier = Modifier.fillMaxWidth(),
@@ -144,11 +188,7 @@ internal fun AltivGitHubPatSheet(
                     error = null
                     scope.launch {
                         try {
-                            val problem = AltivGitHubPatVerifier.check(chosen)
-                            if (problem != null) {
-                                error = problem
-                                return@launch
-                            }
+                            val verified = repoInspector.inspect(chosen)
                             if (entered.isNotBlank()) {
                                 val entry = vault.entries.value.firstOrNull {
                                     it.key == AltivGitHubPatConfig.ENV_NAME
@@ -175,13 +215,26 @@ internal fun AltivGitHubPatSheet(
                             // Explicit switch from old OAuth to token-based auth.
                             MCPOAuthController(context).purge(AltivGitHubPatConfig.ID)
                             token = ""
-                            onDismiss()
+                            scan = verified
+                            status = "Token validado e servidor GitHub MCP configurado."
+                            onRepositoriesChecked(verified.repositories.size, verified.complete)
+                            // Do not dismiss: let the user review the verified repository list.
+                        } catch (failure: AltivGitHubAccessException) {
+                            error = failure.message
+                            scan = null
+                            status = null
+                            onRepositoriesChecked(null, false)
                         } finally {
                             busy = false
                         }
                     }
                 },
-            ) { Text(if (busy) "Verificando..." else "Testar token e conectar") }
+            ) { Text(if (busy) "Verificando..." else "Testar token, listar repositórios e conectar") }
+            OutlinedButton(
+                onClick = onDismiss,
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Fechar") }
             if (existing != null && AltivGitHubPatConfig.canReplace(existing)) {
                 OutlinedButton(
                     onClick = { confirmRemoval = true },
@@ -210,6 +263,9 @@ internal fun AltivGitHubPatSheet(
                         }?.let { entry -> vault.delete(entry.id) }
                     }
                     MCPOAuthController(context).purge(AltivGitHubPatConfig.ID)
+                    scan = null
+                    status = null
+                    onRepositoriesChecked(null, false)
                     confirmRemoval = false
                     onDismiss()
                 }) { Text("Remover") }
