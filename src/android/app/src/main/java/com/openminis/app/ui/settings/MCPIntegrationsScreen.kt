@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.openminis.app.BuildConfig
 import com.openminis.app.R
 import com.openminis.app.data.repository.MCPRepository
 import com.openminis.app.mcp.MCPQuickConnectCatalog
@@ -93,6 +94,7 @@ fun MCPIntegrationsScreen(
     var showAddSheet by remember { mutableStateOf(false) }
     // A catalog row pre-fills the ADD form. It never saves or authorizes on tap.
     var selectedQuickPreset by remember { mutableStateOf<MCPQuickConnectPreset?>(null) }
+    var showGitHubPatSheet by remember { mutableStateOf(false) }
     var showSupabaseProjectDialog by remember { mutableStateOf(false) }
     var supabaseProjectRef by remember { mutableStateOf("") }
     var supabaseBusy by remember { mutableStateOf(false) }
@@ -209,7 +211,13 @@ fun MCPIntegrationsScreen(
                         showDivider = index < servers.size - 1,
                         // FIX 1: plain tap opens the edit form (was delete-confirm).
                         // Delete stays reachable from inside the edit sheet.
-                        onClick = { editServer = server },
+                        onClick = {
+                            if (BuildConfig.FLAVOR == "altiv" && server.id == "github") {
+                                showGitHubPatSheet = true
+                            } else {
+                                editServer = server
+                            }
+                        },
                         trailing = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -241,11 +249,15 @@ fun MCPIntegrationsScreen(
                     showChevron = true,
                     showDivider = index < MCPQuickConnectCatalog.presets.lastIndex,
                     onClick = {
-                        val alreadyConfigured = servers.firstOrNull { it.id == preset.id }
-                        if (alreadyConfigured != null) {
-                            editServer = alreadyConfigured
+                        if (BuildConfig.FLAVOR == "altiv" && preset.id == "github") {
+                            showGitHubPatSheet = true
                         } else {
-                            selectedQuickPreset = preset
+                            val alreadyConfigured = servers.firstOrNull { it.id == preset.id }
+                            if (alreadyConfigured != null) {
+                                editServer = alreadyConfigured
+                            } else {
+                                selectedQuickPreset = preset
+                            }
                         }
                     },
                 )
@@ -395,6 +407,14 @@ fun MCPIntegrationsScreen(
                     onClick = { showSupabaseProjectDialog = false },
                 ) { Text(stringResource(R.string.cancel)) }
             },
+        )
+    }
+
+    if (showGitHubPatSheet && BuildConfig.FLAVOR == "altiv") {
+        AltivGitHubPatSheet(
+            mcpRepository = mcpRepository,
+            envVarRepository = envVarRepository,
+            onDismiss = { showGitHubPatSheet = false },
         )
     }
 
