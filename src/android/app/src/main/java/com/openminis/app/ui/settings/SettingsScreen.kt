@@ -54,6 +54,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -126,6 +128,9 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var showFeedbackSheet by remember { mutableStateOf(false) }
+    var showCommercialAccount by remember { mutableStateOf(false) }
+    val altivSubscription by com.openminis.app.commercial.AltivCommercialAccountState.subscription.collectAsState()
+    val altivSignedIn by com.openminis.app.commercial.AltivCommercialAccountState.signedIn.collectAsState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -147,6 +152,24 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
+            if (BuildConfig.FLAVOR == "altiv") {
+                SettingsSection(title = "Conta ALTIV DEV AI") {
+                    SettingsItem(
+                        icon = Icons.Outlined.Lock,
+                        iconColor = Color(0xFF03C6BE),
+                        title = "Minha assinatura",
+                        subtitle = when {
+                            !altivSignedIn -> "Entrar ou consultar a assinatura"
+                            altivSubscription?.active == true ->
+                                "Ativa · até ${altivSubscription?.expiresAt ?: "consulte o servidor"}"
+                            else -> "Assinatura não ativa · verificar renovação"
+                        },
+                        onClick = { showCommercialAccount = true },
+                        showDivider = false,
+                    )
+                }
+            }
+
             // -- LLM Providers --
             SettingsSection(
                 title = stringResource(R.string.settings_section_llm_providers),
@@ -397,6 +420,30 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (showCommercialAccount && BuildConfig.FLAVOR == "altiv") {
+        AlertDialog(
+            onDismissRequest = { showCommercialAccount = false },
+            title = { Text("Conta e assinatura ALTIV") },
+            text = {
+                Text(
+                    if (!altivSignedIn) "Faça login na tela inicial para verificar sua assinatura comercial."
+                    else "Situação: ${com.openminis.app.commercial.AltivSubscriptionPolicy.safeStatus(altivSubscription)}. " +
+                        "Vencimento: ${altivSubscription?.expiresAt ?: "não informado"}. " +
+                        "Arquivos locais não são apagados ao sair."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCommercialAccount = false
+                    com.openminis.app.commercial.AltivCommercialAccountState.signedOut()
+                }) { Text(if (altivSignedIn) "Sair da conta" else "Abrir entrada ALTIV") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCommercialAccount = false }) { Text("Fechar") }
+            },
+        )
     }
 
     if (showFeedbackSheet) {
