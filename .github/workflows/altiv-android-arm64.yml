@@ -3,6 +3,15 @@
 name: ALTIV - Android ARM64 APK
 
 on:
+  # Each merge into main should produce an APK containing the merged fixes.
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/altiv-android-arm64.yml'
+      - 'src/android/**'
+      - 'deps/**'
+      - 'scripts/prepare_android_sandbox.sh'
   pull_request:
     paths:
       - '.github/workflows/altiv-android-arm64.yml'
@@ -112,6 +121,34 @@ jobs:
             --tests 'com.openminis.app.commercial.AltivSubscriptionPolicyTest' \
             --tests 'com.openminis.app.mcp.AltivGitHubPatConfigTest'
 
+      - name: Version APK independently of ephemeral CI checkouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ALTIV_ANDROID_VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+
+      - name: Prepare optional permanent signing key (trusted main only)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          ALTIV_SIGNING_KEYSTORE_B64: ${{ secrets.ALTIV_SIGNING_KEYSTORE_B64 }}
+          ALTIV_SIGNING_STORE_PASSWORD: ${{ secrets.ALTIV_SIGNING_STORE_PASSWORD }}
+          ALTIV_SIGNING_KEY_ALIAS: ${{ secrets.ALTIV_SIGNING_KEY_ALIAS }}
+          ALTIV_SIGNING_KEY_PASSWORD: ${{ secrets.ALTIV_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ALTIV_SIGNING_KEYSTORE_B64}" ]]; then
+            echo "::warning::No persistent signing key configured; this debug APK will not install over builds signed by other keys."
+          else
+            : "${ALTIV_SIGNING_STORE_PASSWORD:?Set ALTIV_SIGNING_STORE_PASSWORD GitHub secret}"
+            : "${ALTIV_SIGNING_KEY_ALIAS:?Set ALTIV_SIGNING_KEY_ALIAS GitHub secret}"
+            : "${ALTIV_SIGNING_KEY_PASSWORD:?Set ALTIV_SIGNING_KEY_PASSWORD GitHub secret}"
+            umask 077
+            printf '%s' "$ALTIV_SIGNING_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/altiv-signing.jks"
+            echo "ALTIV_SIGNING_STORE_FILE=$RUNNER_TEMP/altiv-signing.jks" >> "$GITHUB_ENV"
+            echo "::notice::Using persistent ALTIV signer from protected GitHub secret."
+          fi
+
       - name: Compile dedicated ALTIV DEV AI Android ARM64 APK
         working-directory: src/android
         shell: bash
@@ -129,6 +166,11 @@ jobs:
           BADGING="$("$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt" dump badging "$APK")"
           grep -Fq "package: name='online.altiv.devai'" <<< "$BADGING"
           grep -Fq "application-label:'ALTIV DEV AI'" <<< "$BADGING"
+          grep -Fq "versionCode='${ALTIV_ANDROID_VERSION_CODE}'" <<< "$BADGING"
+          "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" verify --print-certs "$APK" > "$RUNNER_TEMP/altiv-signature.txt"
+          grep -i 'Signer #1 certificate SHA-256 digest' "$RUNNER_TEMP/altiv-signature.txt"
+          # Certificate SHA-256 is public identity; never upload a private keystore.
+          cp "$RUNNER_TEMP/altiv-signature.txt" "$APK.signature.txt"
           unzip -Z1 "$APK" > "$RUNNER_TEMP/apk-files.txt"
           # Android asset packaging can auto-decompress a .tar.gz file to .tar.
           # RootfsManager.kt supports both formats at runtime; verify both
@@ -165,5 +207,6 @@ jobs:
           path: |
             src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk
             src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.sha256
+            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.signature.txt
           if-no-files-found: error
           retention-days: 14

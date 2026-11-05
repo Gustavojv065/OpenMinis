@@ -89,9 +89,27 @@ android {
         }
     }
 
+    // CI can inject a stable, private signing key via GitHub Actions secrets.
+    // Without those secrets the existing debug signer remains unchanged.
+    // Never commit a keystore or password to this public repository.
+    val altivSigningKeyPath = System.getenv("ALTIV_SIGNING_STORE_FILE")?.takeIf { it.isNotBlank() }
+    if (altivSigningKeyPath != null) {
+        signingConfigs {
+            create("altivPersistent") {
+                storeFile = file(altivSigningKeyPath)
+                storePassword = System.getenv("ALTIV_SIGNING_STORE_PASSWORD")
+                keyAlias = System.getenv("ALTIV_SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("ALTIV_SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         getByName("debug") {
             buildConfigField("boolean", "DEV_TOOLS", "true")
+            if (altivSigningKeyPath != null) {
+                signingConfig = signingConfigs.getByName("altivPersistent")
+            }
         }
         // `perf`: the debug variant minus android:debuggable. ART refuses to
         // AOT-compile a debuggable app (`cmd package compile -m speed`
@@ -169,6 +187,9 @@ android {
         create("altiv") {
             dimension = "distribution"
             applicationId = "online.altiv.devai"
+            // The CI run number makes newer APKs eligible for Android upgrades.
+            // A matching signing certificate is still mandatory for in-place updates.
+            versionCode = System.getenv("ALTIV_ANDROID_VERSION_CODE")?.toIntOrNull() ?: 37
             versionNameSuffix = "-altiv-test"
             buildConfigField("boolean", "SELF_UPDATE", "false")
             buildConfigField("boolean", "AUTO_UPDATE_CHECK", "false")
