@@ -531,6 +531,69 @@ class SkillRepository(private val context: Context) {
      */
     fun skillMdPath(id: String): String = "/var/minis/skills/$id/SKILL.md"
 
+    // -- Import several skills from one transport ZIP --
+
+    data class BulkImportResult(
+        val installed: List<String>,
+        val skippedExisting: List<String>,
+        val failed: List<String>,
+    )
+
+    /**
+     * Imports the user's collection of individual ZIP files in one operation.
+     * Existing installed skills are SKIPPED (never overwritten), preserving
+     * their custom changes, enabled flags and supporting files.
+     * Returns null when a ZIP is not a nested multi-skill package so normal
+     * single-skill ZIP imports retain the previous behavior.
+     */
+    fun importSkillBundle(input: InputStream): BulkImportResult? {
+        val packages = AltivSkillBundleArchive.collect(input) ?: return null
+        val installed = mutableListOf<String>()
+        val skipped = mutableListOf<String>()
+        val failed = mutableListOf<String>()
+        val knownIds = _skills.value.map { it.id }.toMutableSet()
+
+        for (packageFile in packages) {
+            val label = packageFile.fileName.substringAfterLast('/')
+            try {
+                if (!AltivSkillBundleArchive.safeInnerArchive(packageFile.archive)) {
+                    failed.add(label)
+                    continue
+                }
+                val entries = readZipEntries(java.io.ByteArrayInputStream(packageFile.archive))
+                val skillMdEntry = entries.firstOrNull { entry ->
+                    entry.name == "SKILL.md" ||
+                        (entry.name.endsWith("/SKILL.md") && entry.name.count { it == '/' } == 1)
+                }
+                val parsed = skillMdEntry?.let {
+                    parseSkillMd(String(it.data, Charsets.UTF_8))
+                }
+                val id = parsed?.name?.let { slugify(it) }
+                if (id.isNullOrBlank()) {
+                    failed.add(label)
+                    continue
+                }
+                if (id in knownIds) {
+                    skipped.add(parsed.name)
+                    continue
+                }
+                val result = importFromArchive(java.io.ByteArrayInputStream(packageFile.archive))
+                if (result != null) {
+                    knownIds.add(result.id)
+                    installed.add(result.name)
+                } else {
+                    failed.add(label)
+                }
+            } catch (_: Exception) {
+                // Continue with the remaining skills; never abort a batch
+                // because one file is malformed. Do not include its contents
+                // in error messages or logs.
+                failed.add(label)
+            }
+        }
+        return BulkImportResult(installed, skipped, failed)
+    }
+
     // -- Import from Zip Archive --
 
     /**

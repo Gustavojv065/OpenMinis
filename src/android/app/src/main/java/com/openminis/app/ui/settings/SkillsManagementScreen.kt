@@ -423,52 +423,76 @@ private fun SkillImportSheet(
     var urlText by remember { mutableStateOf("") }
     var pasteContent by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf<String?>(null) }
+    var batchSummary by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // File picker
+    // File picker: a normal SKILL.md or single-skill ZIP still works exactly
+    // as before. A ZIP containing multiple skill ZIPs is imported in one batch.
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        try {
-            // [T-android-skill-import-zip] Read raw bytes so we can branch on
-            // file magic. The previous code piped the InputStream straight
-            // through `bufferedReader().readText()`, which corrupted any
-            // .zip / .skill bundle into garbage UTF-8 and surfaced as
-            // "Invalid SKILL.md content". Skills shared as bundles
-            // (scripts/, references/, assets/) are the common case on iOS;
-            // matching here aligns Android with iOS
-            // `SkillsManagementView.documentPicker` + `SkillStore.importFromArchive`.
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            if (bytes == null) {
-                errorText = "Failed to read file"
-                return@rememberLauncherForActivityResult
+        if (uri == null || isLoading) return@rememberLauncherForActivityResult
+        errorText = null
+        batchSummary = null
+        isLoading = true
+        scope.launch {
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }
+                if (bytes == null) {
+                    errorText = "Não foi possível ler o arquivo selecionado."
+                    return@launch
+                }
+                val isZip = bytes.size >= 4 &&
+                    bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte() &&
+                    (bytes[2] == 0x03.toByte() || bytes[2] == 0x05.toByte() ||
+                        bytes[2] == 0x07.toByte())
+                if (isZip) {
+                    val batch = withContext(Dispatchers.IO) {
+                        if (bytes.size <= 16 * 1024 * 1024) {
+                            skillRepository.importSkillBundle(java.io.ByteArrayInputStream(bytes))
+                        } else null
+                    }
+                    if (batch != null) {
+                        val message = buildString {
+                            append("Importação em lote concluída!\n")
+                            append("Instaladas: ").append(batch.installed.size)
+                            append("\nJá existentes (preservadas): ").append(batch.skippedExisting.size)
+                            append("\nFalharam: ").append(batch.failed.size)
+                            if (batch.failed.isNotEmpty()) {
+                                append("\nArquivos com erro:\n")
+                                append(batch.failed.take(12).joinToString("\n"))
+                                if (batch.failed.size > 12) append("\n…")
+                            }
+                        }
+                        batchSummary = message
+                        skillRepository.reloadFromDisk()
+                        // Leave open so the user sees the count and any failures.
+                    } else {
+                        val result = withContext(Dispatchers.IO) {
+                            skillRepository.importFromArchive(java.io.ByteArrayInputStream(bytes))
+                        }
+                        if (result != null) onDismiss()
+                        else errorText = "ZIP inválido — não foi encontrado SKILL.md."
+                    }
+                } else {
+                    val result = withContext(Dispatchers.IO) {
+                        skillRepository.importFromContent(
+                            String(bytes, Charsets.UTF_8), SkillRepository.ImportSource.FILE
+                        )
+                    }
+                    if (result != null) onDismiss()
+                    else errorText = "Conteúdo SKILL.md inválido."
+                }
+            } catch (e: Exception) {
+                // Avoid displaying archive text or credentials in error output.
+                errorText = "Não foi possível importar. Verifique se o ZIP contém skills válidas."
+            } finally {
+                isLoading = false
             }
-            // PK\x03\x04 = standard ZIP local file header; PK\x05\x06 is the
-            // empty-archive EOCD; PK\x07\x08 is a spanned/split archive. Accept
-            // all three so split exports from less-common zip tools don't fall
-            // into the text path. URI may not preserve the filename extension
-            // (some DocumentsProviders / share targets strip it), so magic-byte
-            // sniffing is more reliable than `.zip` / `.skill` checks.
-            val isZip = bytes.size >= 4 &&
-                bytes[0] == 0x50.toByte() && bytes[1] == 0x4B.toByte() &&
-                (bytes[2] == 0x03.toByte() || bytes[2] == 0x05.toByte() || bytes[2] == 0x07.toByte())
-            if (isZip) {
-                val result = skillRepository.importFromArchive(
-                    java.io.ByteArrayInputStream(bytes),
-                )
-                if (result != null) onDismiss()
-                else errorText = "Invalid skill archive — no SKILL.md found at the root or one directory deep"
-            } else {
-                val content = String(bytes, Charsets.UTF_8)
-                val result = skillRepository.importFromContent(content, SkillRepository.ImportSource.FILE)
-                if (result != null) onDismiss()
-                else errorText = "Invalid SKILL.md content"
-            }
-        } catch (e: Exception) {
-            errorText = "Failed to read file: ${e.message}"
         }
     }
 
@@ -535,12 +559,22 @@ private fun SkillImportSheet(
                     MinisTextButton(
                         onClick = { fileLauncher.safeLaunchPicker("*/*", context, "SkillsManagement") },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text(stringResource(R.string.skill_import_file_button)) }
+                    ) { Text(if (isLoading) "Importando..." else stringResource(R.string.skill_import_file_button)) }
                 }
             }
 
             if (errorText != null) {
                 Text(errorText!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            if (isLoading && selectedTab == 2) {
+                CircularProgressIndicator()
+                Text("Importando skills, confira o resultado antes de fechar...")
+            }
+            batchSummary?.let { summary ->
+                Text(summary, style = MaterialTheme.typography.bodySmall)
+            }
+            if (selectedTab == 2 && batchSummary != null) {
+                MinisTextButton(onClick = onDismiss) { Text("Concluir") }
             }
 
             if (selectedTab < 2) {
