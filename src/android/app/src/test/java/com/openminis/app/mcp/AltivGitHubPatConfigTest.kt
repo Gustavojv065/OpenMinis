@@ -48,7 +48,7 @@ class AltivGitHubPatConfigTest {
         assertTrue(ui.contains("vault.update(entry.id, AltivGitHubPatConfig.ENV_NAME"))
         assertTrue(ui.contains("AltivGitHubPatVerifier.check(chosen)"))
         assertTrue(ui.contains("MCPOAuthController(context).purge"))
-        assertFalse(ui.contains("headers = mapOf(\"Authorization\" to \"Bearer $token\")"))
+        assertFalse(ui.contains("headers = mapOf(\"Authorization\" to \"Bearer \$token\")"))
         val screen = File("src/main/java/com/openminis/app/ui/settings/MCPIntegrationsScreen.kt").readText()
         assertTrue(screen.contains("AltivGitHubPatSheet("))
         assertTrue(screen.contains("BuildConfig.FLAVOR == \"altiv\""))
