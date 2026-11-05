@@ -95,6 +95,7 @@ fun MCPIntegrationsScreen(
     // A catalog row pre-fills the ADD form. It never saves or authorizes on tap.
     var selectedQuickPreset by remember { mutableStateOf<MCPQuickConnectPreset?>(null) }
     var showGitHubPatSheet by remember { mutableStateOf(false) }
+    var githubRepoSummary by remember { mutableStateOf<String?>(null) }
     var showSupabaseProjectDialog by remember { mutableStateOf(false) }
     var supabaseProjectRef by remember { mutableStateOf("") }
     var supabaseBusy by remember { mutableStateOf(false) }
@@ -131,7 +132,11 @@ fun MCPIntegrationsScreen(
             if (BuildConfig.FLAVOR == "altiv") {
                 SettingsRow(
                     title = "GitHub",
-                    subtitle = "Conectar só com token • sem OAuth, Client ID ou Client Secret",
+                    subtitle = githubRepoSummary ?: if (servers.any { it.id == "github" && it.enabled }) {
+                        "MCP configurado • Toque para verificar a lista de repositórios"
+                    } else {
+                        "Conectar com token • sem OAuth, Client ID ou Client Secret"
+                    },
                     showChevron = true,
                     showDivider = true,
                     onClick = { showGitHubPatSheet = true },
@@ -424,6 +429,12 @@ fun MCPIntegrationsScreen(
             mcpRepository = mcpRepository,
             envVarRepository = envVarRepository,
             onDismiss = { showGitHubPatSheet = false },
+            onRepositoriesChecked = { count, complete ->
+                githubRepoSummary = count?.let {
+                    (if (complete) "$it" else "≥$it") +
+                        " repositório(s) verificado(s) • token válido"
+                }
+            },
         )
     }
 
