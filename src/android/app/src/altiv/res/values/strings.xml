@@ -7,7 +7,7 @@
     <string name="a11y_service_summary">UI-layer automation backend for ALTIV DEV AI</string>
     <string name="about_github_repository">ALTIV DEV AI source code</string>
     <string name="about_minis_tagline">ALTIV DEV AI is an AI agent for chat, coding and tools on Android. Keys and files stay on your device; messages are sent to your selected AI provider.</string>
-    <string name="agent_loop_section_footer">During a ALTIV DEV AI task, the agent calls these models for sub-tasks such as generating an image or summarizing text — work its own model can\'t do. Also callable from the terminal via minis-model-use. Only these are visible to the Agent.</string>
+    <string name="agent_loop_section_footer">During a ALTIV DEV AI task, the agent calls these models for sub-tasks such as generating an image or summarizing text — work its own model can\'t do. You can also run specialized model tasks from the ALTIV terminal. Only the configured models are available to the Agent.</string>
     <string name="agent_loop_section_title">Models ALTIV DEV AI Can Call at Runtime</string>
     <string name="app_name">ALTIV DEV AI</string>
     <string name="backup_notif_local_pending">Kept in ALTIV DEV AI only. Open the app to save it to your device or share it.</string>

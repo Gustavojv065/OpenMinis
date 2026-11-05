@@ -7,7 +7,7 @@
     <string name="a11y_service_summary">Backend de automação da interface para o ALTIV DEV AI</string>
     <string name="about_github_repository">Código-fonte do ALTIV DEV AI</string>
     <string name="about_minis_tagline">O ALTIV DEV AI é um agente de IA para conversar, programar e usar ferramentas no Android. Suas chaves e arquivos ficam no dispositivo; as mensagens são enviadas ao provedor de IA selecionado.</string>
-    <string name="agent_loop_section_footer">Durante uma tarefa, o ALTIV DEV AI chama esses modelos para subtarefas como gerar uma imagem ou resumir um texto — coisas que o modelo dele não faz. Também dá para chamá-los pelo terminal, com minis-model-use. Só esses ficam visíveis para o Agente.</string>
+    <string name="agent_loop_section_footer">Durante uma tarefa, o ALTIV DEV AI chama esses modelos para subtarefas como gerar uma imagem ou resumir um texto — coisas que o modelo dele não faz. Também é possível executar tarefas especializadas pelo terminal ALTIV. Somente os modelos configurados ficam disponíveis para o agente.</string>
     <string name="agent_loop_section_title">Modelos que o ALTIV DEV AI pode chamar durante a execução</string>
     <string name="app_name">ALTIV DEV AI</string>
     <string name="battery_opt_request_subtitle">Toque para permitir que o ALTIV DEV AI funcione sem interrupções</string>
