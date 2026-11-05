@@ -41,6 +41,7 @@ import com.openminis.app.commercial.AltivSubscription
 import com.openminis.app.commercial.AltivSubscriptionPolicy
 import com.openminis.app.ui.components.AppBrandLogo
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 
 /**
  * Commercial account entry point for ALTIV builds only.
