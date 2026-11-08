@@ -1,6 +1,7 @@
 package com.openminis.app.ui.settings
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -137,7 +138,7 @@ fun AddModelsToGroupScreen(
             if (BuildConfig.FLAVOR == "altiv" && modalityFilter == null) {
                 item {
                     Button(
-                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                         onClick = { showBatchTest = true },
                     ) {
                         Text("Testar modelos automaticamente (12 por lote)")
