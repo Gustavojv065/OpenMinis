@@ -170,7 +170,48 @@ fun SettingsScreen(
                 }
             }
 
+            // ALTIV customer view: the setup paths clients actually need, without
+            // hiding advanced tools from experienced users.
+            if (AltivCustomerSettingsPolicy.isAltiv(BuildConfig.FLAVOR)) {
+                SettingsSection(
+                    title = "Conexões e projetos",
+                    footer = "Conecte apenas suas contas e repositórios autorizados. " +
+                        "A conexão MCP não autentica automaticamente o Git no terminal.",
+                ) {
+                    SettingsItem(
+                        icon = Icons.Outlined.Lock,
+                        iconColor = Color(0xFF007AFF),
+                        title = "Provedores de IA",
+                        subtitle = "Adicionar sua chave OpenAI, Gemini, NVIDIA ou OpenRouter",
+                        onClick = onProvidersClick,
+                    )
+                    SettingsItem(
+                        icon = Icons.Outlined.Dashboard,
+                        iconColor = Color(0xFF30B0C7),
+                        title = "GitHub, Vercel e Supabase",
+                        subtitle = "Conectar MCPs e inspecionar repositórios do GitHub",
+                        onClick = onMcpClick,
+                    )
+                    SettingsItem(
+                        icon = Icons.Outlined.Settings,
+                        iconColor = Color(0xFF007AFF),
+                        title = "Modelos e fallback",
+                        subtitle = "Escolher os modelos e as alternativas automáticas",
+                        onClick = onModelGroupsClick,
+                    )
+                    SettingsItem(
+                        icon = Icons.Outlined.Terminal,
+                        iconColor = Color(0xFF34C759),
+                        title = "Terminal e localhost",
+                        subtitle = "Executar e visualizar projetos no Android",
+                        onClick = onTerminalClick,
+                        showDivider = false,
+                    )
+                }
+            }
+
             // -- LLM Providers --
+            if (!AltivCustomerSettingsPolicy.isAltiv(BuildConfig.FLAVOR)) {
             SettingsSection(
                 title = stringResource(R.string.settings_section_llm_providers),
                 footer = stringResource(R.string.settings_section_llm_providers_footer),
@@ -197,6 +238,8 @@ fun SettingsScreen(
                     onClick = onUsageClick,
                     showDivider = false,
                 )
+            }
+
             }
 
             // -- Appearance --
@@ -264,6 +307,7 @@ fun SettingsScreen(
                 // [T-android-mcp-icon-distinct] Dashboard (2x2 block grid) instead of
                 // Extension so MCP no longer shares the Skills row's puzzle-piece icon —
                 // the grid reads as "multiple composed blocks/servers". teal unchanged.
+                if (!AltivCustomerSettingsPolicy.isAltiv(BuildConfig.FLAVOR)) {
                 SettingsItem(
                     icon = Icons.Outlined.Dashboard,
                     iconColor = Color(0xFF30B0C7),
@@ -271,6 +315,7 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_mcp_subtitle),
                     onClick = onMcpClick,
                 )
+                }
                 SettingsItem(
                     icon = Icons.Outlined.Terminal,
                     iconColor = Color(0xFF34C759),
@@ -388,6 +433,10 @@ fun SettingsScreen(
                 )
             }
 
+            // Keep upstream About/Feedback for the upstream flavor only. The
+            // ALTIV customer view has a focused setup flow instead.
+            // AboutScreen and the repository's license notices are NOT deleted.
+            if (AltivCustomerSettingsPolicy.showAboutAndFeedback(BuildConfig.FLAVOR)) {
             // -- About --
             SettingsSection(title = stringResource(R.string.settings_section_about)) {
                 // [T-update-channels] The update badge's Settings layer.
@@ -421,6 +470,8 @@ fun SettingsScreen(
                 )
             }
 
+            }
+
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -449,7 +500,7 @@ fun SettingsScreen(
         )
     }
 
-    if (showFeedbackSheet) {
+    if (showFeedbackSheet && AltivCustomerSettingsPolicy.showAboutAndFeedback(BuildConfig.FLAVOR)) {
         ModalBottomSheet(onDismissRequest = { showFeedbackSheet = false }) {
             Column(modifier = Modifier.padding(bottom = 24.dp)) {
                 FeedbackSheetItem(

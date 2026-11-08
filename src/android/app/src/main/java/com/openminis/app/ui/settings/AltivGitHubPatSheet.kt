@@ -18,6 +18,8 @@ import com.openminis.app.mcp.oauth.MCPOAuthController
 import com.openminis.app.ui.components.DialogTextField
 import com.openminis.app.mcp.AltivGitHubRepositoryAccess
 import com.openminis.app.mcp.AltivGitHubRepositoryScan
+import com.openminis.app.mcp.AltivGitHubProjectInspector
+import com.openminis.app.mcp.AltivGitHubProjectSignals
 import com.openminis.app.mcp.AltivGitHubAccessException
 import kotlinx.coroutines.launch
 
@@ -34,6 +36,7 @@ internal fun AltivGitHubPatSheet(
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val repoInspector = remember { AltivGitHubRepositoryAccess() }
+    val projectInspector = remember { AltivGitHubProjectInspector() }
     val envEntries by (envVarRepository?.entries?.collectAsState()
         ?: remember { mutableStateOf(emptyList<EnvVarRepository.EnvVarEntry>()) })
     val servers by mcpRepository.servers.collectAsState()
@@ -47,6 +50,9 @@ internal fun AltivGitHubPatSheet(
     var confirmRemoval by remember { mutableStateOf(false) }
     var scan by remember { mutableStateOf<AltivGitHubRepositoryScan?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
+    var projectSignals by remember { mutableStateOf<AltivGitHubProjectSignals?>(null) }
+    var signalsBusy by remember { mutableStateOf(false) }
+    var signalsError by remember { mutableStateOf<String?>(null) }
 
     // Refresh the previously saved token's access when the user reopens this sheet.
     LaunchedEffect(hasToken, existing?.enabled) {
@@ -95,6 +101,8 @@ internal fun AltivGitHubPatSheet(
                     scan = null
                     status = null
                     onRepositoriesChecked(null, false)
+                    projectSignals = null
+                    signalsError = null
                 },
                 placeholder = if (hasToken) "Deixe vazio para usar o token salvo" else "Cole seu token aqui",
                 visualTransformation = PasswordVisualTransformation(),
@@ -107,7 +115,9 @@ internal fun AltivGitHubPatSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "Esta lista mostra repositórios remotos. Ela não clona arquivos na pasta local. Abra uma nova conversa para carregar o MCP no agente.",
+                "Esta lista mostra repositórios remotos. Ela não clona arquivos na pasta local. " +
+                    "Para editar no terminal, autentique o Git separadamente (por exemplo, GitHub CLI). " +
+                    "Abra uma nova conversa para carregar o MCP no agente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -138,11 +148,66 @@ internal fun AltivGitHubPatSheet(
                         color = MaterialTheme.colorScheme.error,
                     )
                 } else {
+                    Text(
+                        "Toque em um repositório para detectar arquivos de Lovable, Vercel ou Supabase. " +
+                            "É preciso conceder Contents: Read apenas aos projetos desejados.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                     result.repositories.take(100).forEach { repository ->
+                        TextButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy && !signalsBusy,
+                            onClick = {
+                                val selectedToken = token.trim().ifBlank {
+                                    envVarRepository?.getValue(AltivGitHubPatConfig.ENV_NAME).orEmpty()
+                                }
+                                if (selectedToken.isBlank()) {
+                                    signalsError = "Salve e valide seu token antes de verificar projetos."
+                                } else {
+                                    signalsBusy = true
+                                    signalsError = null
+                                    projectSignals = null
+                                    scope.launch {
+                                        try {
+                                            projectSignals = projectInspector.inspect(
+                                                selectedToken, repository.fullName
+                                            )
+                                        } catch (e: AltivGitHubAccessException) {
+                                            signalsError = e.message
+                                        } finally {
+                                            signalsBusy = false
+                                        }
+                                    }
+                                }
+                            },
+                        ) {
+                            Text(
+                                "Verificar " + repository.fullName +
+                                    (if (repository.isPrivate) " (privado)" else ""),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                    if (signalsBusy) {
+                        Text("Verificando arquivos do repositório (somente leitura)...")
+                        CircularProgressIndicator()
+                    }
+                    signalsError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    projectSignals?.let { findings ->
                         Text(
-                            "• " + repository.fullName +
-                                (if (repository.isPrivate) " (privado)" else " (público)"),
-                            style = MaterialTheme.typography.bodyMedium,
+                            "Serviços identificados em " + findings.repository,
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        if (findings.labels().isEmpty()) {
+                            Text("Nenhum arquivo conhecido localizado neste repositório.")
+                        } else {
+                            findings.labels().forEach { label -> Text("• " + label) }
+                        }
+                        Text(
+                            "São indícios de configuração no código, não confirmação de " +
+                                "conta conectada, deploy ativo ou permissão de edição. " +
+                                "Para confirmar produção, autorize cada provedor separadamente.",
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                     if (result.repositories.size > 100) {
