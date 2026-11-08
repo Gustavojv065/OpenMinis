@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import com.openminis.app.BuildConfig
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +68,7 @@ fun AddModelsToGroupScreen(
     val searchQuery = remember { mutableStateOf("") }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
     var quickTestEntry by remember { mutableStateOf<com.openminis.app.data.model.ModelEntry?>(null) }
+    var showBatchTest by remember { mutableStateOf(false) }
     val collapsedInstanceIds = remember(config) {
         // T185: default-collapsed mirrors pre-refactor behaviour. The
         // shared picker auto-expands when search is non-empty so hits
@@ -129,6 +132,18 @@ fun AddModelsToGroupScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            // Batch probe is opt-in: no paid requests are made on screen open.
+            // Only text groups can be verified using a tiny text response.
+            if (BuildConfig.FLAVOR == "altiv" && modalityFilter == null) {
+                item {
+                    Button(
+                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                        onClick = { showBatchTest = true },
+                    ) {
+                        Text("Testar modelos automaticamente (12 por lote)")
+                    }
+                }
+            }
             modelEntryPickerItems(
                 instances = config.instances,
                 availableEntries = availableEntries,
@@ -150,6 +165,19 @@ fun AddModelsToGroupScreen(
                 sections = searchSections,
             )
         }
+    }
+
+    if (showBatchTest && modalityFilter == null) {
+        AltivBatchModelTestSheet(
+            entries = availableEntries,
+            providerRepository = providerRepository,
+            onWorking = { passed ->
+                selectedIds = AltivBatchModelSelection.addWorking(
+                    selectedIds, passed, availableEntries.map { it.id }.toSet(),
+                )
+            },
+            onDismiss = { showBatchTest = false },
+        )
     }
 
     quickTestEntry?.let { entry ->
