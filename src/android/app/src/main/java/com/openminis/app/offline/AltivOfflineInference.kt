@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.SystemClock
 import dev.ffmpegkit.llama.Llama
 import dev.ffmpegkit.llama.LlamaConfig
+import dev.ffmpegkit.llama.LlamaModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -62,7 +63,7 @@ internal class AltivOfflineInference(context: Context) {
             inferenceMutex.withLock {
                 val started = SystemClock.elapsedRealtime()
                 val modelPath = downloads.modelFile(model).absolutePath
-                var modelHandle: Long? = null
+                var modelHandle: LlamaModel? = null
                 try {
                     val handle = Llama.loadModel(
                         modelPath = modelPath,
@@ -81,7 +82,7 @@ internal class AltivOfflineInference(context: Context) {
                     Output(
                         text = result.text,
                         elapsedMs = SystemClock.elapsedRealtime() - started,
-                        tokensPerSecond = result.tokensPerSecond,
+                        tokensPerSecond = result.tokensPerSecond.toDouble(),
                     )
                 } finally {
                     modelHandle?.let { Llama.releaseModel(it) }
