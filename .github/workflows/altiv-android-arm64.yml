@@ -118,6 +118,7 @@ jobs:
             --tests 'com.openminis.app.ui.settings.AltivBatchModelSelectionTest' \
             --tests 'com.openminis.app.data.model.ApiProviderTemplateTest' \
             --tests 'com.openminis.app.offline.AltivOfflineModelCatalogTest' \
+            --tests 'com.openminis.app.data.repository.AltivProfessionalSkillRoutingTest' \
             --tests 'com.openminis.app.ui.settings.AltivBrandingConsistencyTest' \
             --tests 'com.openminis.app.ui.settings.AltivFullBrandingTest' \
             --tests 'com.openminis.app.commercial.AltivSubscriptionPolicyTest' \
