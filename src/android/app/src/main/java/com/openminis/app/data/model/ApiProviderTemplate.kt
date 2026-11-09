@@ -18,6 +18,8 @@ data class ApiProviderTemplate(
     companion object {
         val all: List<ApiProviderTemplate> = listOf(
             ApiProviderTemplate("nvidia", "NVIDIA NIM", "https://integrate.api.nvidia.com/v1"),
+            ApiProviderTemplate("minimax", "MiniMax", "https://api.minimax.io/v1"),
+            ApiProviderTemplate("mimo", "Xiaomi MiMo", "https://api.xiaomimimo.com/v1"),
             ApiProviderTemplate("groq", "GroqCloud", "https://api.groq.com/openai/v1"),
             ApiProviderTemplate("cerebras", "Cerebras", "https://api.cerebras.ai/v1"),
             ApiProviderTemplate("mistral", "Mistral AI", "https://api.mistral.ai/v1"),
