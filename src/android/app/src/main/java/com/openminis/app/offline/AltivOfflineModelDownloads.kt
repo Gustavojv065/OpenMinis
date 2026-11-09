@@ -46,10 +46,13 @@ internal class AltivOfflineModelDownloads(context: Context) {
     /** Validate at least the actual GGUF signature and reasonable byte size. */
     private fun validGguf(model: AltivOfflineModel, file: File): Boolean =
         runCatching {
-            if (!file.isFile || file.length() < model.sizeBytes * 65L / 100L) return false
-            val magic = ByteArray(4)
-            FileInputStream(file).use { stream -> stream.read(magic) }
-            magic.contentEquals(byteArrayOf(0x47, 0x47, 0x55, 0x46))
+            if (!file.isFile || file.length() < model.sizeBytes * 65L / 100L) {
+                false
+            } else {
+                val magic = ByteArray(4)
+                val read = FileInputStream(file).use { stream -> stream.read(magic) }
+                read == 4 && magic.contentEquals(byteArrayOf(0x47, 0x47, 0x55, 0x46))
+            }
         }.getOrDefault(false)
 
     fun state(model: AltivOfflineModel): State {
