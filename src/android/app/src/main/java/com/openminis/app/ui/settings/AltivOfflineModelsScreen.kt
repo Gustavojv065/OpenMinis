@@ -121,8 +121,8 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Baixe modelos pequenos para o armazenamento do celular. " +
-                            "Esta primeira fase gerencia arquivos GGUF; o motor para " +
-                            "conversar offline será integrado e testado separadamente.",
+                            "O catálogo permite testar inferência local de texto/código. " +
+                            "A conversa no chat principal e as ferramentas offline virão depois.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -324,7 +324,8 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                     "Arquivo aproximado de " +
                         model.sizeBytes / AltivOfflineModel.ONE_MB + " MB. " +
                         (if (wifiOnly) "Somente por Wi-Fi. " else "Pode usar dados móveis. ") +
-                        "Não habilita conversa offline até instalarmos o motor de inferência."
+                        "Após baixar, você poderá testar a geração local. O chat principal " +
+                        "ainda não usa este modelo."
                 )
             },
             confirmButton = {
