@@ -106,7 +106,7 @@ internal class AltivOfflineModelDownloads(context: Context) {
         check(!file.exists()) { "Há um arquivo incompleto. Exclua antes de reiniciar." }
         val request = DownloadManager.Request(Uri.parse(model.downloadUrl))
             .setTitle("ALTIV DEV AI · " + model.name)
-            .setDescription("Modelo GGUF — instalação local ainda não ativada")
+            .setDescription("Modelo GGUF — após baixar, use Testar offline")
             .setMimeType("application/octet-stream")
             .setNotificationVisibility(
                 DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
