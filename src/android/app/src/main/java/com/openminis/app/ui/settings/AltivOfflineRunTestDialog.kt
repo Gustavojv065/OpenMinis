@@ -69,7 +69,7 @@ internal fun AltivOfflineRunTestDialog(
                 if (running) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CircularProgressIndicator()
-                        Text("Modelo carregado na RAM; gerando resposta local...")
+                        Text("Carregando modelo na RAM e gerando resposta local...")
                     }
                 }
                 output?.let { response ->
