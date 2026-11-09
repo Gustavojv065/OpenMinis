@@ -34,7 +34,7 @@ internal class AltivOfflineInference(context: Context) {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val info = ActivityManager.MemoryInfo()
             am.getMemoryInfo(info)
-            return (info.totalMem / GB).toInt()
+            return ((info.totalMem + GB - 1) / GB).toInt()
         }
     }
 
