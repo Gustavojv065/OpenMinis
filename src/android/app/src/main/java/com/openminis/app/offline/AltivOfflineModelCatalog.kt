@@ -1,8 +1,8 @@
 package com.openminis.app.offline
 
 /**
- * Phase 1, curated local GGUF downloads. No inference is exposed until an
- * Android-compatible runtime is integrated and validated on real devices.
+ * Curated local GGUF files, with RAM-aware on-device inference smoke tests.
+ * Full chat/agent tools remain a separate, unimplemented integration.
  * Model size is approximate; final file is verified after DownloadManager success.
  */
 internal enum class AltivOfflineCategory(val label: String) {
