@@ -416,6 +416,12 @@ androidComponents {
 }
 
 dependencies {
+    // Native llama.cpp AAR for prototype-only CPU inference on Android ARM64.
+    // Model weights are always downloaded separately, never bundled in the APK.
+    // MIT license / notices: https://github.com/ffmpegkit-maintained/llama-android
+    // No Python, Node, Linux packages or paid API key required to run a local GGUF.
+    implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
+
     // Compose BOM
     val composeBom = platform("androidx.compose:compose-bom:2025.09.00")
     implementation(composeBom)
