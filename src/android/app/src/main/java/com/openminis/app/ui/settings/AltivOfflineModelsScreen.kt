@@ -64,6 +64,8 @@ fun AltivOfflineModelsScreen(
     val context = LocalContext.current
     val downloads = remember { AltivOfflineModelDownloads(context) }
     val scope = rememberCoroutineScope()
+    var refresh by remember { mutableIntStateOf(0) }
+    var errorText by remember { mutableStateOf<String?>(null) }
     var importTarget by remember { mutableStateOf<AltivOfflineModel?>(null) }
     var importing by remember { mutableStateOf(false) }
     val filePicker = rememberLauncherForActivityResult(
@@ -87,10 +89,8 @@ fun AltivOfflineModelsScreen(
     }
     var categoryIndex by remember { mutableIntStateOf(0) }
     var wifiOnly by remember { mutableStateOf(true) }
-    var refresh by remember { mutableIntStateOf(0) }
     var confirmDownload by remember { mutableStateOf<AltivOfflineModel?>(null) }
     var confirmDelete by remember { mutableStateOf<AltivOfflineModel?>(null) }
-    var errorText by remember { mutableStateOf<String?>(null) }
     var runTestModel by remember { mutableStateOf<AltivOfflineModel?>(null) }
     val totalRamGb = remember { AltivOfflineInference.totalRamGb(context) }
 
