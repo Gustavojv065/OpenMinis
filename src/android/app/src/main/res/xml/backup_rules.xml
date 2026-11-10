@@ -21,4 +21,5 @@
     <exclude domain="sharedpref" path="backup_rclone_secrets_plain_fallback.xml" />
     <exclude domain="sharedpref" path="minis_network_secrets.xml" />
     <exclude domain="sharedpref" path="minis_network_secrets_plain_fallback.xml" />
+    <exclude domain="sharedpref" path="altiv_offline_chats.xml" />
 </full-backup-content>

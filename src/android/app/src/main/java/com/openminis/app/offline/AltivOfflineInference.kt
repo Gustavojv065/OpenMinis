@@ -40,8 +40,8 @@ internal class AltivOfflineInference(context: Context) {
 
     suspend fun complete(model: AltivOfflineModel, prompt: String): Output =
         withContext(Dispatchers.Default) {
-            require(prompt.isNotBlank() && prompt.length <= 800) {
-                "Escreva um pedido de até 800 caracteres."
+            require(prompt.isNotBlank() && prompt.length <= AltivOfflineConversationPrompt.MAX_PROMPT_CHARS) {
+                "O histórico da conversa excede o limite de contexto local."
             }
             check(downloads.state(model).phase == AltivOfflineModelDownloads.Phase.READY) {
                 "Baixe e valide o arquivo GGUF primeiro."
@@ -77,7 +77,7 @@ internal class AltivOfflineInference(context: Context) {
                             "brasileiro com código correto e objetivo quando solicitado. " +
                             "Não afirme que executou testes, Shell, Git ou modificou arquivos. " +
                             "Se o pedido exigir isso, explique que é preciso o agente com ferramentas.",
-                        maxTokens = 220,
+                        maxTokens = 384,
                     )
                     Output(
                         text = result.text,
