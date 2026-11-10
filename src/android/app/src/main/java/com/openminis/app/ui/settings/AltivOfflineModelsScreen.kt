@@ -45,6 +45,8 @@ import com.openminis.app.offline.AltivOfflineCategory
 import com.openminis.app.offline.AltivOfflineModel
 import com.openminis.app.offline.AltivOfflineModelCatalog
 import com.openminis.app.offline.AltivOfflineModelDownloads
+import com.openminis.app.offline.AltivOfflineInference
+import com.openminis.app.offline.AltivOfflineCodingPolicy
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -60,6 +62,8 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
     var confirmDownload by remember { mutableStateOf<AltivOfflineModel?>(null) }
     var confirmDelete by remember { mutableStateOf<AltivOfflineModel?>(null) }
     var errorText by remember { mutableStateOf<String?>(null) }
+    var runTestModel by remember { mutableStateOf<AltivOfflineModel?>(null) }
+    val totalRamGb = remember { AltivOfflineInference.totalRamGb(context) }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -74,6 +78,9 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
     @Suppress("UNUSED_VARIABLE")
     val tick = refresh
     val freeMb = downloads.freeSpaceBytes() / AltivOfflineModel.ONE_MB
+    val preferred = AltivOfflineModelCatalog.models
+        .filter { AltivOfflineCodingPolicy.deviceSuitable(it, totalRamGb) }
+        .maxByOrNull { it.codingLevel }
 
     Scaffold(
         topBar = {
@@ -114,9 +121,24 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Baixe modelos pequenos para o armazenamento do celular. " +
-                            "Esta primeira fase gerencia arquivos GGUF; o motor para " +
-                            "conversar offline será integrado e testado separadamente.",
+                            "O catálogo permite testar inferência local de texto/código. " +
+                            "A conversa no chat principal e as ferramentas offline virão depois.",
                         style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "RAM do celular: aprox. " + totalRamGb + " GB. " +
+                            "Modelo indicado para código: " +
+                            (preferred?.name ?: "nenhum deste catálogo"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        "Comece pelo Qwen2.5-Coder 1.5B. Modelos 3B/4B/7B exigem " +
+                            "mais memória e podem ficar lentos. " +
+                            "Para modificar GitHub, React/3D e projetos grandes, " +
+                            "o agente online com ferramentas continua recomendado.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(10.dp))
@@ -161,6 +183,9 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                 }
                 items(models, key = { it.id }) { model ->
                     val state = downloads.state(model)
+                    val ramSuitable = AltivOfflineCodingPolicy.deviceSuitable(
+                        model, totalRamGb
+                    )
                     Card {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -177,6 +202,19 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(model.ramGuidance, style = MaterialTheme.typography.bodySmall)
+                            if (!ramSuitable) {
+                                Text(
+                                    "Este celular não é recomendado para executar " +
+                                        "este modelo. O download será opcional, " +
+                                        "mas o teste local ficará indisponível.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                            if (model == preferred) {
+                                Text("Sugestão automática para este aparelho",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
                             Text(
                                 "Licença: " + model.license,
                                 style = MaterialTheme.typography.bodySmall,
@@ -226,6 +264,12 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                                         )
                                     }
                                 }
+                                if (state.phase == AltivOfflineModelDownloads.Phase.READY) {
+                                    Button(
+                                        enabled = ramSuitable,
+                                        onClick = { runTestModel = model },
+                                    ) { Text("Testar offline") }
+                                }
                                 TextButton(
                                     onClick = {
                                         context.startActivity(Intent(
@@ -264,6 +308,13 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
         }
     }
 
+    runTestModel?.let { model ->
+        AltivOfflineRunTestDialog(
+            model = model,
+            onDismiss = { runTestModel = null },
+        )
+    }
+
     confirmDownload?.let { model ->
         AlertDialog(
             onDismissRequest = { confirmDownload = null },
@@ -273,7 +324,8 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                     "Arquivo aproximado de " +
                         model.sizeBytes / AltivOfflineModel.ONE_MB + " MB. " +
                         (if (wifiOnly) "Somente por Wi-Fi. " else "Pode usar dados móveis. ") +
-                        "Não habilita conversa offline até instalarmos o motor de inferência."
+                        "Após baixar, você poderá testar a geração local. O chat principal " +
+                        "ainda não usa este modelo."
                 )
             },
             confirmButton = {

@@ -1,6 +1,7 @@
 package com.openminis.app.data.repository
 
 import android.content.Context
+import com.openminis.app.BuildConfig
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.net.Uri
@@ -362,6 +363,18 @@ class SkillRepository(private val context: Context) {
             // Priority 1: bundled
             enabled.filter { it.importSource == ImportSource.BUNDLED }
                 .forEach { picked.putIfAbsent(it.id, it) }
+            // ALTIV: make the most relevant installed development skills visible
+            // first. Only enabled skills are considered; nothing is auto-installed.
+            if (BuildConfig.FLAVOR == "altiv" && picked.size < MAX_SKILLS_IN_PROMPT) {
+                val slots = minOf(8, MAX_SKILLS_IN_PROMPT - picked.size)
+                enabled.asSequence()
+                    .filter { it.id !in picked }
+                    .map { it to AltivProfessionalSkillRouting.priority(it.name, it.description) }
+                    .filter { it.second > 0 }
+                    .sortedByDescending { it.second }
+                    .take(slots)
+                    .forEach { (skill, _) -> picked.putIfAbsent(skill.id, skill) }
+            }
             // Priority 2: recently updated (within 7 days), up to RECENT_SLOTS more
             val cutoff = System.currentTimeMillis() - RECENT_WINDOW_MS
             val recentLimit = minOf(RECENT_SLOTS, MAX_SKILLS_IN_PROMPT - picked.size).coerceAtLeast(0)
@@ -403,6 +416,10 @@ class SkillRepository(private val context: Context) {
             append("Skills:\n")
             append("Reusable instruction sets stored at /var/minis/skills/<name>/SKILL.md. Read the SKILL.md file to load full instructions before using a skill.\n\n")
             append(xml)
+            if (BuildConfig.FLAVOR == "altiv") {
+                append("\n\n")
+                append(AltivProfessionalSkillRouting.GUIDANCE)
+            }
             if (hasMore) {
                 val selectedIds = selected.mapTo(HashSet(selected.size)) { it.id }
                 val omitted = enabled.filter { it.id !in selectedIds }
