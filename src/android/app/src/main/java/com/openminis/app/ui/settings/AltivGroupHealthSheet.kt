@@ -172,7 +172,7 @@ internal fun AltivGroupHealthSheet(
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         }
                         Text(
-                            stringResource(statusLabels.getValue(result.status)),
+                            stringResource(statusLabels[result.status] ?: R.string.altiv_health_failed),
                             color = if (result.status == AltivModelHealthProbe.Status.WORKING)
                                 MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,

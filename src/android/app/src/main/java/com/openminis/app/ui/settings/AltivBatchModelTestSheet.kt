@@ -57,6 +57,8 @@ internal fun AltivBatchModelTestSheet(
     var selectedProviderId by remember { mutableStateOf<String?>(null) }
     var providerMenuOpen by remember { mutableStateOf(false) }
     var running by remember { mutableStateOf(false) }
+    var mode by remember { mutableStateOf(AltivModelHealthProbe.Mode.CONNECTION) }
+    var extendedTimeout by remember { mutableStateOf(false) }
     var activeModel by remember { mutableStateOf("") }
     var job by remember { mutableStateOf<Job?>(null) }
     val close: () -> Unit = { job?.cancel(); onDismiss() }
@@ -71,10 +73,13 @@ internal fun AltivBatchModelTestSheet(
             AltivModelHealthProbe.supportsText(entry.model.outputModalities)
     }.distinctBy { it.id }
     val ids = candidates.map { it.id }
-    val remaining = candidates.count { it.id !in results }
-    val batchIds = AltivBatchModelSelection.nextBatch(ids, results.keys)
+    val resultKey: (String) -> String = { mode.name + ":" + it }
+    val testedIds = results.keys.filter { it.startsWith(mode.name + ":") }
+        .map { it.substringAfter(":") }.toSet()
+    val remaining = candidates.count { it.id !in testedIds }
+    val batchIds = AltivBatchModelSelection.nextBatch(ids, testedIds)
     val working = candidates.count {
-        results[it.id]?.status == AltivModelHealthProbe.Status.WORKING
+        results[resultKey(it.id)]?.status == AltivModelHealthProbe.Status.WORKING
     }
 
     ModalBottomSheet(
@@ -88,15 +93,44 @@ internal fun AltivBatchModelTestSheet(
         ) {
             Text("Testador automático de modelos", style = MaterialTheme.typography.titleLarge)
             Text(
-                "Cada teste envia uma solicitação real, que pode consumir créditos. " +
-                    "Nenhum teste começa sozinho. Máximo de 12 modelos por lote, " +
-                    "um por vez, com limite de 20 segundos por modelo.",
+                "Os testes fazem solicitações reais e podem consumir créditos. " +
+                    "Nenhum começa sozinho. Até 12 modelos por lote, um por vez. " +
+                    "Há no máximo uma nova tentativa em erro transitório (5xx/timeout).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 "Aprovados serão pré-selecionados, mas só entram no grupo ao " +
                     "tocar em Adicionar na tela anterior.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    enabled = !running,
+                    onClick = { mode = AltivModelHealthProbe.Mode.CONNECTION },
+                ) { Text(if (mode == AltivModelHealthProbe.Mode.CONNECTION) "✓ Conexão" else "Conexão") }
+                OutlinedButton(
+                    enabled = !running,
+                    onClick = { mode = AltivModelHealthProbe.Mode.CODING_TOOLS },
+                ) {
+                    Text(
+                        if (mode == AltivModelHealthProbe.Mode.CODING_TOOLS)
+                            "✓ Código + ferramentas" else "Código + ferramentas"
+                    )
+                }
+            }
+            TextButton(
+                enabled = !running,
+                onClick = { extendedTimeout = !extendedTimeout },
+            ) {
+                Text(if (extendedTimeout) "Timeout: 75 s por tentativa" else "Timeout: 45 s por tentativa")
+            }
+            Text(
+                if (mode == AltivModelHealthProbe.Mode.CODING_TOOLS)
+                    "Código + ferramentas exige gerar TypeScript por uma função de teste. " +
+                        "Nenhum Shell, arquivo ou MCP é executado."
+                else "Conexão confirma somente que o modelo retorna texto.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -133,6 +167,10 @@ internal fun AltivBatchModelTestSheet(
                         val planned = batchIds.mapNotNull { id ->
                             candidates.firstOrNull { it.id == id }
                         }
+                        val plannedMode = mode
+                        val plannedTimeout = if (extendedTimeout)
+                            AltivModelHealthProbe.EXTENDED_TIMEOUT_MS
+                        else AltivModelHealthProbe.TIMEOUT_MS
                         job = scope.launch {
                             running = true
                             try {
@@ -140,9 +178,10 @@ internal fun AltivBatchModelTestSheet(
                                     coroutineContext.ensureActive()
                                     activeModel = entry.model.displayName
                                     val result = AltivModelHealthProbe.check(
-                                        entry, providerRepository, context
+                                        entry, providerRepository, context,
+                                        mode = plannedMode, timeoutMs = plannedTimeout,
                                     )
-                                    results[entry.id] = result
+                                    results[plannedMode.name + ":" + entry.id] = result
                                     if (result.status == AltivModelHealthProbe.Status.WORKING) {
                                         onWorking(setOf(entry.id))
                                     }
@@ -174,8 +213,8 @@ internal fun AltivBatchModelTestSheet(
                         "Atualize a lista do provedor ou confira sua chave de API.",
                 )
             }
-            candidates.filter { it.id in results }.takeLast(12).forEach { entry ->
-                val result = results[entry.id] ?: return@forEach
+            candidates.filter { it.id in testedIds }.takeLast(12).forEach { entry ->
+                val result = results[resultKey(entry.id)] ?: return@forEach
                 val status = when (result.status) {
                     AltivModelHealthProbe.Status.WORKING -> "✓ Funcionando"
                     AltivModelHealthProbe.Status.AUTH_FAILED -> "Falha de autenticação"
@@ -184,12 +223,21 @@ internal fun AltivBatchModelTestSheet(
                     AltivModelHealthProbe.Status.TIMEOUT -> "Tempo esgotado"
                     AltivModelHealthProbe.Status.INCOMPATIBLE -> "Incompatível"
                     AltivModelHealthProbe.Status.DISABLED -> "Desabilitado"
+                    AltivModelHealthProbe.Status.BAD_REQUEST -> "Parâmetro/formato incompatível (400/422)"
+                    AltivModelHealthProbe.Status.MODEL_MISSING -> "Modelo ausente ou indisponível (404)"
+                    AltivModelHealthProbe.Status.SERVICE_UNAVAILABLE -> "Falha temporária do serviço (5xx)"
+                    AltivModelHealthProbe.Status.NO_CREDIT -> "Sem créditos (402)"
+                    AltivModelHealthProbe.Status.TOOL_UNSUPPORTED ->
+                        "Não retornou chamada de ferramenta válida"
+                    AltivModelHealthProbe.Status.INVALID_CODE ->
+                        "Chamou a ferramenta, mas o código não passou"
                     else -> "Falhou"
                 }
                 Column {
                     Text(entry.model.displayName, fontWeight = FontWeight.SemiBold)
                     Text(
-                        status + " • " + result.latencyMs + " ms",
+                        status + " • " + result.latencyMs + " ms" +
+                            (if (result.attempts > 1) " • 2 tentativas" else ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -199,8 +247,9 @@ internal fun AltivBatchModelTestSheet(
                 Text("Todos os modelos deste filtro foram verificados nesta sessão.")
             }
             Text(
-                "Teste de texto não garante suporte a ferramentas, imagens, custo baixo " +
-                    "nem disponibilidade futura. Confirme os preços antes de testar modelos caros.",
+                "O teste de conexão não garante programação. O teste de ferramentas " +
+                    "verifica apenas chamada estruturada com código simples, nunca um projeto real. " +
+                    "Confirme o preço dos modelos; não há garantia de disponibilidade futura.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

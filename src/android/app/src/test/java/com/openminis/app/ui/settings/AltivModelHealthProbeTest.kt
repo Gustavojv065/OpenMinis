@@ -15,7 +15,33 @@ class AltivModelHealthProbeTest {
         assertEquals(AltivModelHealthProbe.Status.RATE_LIMITED, probe.classifyError("HTTP 429 rate limit"))
         assertEquals(AltivModelHealthProbe.Status.RATE_LIMITED, probe.classifyError("insufficient_quota"))
         assertEquals(AltivModelHealthProbe.Status.TIMEOUT, probe.classifyError("request timed out"))
-        assertEquals(AltivModelHealthProbe.Status.FAILED, probe.classifyError("HTTP 500 internal error"))
+        assertEquals(AltivModelHealthProbe.Status.SERVICE_UNAVAILABLE, probe.classifyError("HTTP 500 internal error"))
+    }
+
+    @Test
+    fun `classifies model errors distinctly and retries only temporary failures`() {
+        val probe = AltivModelHealthProbe
+        assertEquals(AltivModelHealthProbe.Status.BAD_REQUEST, probe.classifyError("HTTP 400 invalid request"))
+        assertEquals(AltivModelHealthProbe.Status.MODEL_MISSING, probe.classifyError("HTTP 404 model not found"))
+        assertEquals(AltivModelHealthProbe.Status.NO_CREDIT, probe.classifyError("HTTP 402 payment required"))
+        assertEquals(AltivModelHealthProbe.Status.SERVICE_UNAVAILABLE, probe.classifyError("HTTP 503"))
+        assertTrue(probe.isRetryable(AltivModelHealthProbe.Status.SERVICE_UNAVAILABLE))
+        assertTrue(probe.isRetryable(AltivModelHealthProbe.Status.TIMEOUT))
+        assertFalse(probe.isRetryable(AltivModelHealthProbe.Status.AUTH_FAILED))
+        assertFalse(probe.isRetryable(AltivModelHealthProbe.Status.RATE_LIMITED))
+        assertFalse(probe.isRetryable(AltivModelHealthProbe.Status.BAD_REQUEST))
+        assertFalse(probe.isRetryable(AltivModelHealthProbe.Status.MODEL_MISSING))
+    }
+
+    @Test
+    fun `tool coding check requires actual TypeScript addition function`() {
+        val probe = AltivModelHealthProbe
+        assertTrue(probe.looksLikeSumFunction("function sum(a: number, b: number): number { return a + b }"))
+        assertTrue(probe.looksLikeSumFunction("const sum = (a: number, b: number) => a + b"))
+        assertFalse(probe.looksLikeSumFunction("Hello! Here is a code block"))
+        assertFalse(probe.looksLikeSumFunction("function subtract(a: number,b: number) {return a-b}"))
+        assertEquals(45_000L, probe.TIMEOUT_MS)
+        assertEquals(75_000L, probe.EXTENDED_TIMEOUT_MS)
     }
 
     @Test

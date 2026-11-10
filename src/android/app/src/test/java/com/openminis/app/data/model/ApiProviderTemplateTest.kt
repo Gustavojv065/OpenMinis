@@ -10,7 +10,7 @@ class ApiProviderTemplateTest {
     @Test
     fun `all shortcuts are unique, HTTPS, and versioned`() {
         val templates = ApiProviderTemplate.all
-        assertEquals(11, templates.size)
+        assertEquals(13, templates.size)
         assertEquals(templates.size, templates.map { it.id }.toSet().size)
         assertEquals(templates.size, templates.map { it.name }.toSet().size)
         assertTrue(templates.all { it.baseURL.startsWith("https://") })
@@ -23,6 +23,10 @@ class ApiProviderTemplateTest {
     fun `custom endpoints do not get duplicate v1 suffixes`() {
         assertEquals("https://integrate.api.nvidia.com/v1",
             ApiProviderTemplate.all.first { it.id == "nvidia" }.baseURL)
+        assertEquals("https://api.minimax.io/v1",
+            ApiProviderTemplate.all.first { it.id == "minimax" }.baseURL)
+        assertEquals("https://api.xiaomimimo.com/v1",
+            ApiProviderTemplate.all.first { it.id == "mimo" }.baseURL)
         assertEquals("https://api.groq.com/openai/v1",
             ApiProviderTemplate.all.first { it.id == "groq" }.baseURL)
         assertEquals("https://opencode.ai/zen/v1",
