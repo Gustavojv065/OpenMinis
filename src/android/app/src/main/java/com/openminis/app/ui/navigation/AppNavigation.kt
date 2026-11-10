@@ -182,6 +182,9 @@ object Routes {
     /** [T-mcp-integration-android] MCP Integrations management screen. */
     const val MCP = "mcp"
     const val ALTIV_OFFLINE_MODELS = "altiv_offline_models"
+    const val ALTIV_OFFLINE_CHAT = "altiv_offline_chat/{modelId}"
+
+    fun offlineChat(modelId: String): String = "altiv_offline_chat/" + modelId
     /** [T-soul-md] SOUL.md editor. */
     const val SOUL = "soul"
     const val MEMORY_FILE_EDIT = "memory_file/{fileName}/{isGlobal}"
@@ -677,6 +680,19 @@ fun AppNavigation(
 
         composable(Routes.ALTIV_OFFLINE_MODELS) {
             com.openminis.app.ui.settings.AltivOfflineModelsScreen(
+                onBack = { navController.safePopBackStack() },
+                onChatModelClick = { modelId ->
+                    navController.safeNavigate(Routes.offlineChat(modelId))
+                },
+            )
+        }
+        composable(
+            route = Routes.ALTIV_OFFLINE_CHAT,
+            arguments = listOf(navArgument("modelId") { type = NavType.StringType }),
+        ) { entry ->
+            val modelId = entry.arguments?.getString("modelId") ?: return@composable
+            com.openminis.app.ui.settings.AltivOfflineChatScreen(
+                initialModelId = modelId,
                 onBack = { navController.safePopBackStack() },
             )
         }
