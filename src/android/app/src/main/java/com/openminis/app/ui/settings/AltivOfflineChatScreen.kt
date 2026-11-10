@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -41,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.offline.AltivOfflineConversationPrompt
 import com.openminis.app.offline.AltivOfflineConversationStore
 import com.openminis.app.offline.AltivOfflineInference
-import com.openminis.app.offline.AltivOfflineModel
 import com.openminis.app.offline.AltivOfflineModelCatalog
 import com.openminis.app.offline.AltivOfflineModelDownloads
 import kotlinx.coroutines.launch
