@@ -85,6 +85,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onProvidersClick: () -> Unit,
     onModelGroupsClick: () -> Unit,
+    onOfflineModelsClick: () -> Unit = {},
     onRootfsClick: () -> Unit = {},
     onBackupClick: () -> Unit = {},
     onEnvVarsClick: () -> Unit = {},
@@ -198,6 +199,13 @@ fun SettingsScreen(
                         title = "Modelos e fallback",
                         subtitle = "Escolher os modelos e as alternativas automáticas",
                         onClick = onModelGroupsClick,
+                    )
+                    SettingsItem(
+                        icon = Icons.Outlined.Inventory2,
+                        iconColor = Color(0xFF7C60DB),
+                        title = "Modelos offline",
+                        subtitle = "Baixar modelos pequenos para usar no Android futuramente",
+                        onClick = onOfflineModelsClick,
                     )
                     SettingsItem(
                         icon = Icons.Outlined.Terminal,

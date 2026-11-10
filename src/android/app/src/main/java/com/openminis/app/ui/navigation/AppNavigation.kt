@@ -181,6 +181,7 @@ object Routes {
     const val AGENT_TOOLS = "agent_tools"
     /** [T-mcp-integration-android] MCP Integrations management screen. */
     const val MCP = "mcp"
+    const val ALTIV_OFFLINE_MODELS = "altiv_offline_models"
     /** [T-soul-md] SOUL.md editor. */
     const val SOUL = "soul"
     const val MEMORY_FILE_EDIT = "memory_file/{fileName}/{isGlobal}"
@@ -648,6 +649,7 @@ fun AppNavigation(
                 onBack = { navController.safePopBackStack() },
                 onProvidersClick = { navController.safeNavigate(Routes.PROVIDER_LIST) },
                 onModelGroupsClick = { navController.safeNavigate(Routes.MODEL_GROUPS) },
+                onOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) },
                 onRootfsClick = { navController.safeNavigate(Routes.STORAGE) },
                 onBackupClick = { navController.safeNavigate(Routes.BACKUP) },
                 onEnvVarsClick = { navController.safeNavigate(Routes.ENV_VARS) },
@@ -670,6 +672,12 @@ fun AppNavigation(
                 onAboutClick = { navController.safeNavigate(Routes.ABOUT) },
                 onMountedFoldersClick = { navController.safeNavigate(Routes.MOUNTED_FOLDERS) },
                 onSharedFoldersClick = { navController.safeNavigate(Routes.SHARED_FOLDERS) },
+            )
+        }
+
+        composable(Routes.ALTIV_OFFLINE_MODELS) {
+            com.openminis.app.ui.settings.AltivOfflineModelsScreen(
+                onBack = { navController.safePopBackStack() },
             )
         }
 
