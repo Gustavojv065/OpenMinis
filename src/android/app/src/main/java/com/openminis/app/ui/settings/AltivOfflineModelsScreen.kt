@@ -2,6 +2,8 @@ package com.openminis.app.ui.settings
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,13 +52,39 @@ import com.openminis.app.offline.AltivOfflineInference
 import com.openminis.app.offline.AltivOfflineCodingPolicy
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /** Catalog and real downloads; offline inference is a separate future feature. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AltivOfflineModelsScreen(onBack: () -> Unit) {
+fun AltivOfflineModelsScreen(
+    onBack: () -> Unit,
+    onChatModelClick: (String) -> Unit = {},
+) {
     val context = LocalContext.current
     val downloads = remember { AltivOfflineModelDownloads(context) }
+    val scope = rememberCoroutineScope()
+    var importTarget by remember { mutableStateOf<AltivOfflineModel?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    val filePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        val model = importTarget
+        importTarget = null
+        if (uri != null && model != null) {
+            importing = true
+            scope.launch {
+                try {
+                    downloads.importFromUri(model, uri).getOrThrow()
+                    refresh++
+                } catch (e: Exception) {
+                    errorText = e.message ?: "Falha ao importar GGUF."
+                } finally {
+                    importing = false
+                }
+            }
+        }
+    }
     var categoryIndex by remember { mutableIntStateOf(0) }
     var wifiOnly by remember { mutableStateOf(true) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -120,9 +149,9 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Baixe modelos pequenos para o armazenamento do celular. " +
-                            "O catálogo permite testar inferência local de texto/código. " +
-                            "A conversa no chat principal e as ferramentas offline virão depois.",
+                        "Baixe um GGUF e abra uma conversa offline independente. " +
+                            "Ela funciona sem chave API e preserva as mensagens no aparelho. " +
+                            "Edição automática de repositórios exige o agente com ferramentas.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -278,10 +307,33 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                                     },
                                 ) { Text("Fonte e licença") }
                             }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    enabled = !importing && state.phase !in setOf(
+                                        AltivOfflineModelDownloads.Phase.QUEUED,
+                                        AltivOfflineModelDownloads.Phase.DOWNLOADING,
+                                        AltivOfflineModelDownloads.Phase.PAUSED,
+                                    ),
+                                    onClick = {
+                                        importTarget = model
+                                        filePicker.launch(arrayOf("*/*"))
+                                    },
+                                ) { Text("Importar GGUF") }
+                                TextButton(onClick = {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(model.downloadUrl))
+                                            .addCategory(Intent.CATEGORY_BROWSABLE)
+                                    )
+                                }) { Text("Abrir no navegador") }
+                            }
                             if (state.phase == AltivOfflineModelDownloads.Phase.READY) {
+                                Button(
+                                    enabled = ramSuitable && !importing,
+                                    onClick = { onChatModelClick(model.id) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) { Text("Conversar offline · " + model.name) }
                                 Text(
-                                    "Arquivo no armazenamento do app. Ainda não ativado " +
-                                        "como modelo de conversa no chat.",
+                                    "Conversa local separada, sem API. Sem Shell, MCP ou GitHub.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -295,6 +347,9 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                         onClick = { refresh++ },
                     ) { Text("Atualizar downloads") }
                     Spacer(Modifier.height(12.dp))
+                    if (importing) {
+                        Text("Importando GGUF do armazenamento. Não feche esta tela...")
+                    }
                     Text(
                         "A verificação atual confere apenas tamanho mínimo e assinatura " +
                             "GGUF, não um hash criptográfico. Não execute arquivos de " +
@@ -324,8 +379,8 @@ fun AltivOfflineModelsScreen(onBack: () -> Unit) {
                     "Arquivo aproximado de " +
                         model.sizeBytes / AltivOfflineModel.ONE_MB + " MB. " +
                         (if (wifiOnly) "Somente por Wi-Fi. " else "Pode usar dados móveis. ") +
-                        "Após baixar, você poderá testar a geração local. O chat principal " +
-                        "ainda não usa este modelo."
+                        "Após baixar, você poderá conversar no chat offline independente. " +
+                        "A conversa padrão do ALTIV continua usando provedores online."
                 )
             },
             confirmButton = {
