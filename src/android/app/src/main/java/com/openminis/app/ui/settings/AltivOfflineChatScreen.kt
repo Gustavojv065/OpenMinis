@@ -52,7 +52,11 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
+fun AltivOfflineChatScreen(
+    initialModelId: String,
+    onBack: () -> Unit,
+    chatSessionId: String? = null,
+) {
     val context = LocalContext.current
     val downloads = remember { AltivOfflineModelDownloads(context) }
     val store = remember { AltivOfflineConversationStore(context) }
@@ -76,9 +80,9 @@ fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
     val turns = remember { mutableStateListOf<AltivOfflineConversationPrompt.Turn>() }
     val listState = rememberLazyListState()
 
-    LaunchedEffect(model?.id) {
+    LaunchedEffect(model?.id, chatSessionId) {
         turns.clear()
-        model?.id?.let { turns.addAll(store.read(it)) }
+        model?.id?.let { turns.addAll(store.read(it, chatSessionId)) }
         input = ""
         errorText = null
         performance = null
@@ -90,7 +94,7 @@ fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Conversa offline") },
+                title = { Text(if (chatSessionId == null) "Conversa offline" else "ALTIV Chat · IA local") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
@@ -130,7 +134,7 @@ fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
                             )
                             turns.clear()
                             turns.addAll(updated)
-                            store.save(current.id, updated)
+                            store.save(current.id, updated, chatSessionId)
                             input = ""
                             processing = true
                             errorText = null
@@ -149,7 +153,7 @@ fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
                                     )
                                     turns.clear()
                                     turns.addAll(finalTurns)
-                                    store.save(current.id, finalTurns)
+                                    store.save(current.id, finalTurns, chatSessionId)
                                     performance = "Gerado localmente em " +
                                         response.elapsedMs / 1_000L + " s • " +
                                         "%.1f".format(response.tokensPerSecond) + " tokens/s"
@@ -174,7 +178,10 @@ fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "Sem API e sem internet · Mensagens salvas neste aparelho",
+                if (chatSessionId == null)
+                    "Sem API e sem internet · Mensagens salvas neste aparelho"
+                else
+                    "Modo offline nesta conversa · Histórico local separado do chat online",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -261,7 +268,7 @@ fun AltivOfflineChatScreen(initialModelId: String, onBack: () -> Unit) {
             text = { Text("O histórico deste modelo será excluído apenas do aparelho.") },
             confirmButton = {
                 TextButton(onClick = {
-                    store.clear(model.id)
+                    store.clear(model.id, chatSessionId)
                     turns.clear()
                     clearConfirmation = false
                 }) { Text("Apagar") }
