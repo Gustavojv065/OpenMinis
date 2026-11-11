@@ -295,6 +295,7 @@ internal fun ModelPickerSheet(
     onSelectGroupEntry: (String, String) -> Unit,
     onSelectEntry: (String) -> Unit,
     onSelectOfflineModel: (String) -> Unit = {},
+    onManageOfflineModels: () -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
      *  section header — dismisses the sheet and navigates to the Model Groups
@@ -589,46 +590,61 @@ internal fun ModelPickerSheet(
                     .fillMaxWidth()
                     .nestedScroll(pickerScrollGuard),
             ) {
-                // ALTIV local models are selectable here, but launch the isolated
-                // on-device conversation. They must NOT be passed to the cloud
-                // ProviderRepository or the agent tool pipeline as API models.
-                if (installedOfflineModels.isNotEmpty()) {
-                    item(key = "altiv-offline-models") {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    RoundedCornerShape(14.dp),
-                                )
-                                .padding(12.dp),
-                        ) {
-                            Text(
-                                "Offline / IA Local",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                // Offline models always have a visible entry point, including
+                // before the first download. Local GGUF stays isolated from
+                // cloud providers and the agent tool execution pipeline.
+                item(key = "altiv-offline-models") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(14.dp),
                             )
+                            .padding(12.dp),
+                    ) {
+                        Text(
+                            "Offline / IA Local",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "No aparelho, sem API nem ferramentas de agente",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (installedOfflineModels.isEmpty()) {
                             Text(
-                                "Modelos no aparelho · abre conversa local sem API ou ferramentas",
+                                "Nenhum GGUF compatível instalado. Baixe ou importe um modelo para conversar sem internet.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            installedOfflineModels.filter { model ->
-                                query.isBlank() ||
-                                    model.name.contains(query, ignoreCase = true) ||
-                                    "offline local".contains(query, ignoreCase = true)
-                            }.forEach { model ->
-                                Text(
-                                    text = model.name + "  ·  Usar offline",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { onSelectOfflineModel(model.id) }
-                                        .padding(vertical = 14.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
                         }
+                        installedOfflineModels.filter { model ->
+                            query.isBlank() ||
+                                model.name.contains(query, ignoreCase = true) ||
+                                "offline local".contains(query, ignoreCase = true)
+                        }.forEach { model ->
+                            Text(
+                                text = model.name + "  ·  Conversar offline",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelectOfflineModel(model.id) }
+                                    .padding(vertical = 14.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        Text(
+                            "Baixar ou gerenciar modelos offline",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onManageOfflineModels() }
+                                .padding(vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                 }
                 // ── Model Groups (grouped section card with embedded header) ──
