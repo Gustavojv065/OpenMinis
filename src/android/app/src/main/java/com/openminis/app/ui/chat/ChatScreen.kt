@@ -8410,7 +8410,16 @@ fun ChatScreen(
             },
             onSelectOfflineModel = { modelId ->
                 showModelPicker = false
-                inlineOfflineModelId = modelId
+                if (isStreaming) {
+                    // Do not switch away while a cloud turn is still active.
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Aguarde a resposta online terminar antes de ativar o modelo offline."
+                        )
+                    }
+                } else {
+                    inlineOfflineModelId = modelId
+                }
             },
             onManageOfflineModels = {
                 showModelPicker = false
