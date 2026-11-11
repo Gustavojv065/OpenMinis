@@ -77,4 +77,35 @@ class AltivOfflineConversationPromptTest {
         assertTrue(chat.contains("onManageOfflineModelsClick()"))
         assertTrue(scaffold.contains("onManageOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) }"))
     }
+
+    @Test fun offlineHistoryIsScopedToMainChatWithoutBreakingLegacyKeys() {
+        val model = "qwen3-06b-q4km"
+        assertEquals("messages_" + model, AltivOfflineConversationStore.keyFor(model))
+        val first = AltivOfflineConversationStore.keyFor(model, "session-a")
+        val second = AltivOfflineConversationStore.keyFor(model, "session-b")
+        assertTrue(first.startsWith("messages_inchat_"))
+        assertFalse(first == second)
+        assertFalse(first == AltivOfflineConversationStore.keyFor("qwen25coder-15b-q4km", "session-a"))
+        assertEquals(first, AltivOfflineConversationStore.keyFor(model, "session-a"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun offlineHistoryRejectsBlankSessionId() {
+        AltivOfflineConversationStore.keyFor("qwen3-06b-q4km", "  ")
+    }
+
+    @Test fun mainChatUsesInlineOfflineModeWithoutCloudProviderRouting() {
+        val root = java.io.File("src/main/java/com/openminis/app")
+        val chat = root.resolve("ui/chat/ChatScreen.kt").readText()
+        val screen = root.resolve("ui/settings/AltivOfflineChatScreen.kt").readText()
+        val scaffold = root.resolve("ui/navigation/ChatSplitScaffold.kt").readText()
+        assertTrue(chat.contains("var inlineOfflineModelId by rememberSaveable(sessionId)"))
+        assertTrue(chat.contains("inlineOfflineModelId = modelId"))
+        assertTrue(chat.contains("chatSessionId = sessionId"))
+        assertTrue(chat.contains("AltivOfflineChatScreen("))
+        assertTrue(screen.contains("store.read(it, chatSessionId)"))
+        assertTrue(screen.contains("store.save(current.id, finalTurns, chatSessionId)"))
+        assertFalse(scaffold.contains("onOfflineModelClick = { modelId -> navController.safeNavigate(Routes.offlineChat(modelId)) }"))
+        assertTrue(scaffold.contains("onManageOfflineModelsClick"))
+    }
 }
