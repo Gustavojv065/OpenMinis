@@ -294,6 +294,7 @@ internal fun ModelPickerSheet(
     onSelectGroup: (String) -> Unit,
     onSelectGroupEntry: (String, String) -> Unit,
     onSelectEntry: (String) -> Unit,
+    onSelectOfflineModel: (String) -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
      *  section header — dismisses the sheet and navigates to the Model Groups
@@ -303,6 +304,16 @@ internal fun ModelPickerSheet(
      *  header — opens that provider instance's settings. Null hides it. */
     onEditProvider: ((instanceId: String) -> Unit)? = null,
 ) {
+    val offlineContext = LocalContext.current
+    val offlineDownloads = remember(offlineContext) {
+        com.openminis.app.offline.AltivOfflineModelDownloads(offlineContext)
+    }
+    val installedOfflineModels = com.openminis.app.offline.AltivOfflineModelCatalog.models.filter { model ->
+        offlineDownloads.state(model).phase ==
+            com.openminis.app.offline.AltivOfflineModelDownloads.Phase.READY &&
+            com.openminis.app.offline.AltivOfflineInference.totalRamGb(offlineContext) >=
+                model.minimumDeviceRamGb
+    }
     val openTime = remember { System.nanoTime() }
 
     LaunchedEffect(Unit) {
@@ -578,6 +589,48 @@ internal fun ModelPickerSheet(
                     .fillMaxWidth()
                     .nestedScroll(pickerScrollGuard),
             ) {
+                // ALTIV local models are selectable here, but launch the isolated
+                // on-device conversation. They must NOT be passed to the cloud
+                // ProviderRepository or the agent tool pipeline as API models.
+                if (installedOfflineModels.isNotEmpty()) {
+                    item(key = "altiv-offline-models") {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    RoundedCornerShape(14.dp),
+                                )
+                                .padding(12.dp),
+                        ) {
+                            Text(
+                                "Offline / IA Local",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "Modelos no aparelho · abre conversa local sem API ou ferramentas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            installedOfflineModels.filter { model ->
+                                query.isBlank() ||
+                                    model.name.contains(query, ignoreCase = true) ||
+                                    "offline local".contains(query, ignoreCase = true)
+                            }.forEach { model ->
+                                Text(
+                                    text = model.name + "  ·  Usar offline",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onSelectOfflineModel(model.id) }
+                                        .padding(vertical = 14.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                        }
+                    }
+                }
                 // ── Model Groups (grouped section card with embedded header) ──
                 if (filteredGroups.isNotEmpty()) {
                     // Section card: header + rows live in the same surface so
