@@ -581,13 +581,16 @@ fun ChatScreen(
         mutableStateOf<String?>(null)
     }
     val activeOfflineModelId = inlineOfflineModelId
+    // Draft IDs are ephemeral. Use the established standalone model history
+    // until there is a persisted chat session, preventing orphaned local turns.
+    val stableOfflineSessionId = sessionId.takeUnless { it.startsWith("__new__") }
     if (activeOfflineModelId != null) {
         androidx.activity.compose.BackHandler {
             inlineOfflineModelId = null
         }
         com.openminis.app.ui.settings.AltivOfflineChatScreen(
             initialModelId = activeOfflineModelId,
-            chatSessionId = sessionId,
+            chatSessionId = stableOfflineSessionId,
             onBack = { inlineOfflineModelId = null },
         )
         return
