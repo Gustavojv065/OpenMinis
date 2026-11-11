@@ -1321,6 +1321,12 @@ class ChatViewModel(
     private val _modelName = MutableStateFlow("")
     val modelName: StateFlow<String> = _modelName.asStateFlow()
 
+    // A GGUF is a local inference mode, NOT a synthetic cloud ProviderInstance.
+    // Keep the last cloud entry configured and route only UI user sends locally.
+    private val _offlineModelId = MutableStateFlow<String?>(null)
+    val offlineModelId: StateFlow<String?> = _offlineModelId.asStateFlow()
+    private var offlineJob: Job? = null
+
     /** T201: gate the init-time `config.collect` re-resolver so the StateFlow's
      *  replay cache can't beat [loadSession] to setting `_modelName`. Without
      *  this, opening a session that previously fell back mid-run flashes the
@@ -6106,6 +6112,9 @@ class ChatViewModel(
                         currentProvider = null
                     }
                 }
+                // A persisted local model is intentional, including with zero
+                // API keys configured. Do not auto-fallback to a paid API.
+                if (_offlineModelId.value != null) return@collect
                 if (currentProvider == null && config.modelEntries.isNotEmpty()) {
                     // T306: re-attempt the persisted binding now that config
                     // has entries. For an existing session whose loadSession
@@ -6208,7 +6217,8 @@ class ChatViewModel(
     /** Ensure the session exists in the database. Called before first message. */
     private suspend fun ensureSession(): String {
         if (realSessionId.isNotEmpty()) return realSessionId
-        val modelId = currentModel?.id ?: providerRepository.allVisibleEntries().firstOrNull()?.model?.id ?: "unknown"
+        val modelId = _offlineModelId.value ?: currentModel?.id
+            ?: providerRepository.allVisibleEntries().firstOrNull()?.model?.id ?: "unknown"
         // [T-memory-global-toggle-settings-ui-android] Snapshot the
         // current in-memory `_memoryEnabled` into the new row. For a
         // draft VM this matches the global default we seeded at
@@ -6268,6 +6278,7 @@ class ChatViewModel(
         val groupId = _selectedGroupId.value
         val entryId = _activeEntryId.value
         val binding = when {
+            _offlineModelId.value != null -> """{"type":"offline","modelId":"${_offlineModelId.value}"}"""
             groupId != null && entryId != null -> """{"type":"group","groupId":"$groupId","lastEntryId":"$entryId"}"""
             groupId != null -> """{"type":"group","groupId":"$groupId"}"""
             entryId != null -> """{"type":"entry","entryId":"$entryId"}"""
@@ -7194,6 +7205,20 @@ class ChatViewModel(
         return try {
             val obj = org.json.JSONObject(bindingJson)
             when (obj.optString("type")) {
+                "offline" -> {
+                    val modelId = obj.optString("modelId")
+                    val model = com.openminis.app.offline.AltivOfflineModelCatalog.byId(modelId)
+                        ?: return false
+                    _offlineModelId.value = model.id
+                    _modelName.value = model.name + " · Offline"
+                    _providerName.value = "IA local · sem API"
+                    _selectedGroupId.value = null
+                    _selectedGroupName.value = ""
+                    _activeEntryId.value = null
+                    currentModel = null
+                    currentProvider = null
+                    true
+                }
                 "group" -> {
                     val groupId = obj.optString("groupId").takeIf { it.isNotEmpty() } ?: return false
                     val lastEntryId = obj.optString("lastEntryId").takeIf { it.isNotEmpty() }
@@ -7492,6 +7517,46 @@ class ChatViewModel(
         )
     }
 
+    /**
+     * Select a verified GGUF as the SAME session's inference engine. The model
+     * is never represented as a network provider and cannot invoke MCP/tools.
+     * This choice survives process restart via the existing session binding.
+     */
+    fun selectOfflineModel(modelId: String): Boolean {
+        if (_isStreaming.value) {
+            _error.value = "Aguarde a resposta atual terminar antes de trocar de modelo."
+            return false
+        }
+        val model = com.openminis.app.offline.AltivOfflineModelCatalog.byId(modelId)
+        if (model == null || model.codingLevel < 1) {
+            _error.value = "Modelo offline não compatível."
+            return false
+        }
+        val downloads = com.openminis.app.offline.AltivOfflineModelDownloads(context)
+        if (downloads.state(model).phase != com.openminis.app.offline.AltivOfflineModelDownloads.Phase.READY ||
+            com.openminis.app.offline.AltivOfflineInference.totalRamGb(context) < model.minimumDeviceRamGb
+        ) {
+            _error.value = "Baixe o GGUF e verifique a memória do celular antes de selecionar."
+            return false
+        }
+        _offlineModelId.value = model.id
+        _modelName.value = model.name + " · Offline"
+        _providerName.value = "IA local · sem API"
+        _selectedGroupId.value = null
+        _selectedGroupName.value = ""
+        _activeEntryId.value = null
+        currentModel = null
+        currentProvider = null
+        _error.value = null
+        val sid = realSessionId.takeIf { it.isNotEmpty() }
+        if (sid != null) viewModelScope.launch {
+            chatRepository.updateSessionBinding(
+                sid, """{"type":"offline","modelId":"${model.id}"}""", model.id
+            )
+        }
+        return true
+    }
+
     fun selectGroup(groupId: String) {
         // [T-android-switch-model-ghost-retry] Before rebinding, stop whatever
         // is still calling the model being left behind.
@@ -7500,6 +7565,7 @@ class ChatViewModel(
         _selectedGroupName.value = providerRepository.group(groupId)?.name ?: ""
         val resolved = resolveProviderFromGroup(groupId)
         if (resolved) {
+            _offlineModelId.value = null
             persistBinding("""{"type":"group","groupId":"$groupId"}""")
             applyGroupSessionDefaults(groupId)
         }
@@ -7513,6 +7579,7 @@ class ChatViewModel(
         _selectedGroupName.value = providerRepository.group(groupId)?.name ?: ""
         val resolved = resolveProviderFromGroup(groupId, entryId)
         if (resolved) {
+            _offlineModelId.value = null
             persistBinding("""{"type":"group","groupId":"$groupId","lastEntryId":"$entryId"}""")
             applyGroupSessionDefaults(groupId)
             // [T-newchat-default-model-fallback-android] Record the actually-
@@ -7644,6 +7711,7 @@ class ChatViewModel(
         _selectedGroupName.value = ""
         _activeEntryId.value = entry.id
         currentProvider = ProviderFactory.create(instance, apiKey, entry.model, context, sessionId = activeSessionId, overrides = entry.overrides)
+        _offlineModelId.value = null
         persistBinding("""{"type":"entry","entryId":"$entryId"}""")
         // [T-newchat-default-model-fallback-android] Remember this as the
         // global last-used model so the NEXT new chat (when no default group
@@ -9435,7 +9503,132 @@ class ChatViewModel(
         AppLogger.info(TAG, "[provider-edit] rebuilt provider for edited instance ${id.take(8)} (responses=${instance.useResponsesAPI})")
     }
 
+    /**
+     * Execute one GGUF response within the shared Room transcript and UI
+     * composer. Prompts include a short, text-only tail of both online and
+     * offline turns; no attachments, API keys, MCP calls or tool execution.
+     */
+    private fun sendOfflineMessage(text: String) {
+        val model = _offlineModelId.value?.let {
+            com.openminis.app.offline.AltivOfflineModelCatalog.byId(it)
+        }
+        if (model == null) {
+            _error.value = "O modelo offline não está mais disponível."
+            setInputText(text)
+            return
+        }
+        if (_isStreaming.value) {
+            _error.value = "O modelo ainda está respondendo. Aguarde ou toque em Parar."
+            setInputText(text)
+            return
+        }
+        if (_attachments.value.isNotEmpty() || _pastedTexts.value.isNotEmpty()) {
+            _error.value = "Este modelo offline aceita somente texto. Retire os anexos ou selecione uma IA online."
+            setInputText(text)
+            return
+        }
+        val trimmed = text.trim()
+        if (trimmed.isBlank()) return
+        if (trimmed.length > 750) {
+            _error.value = "O modo offline aceita até 750 caracteres por pergunta neste aparelho."
+            setInputText(text)
+            return
+        }
+        val downloads = com.openminis.app.offline.AltivOfflineModelDownloads(context)
+        if (downloads.state(model).phase != com.openminis.app.offline.AltivOfflineModelDownloads.Phase.READY) {
+            _error.value = "O arquivo GGUF não está instalado. Baixe novamente em Modelos offline."
+            setInputText(text)
+            return
+        }
+        _error.value = null
+        _canResume.value = false
+        // Claim synchronously, just like the network send path.
+        _isStreaming.value = true
+        offlineJob = viewModelScope.launch {
+            try {
+                if (!sessionLoaded.value && !com.openminis.app.crash.CrashFrequencyDetector.isSafeMode()) {
+                    sessionLoaded.first { it }
+                }
+                val sid = ensureSession()
+                val prior = chatRepository.loadMessages(sid).asSequence()
+                    .filter { it.role == "user" || it.role == "assistant" }
+                    .takeLastOfflineTextTurns()
+                val prompt = com.openminis.app.offline.AltivOfflineConversationPrompt.build(prior, trimmed)
+                fun jsonText(value: String): String = org.json.JSONArray()
+                    .put(org.json.JSONObject().put("type", "text").put("value", value)).toString()
+
+                val userRow = chatRepository.appendMessage(sid, "user", jsonText(trimmed))
+                agentHistory.add(userRow.toLLMMessage())
+                _messages.value = _messages.value + ChatMessage(
+                    id = userRow.id, role = "user", content = trimmed,
+                    sourceDbIds = listOf(userRow.id)
+                )
+                if (_sessionTitle.value == UNTITLED_SESSION_TITLE) {
+                    chatRepository.updateSessionTitle(sid, trimmed.take(48))
+                }
+                val generated = com.openminis.app.offline.AltivOfflineInference(context)
+                    .complete(model, prompt)
+                if (!isActive) return@launch
+                val answer = generated.text.ifBlank {
+                    "O modelo local não retornou texto. Tente novamente ou utilize a IA online."
+                }
+                val assistantRow = chatRepository.appendMessage(
+                    sessionId = sid,
+                    role = "assistant",
+                    partsJson = jsonText(answer),
+                    modelSnapshot = com.openminis.app.data.model.ModelAttributionSnapshot(
+                        modelId = model.id,
+                        displayName = model.name,
+                        providerTypeRaw = "ALTIV_LOCAL",
+                        providerInstanceId = null,
+                    ),
+                )
+                agentHistory.add(assistantRow.toLLMMessage())
+                _messages.value = _messages.value + ChatMessage(
+                    id = assistantRow.id, role = "assistant", content = answer,
+                    sourceDbIds = listOf(assistantRow.id),
+                    completedAt = assistantRow.createdAt,
+                )
+            } catch (cancel: CancellationException) {
+                // Stop was pressed. Keep the already persisted user text.
+            } catch (error: Exception) {
+                _error.value = "Falha na IA offline: ${error.message ?: "erro desconhecido"}"
+            } finally {
+                if (offlineJob === coroutineContext[Job]) {
+                    _isStreaming.value = false
+                    offlineJob = null
+                }
+            }
+        }
+    }
+
+    /** Only plain user/assistant text reaches the lightweight local context. */
+    private fun Sequence<MessageEntity>.takeLastOfflineTextTurns():
+        List<com.openminis.app.offline.AltivOfflineConversationPrompt.Turn> =
+        this.mapNotNull { row ->
+            val role = when (row.role) {
+                "user" -> com.openminis.app.offline.AltivOfflineConversationPrompt.Role.USER
+                "assistant" -> com.openminis.app.offline.AltivOfflineConversationPrompt.Role.ASSISTANT
+                else -> return@mapNotNull null
+            }
+            val value = runCatching {
+                val parts = org.json.JSONArray(row.partsJson)
+                (0 until parts.length()).mapNotNull { i ->
+                    parts.optJSONObject(i)?.takeIf { it.optString("type") == "text" }
+                        ?.optString("value")?.takeIf { it.isNotBlank() }
+                }.joinToString("\\n")
+            }.getOrDefault("")
+            if (value.isBlank()) null
+            else com.openminis.app.offline.AltivOfflineConversationPrompt.Turn(
+                role, value.take(com.openminis.app.offline.AltivOfflineConversationPrompt.MAX_TEXT_LENGTH)
+            )
+        }.toList().takeLast(6)
+
     fun sendMessage(text: String) {
+        if (_offlineModelId.value != null) {
+            sendOfflineMessage(text)
+            return
+        }
         // [T-android-stop-sibling-subagent] New work in this session lifts the
         // stop: delegations from here on may drive the turn again.
         com.openminis.app.agent.jobs.AgentJobRegistry.clearDelegationMute(activeSessionId)
@@ -17371,6 +17564,12 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
      *   of the shell pool so background processes survive.
      */
     fun cancelStream(keepBackground: Boolean = false) {
+        if (offlineJob?.isActive == true) {
+            offlineJob?.cancel()
+            offlineJob = null
+            _isStreaming.value = false
+            return
+        }
         com.openminis.app.diagnostics.JankDiag.onCancelStreamStart()
         // [T-android-stop-late-write] Log the real flag. This used to print a
         // literal "_isStreaming=false" whatever the state, which made a field
