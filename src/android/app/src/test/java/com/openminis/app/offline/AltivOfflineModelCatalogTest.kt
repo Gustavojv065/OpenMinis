@@ -16,7 +16,21 @@ class AltivOfflineModelCatalogTest {
         assertTrue(models.all { it.fileName.endsWith(".gguf") })
         assertTrue(models.all { it.license.isNotBlank() && it.sourceUrl.isNotBlank() })
         assertTrue(models.all { it.hasTrustedSource() })
-        assertEquals(6, AltivOfflineCategory.entries.size)
+        assertTrue(AltivOfflineCategory.entries.containsAll(listOf(
+            AltivOfflineCategory.TEXT,
+            AltivOfflineCategory.VISION,
+            AltivOfflineCategory.TRANSCRIPTION,
+            AltivOfflineCategory.TTS,
+            AltivOfflineCategory.IMAGES,
+            AltivOfflineCategory.UPSCALING,
+            AltivOfflineCategory.MUSIC,
+            AltivOfflineCategory.VIDEO,
+        )))
+        assertTrue(AltivMultimodalRoadmap.candidates.isNotEmpty())
+        assertEquals(
+            AltivMultimodalRoadmap.candidates.size,
+            AltivMultimodalRoadmap.candidates.map { it.name }.toSet().size,
+        )
         assertEquals(3, models.count { it.id.contains("coder") })
         assertTrue(models.all { it.minimumDeviceRamGb in 4..12 })
         assertTrue(models.all { it.codingLevel in 1..4 })
