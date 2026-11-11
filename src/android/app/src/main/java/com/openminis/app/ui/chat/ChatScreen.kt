@@ -571,6 +571,7 @@ fun ChatScreen(
      *  wired to the edit button on each provider section of the model picker. */
     onEditProviderClick: (instanceId: String) -> Unit = {},
     onOfflineModelClick: (modelId: String) -> Unit = {},
+    onManageOfflineModelsClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -8389,6 +8390,10 @@ fun ChatScreen(
             onSelectOfflineModel = { modelId ->
                 showModelPicker = false
                 onOfflineModelClick(modelId)
+            },
+            onManageOfflineModels = {
+                showModelPicker = false
+                onManageOfflineModelsClick()
             },
             onDismiss = { showModelPicker = false },
             // [T-android-modelpicker-group-edit] Close the picker first, then

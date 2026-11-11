@@ -64,4 +64,17 @@ class AltivOfflineConversationPromptTest {
         assertTrue(chat.contains("inference.complete(current, prompt)"))
         assertFalse(chat.contains("ProviderFactory.create"))
     }
+
+    @Test fun modelPickerAllowsDownloadingBeforeFirstOfflineModel() {
+        val root = java.io.File("src/main/java/com/openminis/app")
+        val picker = root.resolve("ui/chat/ChatModelPickerSheet.kt").readText()
+        val chat = root.resolve("ui/chat/ChatScreen.kt").readText()
+        val scaffold = root.resolve("ui/navigation/ChatSplitScaffold.kt").readText()
+        assertTrue(picker.contains("item(key = \"altiv-offline-models\")"))
+        assertFalse(picker.contains("if (installedOfflineModels.isNotEmpty()) {"))
+        assertTrue(picker.contains("Nenhum GGUF compatível instalado"))
+        assertTrue(picker.contains("onManageOfflineModels()"))
+        assertTrue(chat.contains("onManageOfflineModelsClick()"))
+        assertTrue(scaffold.contains("onManageOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) }"))
+    }
 }
