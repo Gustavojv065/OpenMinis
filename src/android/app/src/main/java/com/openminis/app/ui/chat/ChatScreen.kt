@@ -8391,6 +8391,10 @@ fun ChatScreen(
                 showModelPicker = false
                 onOfflineModelClick(modelId)
             },
+            onManageOfflineModels = {
+                showModelPicker = false
+                onManageOfflineModelsClick()
+            },
             onDismiss = { showModelPicker = false },
             // [T-android-modelpicker-group-edit] Close the picker first, then
             // navigate — pushing the management screen on top of an open bottom
