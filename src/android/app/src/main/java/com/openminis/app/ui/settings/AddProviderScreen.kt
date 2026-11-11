@@ -93,6 +93,7 @@ fun AddProviderScreen(
     providerRepository: ProviderRepository,
     onBack: () -> Unit,
     onSaved: () -> Unit,
+    onOfflineModelsClick: () -> Unit = {},
 ) {
     var step by remember { mutableStateOf(AddProviderStep.CHOOSE_TYPE) }
     var selectedType by remember { mutableStateOf<ProviderType?>(null) }
@@ -142,6 +143,7 @@ fun AddProviderScreen(
     when (step) {
         AddProviderStep.CHOOSE_TYPE -> ChooseProviderScreen(
             onBack = handleBack,
+            onOfflineModelsClick = onOfflineModelsClick,
             onSelect = { type ->
                 selectedApiTemplate = null
                 selectedVoiceTemplate = null
@@ -264,6 +266,7 @@ private fun availableCredentials(type: ProviderType): List<ProviderCredential> {
 private fun ChooseProviderScreen(
     onBack: () -> Unit,
     onSelect: (ProviderType) -> Unit,
+    onOfflineModelsClick: () -> Unit,
     onSelectVoiceTemplate: (com.openminis.app.data.model.VoiceProviderTemplate) -> Unit = {},
     onSelectApiTemplate: (ApiProviderTemplate) -> Unit = {},
 ) {
@@ -288,6 +291,20 @@ private fun ChooseProviderScreen(
         // request.
         val context = LocalContext.current
         val offeredTypes = providerDisplayOrder + ProviderType.githubCopilot
+        // ALTIV: local inference is a navigation destination, not an API-key
+        // provider. Do not create a fake ProviderInstance or request credentials.
+        SettingsSection(
+            header = "IA local — sem chave API",
+        ) {
+            SettingsRow(
+                title = "Offline / IA Local",
+                subtitle = "Baixar ou importar GGUF e conversar sem internet",
+                icon = Icons.Default.Terminal,
+                iconColor = Color(0xFF26A69A),
+                onClick = onOfflineModelsClick,
+                showDivider = false,
+            )
+        }
         SettingsSection(
             header = stringResource(R.string.add_provider_choose_provider),
             footer = stringResource(R.string.add_provider_you_can_add_multiple_instances_of_the_sa),

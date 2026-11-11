@@ -973,6 +973,7 @@ fun AppNavigation(
                 providerRepository = providerRepository,
                 onBack = { navController.safePopBackStack() },
                 onSaved = { navController.safePopBackStack() },
+                onOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) },
             )
         }
 
