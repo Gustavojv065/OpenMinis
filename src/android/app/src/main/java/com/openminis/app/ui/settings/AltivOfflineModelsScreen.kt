@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.openminis.app.offline.AltivOfflineCategory
 import com.openminis.app.offline.AltivOfflineModel
+import com.openminis.app.offline.AltivMultimodalRoadmap
 import com.openminis.app.offline.AltivOfflineModelCatalog
 import com.openminis.app.offline.AltivOfflineModelDownloads
 import com.openminis.app.offline.AltivOfflineInference
@@ -131,7 +132,8 @@ fun AltivOfflineModelsScreen(
                         onClick = { categoryIndex = index },
                         text = {
                             Text(entry.label + " (" +
-                                AltivOfflineModelCatalog.inCategory(entry).size + ")")
+                                (AltivOfflineModelCatalog.inCategory(entry).size +
+                                    AltivMultimodalRoadmap.inCategory(entry).size) + ")")
                         },
                     )
                 }
@@ -192,7 +194,7 @@ fun AltivOfflineModelsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (models.isEmpty()) {
+                if (models.isEmpty() && AltivMultimodalRoadmap.inCategory(category).isEmpty()) {
                     item {
                         Card {
                             Column(Modifier.padding(16.dp)) {
@@ -206,6 +208,31 @@ fun AltivOfflineModelsScreen(
                                         "download é oferecido antes de validar a compatibilidade.",
                                     style = MaterialTheme.typography.bodySmall,
                                 )
+                            }
+                        }
+                    }
+                }
+                // Catalog-only candidates: explicitly disabled until their runtime,
+                // file hashes, source and licensing are independently verified.
+                items(AltivMultimodalRoadmap.inCategory(category), key = { "candidate-" + it.name }) { candidate ->
+                    Card {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(candidate.name, style = MaterialTheme.typography.titleMedium)
+                            Text(candidate.description, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                "Em avaliação — download indisponível nesta versão",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                "Necessário: " + candidate.engineRequirement,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            OutlinedButton(enabled = false, onClick = {}) {
+                                Text("Instalação ainda não suportada")
                             }
                         }
                     }
