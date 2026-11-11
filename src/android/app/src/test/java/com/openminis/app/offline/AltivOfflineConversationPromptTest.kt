@@ -101,6 +101,8 @@ class AltivOfflineConversationPromptTest {
         val scaffold = root.resolve("ui/navigation/ChatSplitScaffold.kt").readText()
         assertTrue(chat.contains("var inlineOfflineModelId by rememberSaveable(sessionId)"))
         assertTrue(chat.contains("inlineOfflineModelId = modelId"))
+        assertTrue(chat.contains("if (isStreaming) {"))
+        assertTrue(chat.contains("Aguarde a resposta online terminar"))
         assertTrue(chat.contains("chatSessionId = stableOfflineSessionId"))
         assertTrue(chat.contains("sessionId.takeUnless { it.startsWith(\"__new__\") }"))
         assertTrue(chat.contains("AltivOfflineChatScreen("))
