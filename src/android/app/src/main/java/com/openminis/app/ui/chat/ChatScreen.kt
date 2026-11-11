@@ -573,28 +573,6 @@ fun ChatScreen(
     onManageOfflineModelsClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    // Keep local inference inside the current chat route. The online ViewModel
-    // remains scoped to this session and its providers/tools are untouched.
-    // Local turns have their own per-session history until the shared transcript
-    // integration is built; never pass GGUF IDs to a cloud ProviderInstance.
-    var inlineOfflineModelId by rememberSaveable(sessionId) {
-        mutableStateOf<String?>(null)
-    }
-    val activeOfflineModelId = inlineOfflineModelId
-    // Draft IDs are ephemeral. Use the established standalone model history
-    // until there is a persisted chat session, preventing orphaned local turns.
-    val stableOfflineSessionId = sessionId.takeUnless { it.startsWith("__new__") }
-    if (activeOfflineModelId != null) {
-        androidx.activity.compose.BackHandler {
-            inlineOfflineModelId = null
-        }
-        com.openminis.app.ui.settings.AltivOfflineChatScreen(
-            initialModelId = activeOfflineModelId,
-            chatSessionId = stableOfflineSessionId,
-            onBack = { inlineOfflineModelId = null },
-        )
-        return
-    }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     // Scoped to a process-level per-session ViewModelStore (ChatViewModelStore)
@@ -8410,15 +8388,18 @@ fun ChatScreen(
             },
             onSelectOfflineModel = { modelId ->
                 showModelPicker = false
-                if (isStreaming) {
-                    // Do not switch away while a cloud turn is still active.
+                if (viewModel.selectOfflineModel(modelId)) {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(
-                            "Aguarde a resposta online terminar antes de ativar o modelo offline."
+                            "IA local ativada nesta conversa. Mensagens e histórico no mesmo chat."
                         )
                     }
                 } else {
-                    inlineOfflineModelId = modelId
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Modelo offline indisponível. Verifique o download ou aguarde a resposta atual."
+                        )
+                    }
                 }
             },
             onManageOfflineModels = {
