@@ -7558,6 +7558,10 @@ class ChatViewModel(
     }
 
     fun selectGroup(groupId: String) {
+        if (offlineJob?.isActive == true) {
+            _error.value = "Finalize ou pare a resposta GGUF antes de trocar para a API."
+            return
+        }
         // [T-android-switch-model-ghost-retry] Before rebinding, stop whatever
         // is still calling the model being left behind.
         cancelWorkBoundToPreviousModel("selectGroup")
@@ -7573,6 +7577,10 @@ class ChatViewModel(
 
     /** Select a specific entry within a group (keeps group selected). */
     fun selectGroupEntry(groupId: String, entryId: String) {
+        if (offlineJob?.isActive == true) {
+            _error.value = "Finalize ou pare a resposta GGUF antes de trocar para a API."
+            return
+        }
         // [T-android-switch-model-ghost-retry] See selectGroup.
         cancelWorkBoundToPreviousModel("selectGroupEntry")
         _selectedGroupId.value = groupId
@@ -7668,6 +7676,10 @@ class ChatViewModel(
 
     /** Select a specific model entry (bypasses group selection). */
     fun selectEntry(entryId: String) {
+        if (offlineJob?.isActive == true) {
+            _error.value = "Finalize ou pare a resposta GGUF antes de trocar para a API."
+            return
+        }
         // [T-android-switch-model-hang] Same teardown [selectGroup] and
         // [selectGroupEntry] do — this selector was missed when
         // a43ad4134 added the guard, and it is the one the header dropdown
