@@ -571,6 +571,7 @@ fun ChatScreen(
      *  wired to the edit button on each provider section of the model picker. */
     onEditProviderClick: (instanceId: String) -> Unit = {},
     onOfflineModelClick: (modelId: String) -> Unit = {},
+    onManageOfflineModelsClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
