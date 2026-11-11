@@ -570,10 +570,31 @@ fun ChatScreen(
     /** [T-android-picker-provider-edit] Open one provider instance's settings —
      *  wired to the edit button on each provider section of the model picker. */
     onEditProviderClick: (instanceId: String) -> Unit = {},
-    onOfflineModelClick: (modelId: String) -> Unit = {},
     onManageOfflineModelsClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    // Keep local inference inside the current chat route. The online ViewModel
+    // remains scoped to this session and its providers/tools are untouched.
+    // Local turns have their own per-session history until the shared transcript
+    // integration is built; never pass GGUF IDs to a cloud ProviderInstance.
+    var inlineOfflineModelId by rememberSaveable(sessionId) {
+        mutableStateOf<String?>(null)
+    }
+    val activeOfflineModelId = inlineOfflineModelId
+    // Draft IDs are ephemeral. Use the established standalone model history
+    // until there is a persisted chat session, preventing orphaned local turns.
+    val stableOfflineSessionId = sessionId.takeUnless { it.startsWith("__new__") }
+    if (activeOfflineModelId != null) {
+        androidx.activity.compose.BackHandler {
+            inlineOfflineModelId = null
+        }
+        com.openminis.app.ui.settings.AltivOfflineChatScreen(
+            initialModelId = activeOfflineModelId,
+            chatSessionId = stableOfflineSessionId,
+            onBack = { inlineOfflineModelId = null },
+        )
+        return
+    }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     // Scoped to a process-level per-session ViewModelStore (ChatViewModelStore)
@@ -8389,7 +8410,16 @@ fun ChatScreen(
             },
             onSelectOfflineModel = { modelId ->
                 showModelPicker = false
-                onOfflineModelClick(modelId)
+                if (isStreaming) {
+                    // Do not switch away while a cloud turn is still active.
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Aguarde a resposta online terminar antes de ativar o modelo offline."
+                        )
+                    }
+                } else {
+                    inlineOfflineModelId = modelId
+                }
             },
             onManageOfflineModels = {
                 showModelPicker = false
