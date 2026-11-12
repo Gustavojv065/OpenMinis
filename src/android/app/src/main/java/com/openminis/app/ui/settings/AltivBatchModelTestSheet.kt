@@ -182,6 +182,16 @@ internal fun AltivBatchModelTestSheet(
                                         mode = plannedMode, timeoutMs = plannedTimeout,
                                     )
                                     results[plannedMode.name + ":" + entry.id] = result
+                                    // Explicit connection test only. An unsuccessful
+                                    // tool test does not imply the text API is down.
+                                    if (plannedMode == AltivModelHealthProbe.Mode.CONNECTION ||
+                                        result.status == AltivModelHealthProbe.Status.WORKING) {
+                                        com.openminis.app.data.model.AltivModelHealthRegistry.record(
+                                            entry.id,
+                                            working = result.status == AltivModelHealthProbe.Status.WORKING,
+                                            latencyMs = result.latencyMs,
+                                        )
+                                    }
                                     if (result.status == AltivModelHealthProbe.Status.WORKING) {
                                         onWorking(setOf(entry.id))
                                     }
