@@ -304,6 +304,7 @@ internal fun ModelPickerSheet(
     onOfflineRouterChange: (Boolean) -> Unit = {},
     freeOnlyOnline: Boolean = false,
     onFreeOnlyOnlineChange: (Boolean) -> Unit = {},
+    onAddApiProvider: () -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
      *  section header — dismisses the sheet and navigates to the Model Groups
@@ -572,6 +573,16 @@ internal fun ModelPickerSheet(
                     onCheckedChange = onFreeOnlyOnlineChange,
                 )
             }
+
+            Text(
+                "Adicionar chave ou provedor de API",
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { onAddApiProvider() }
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
 
             // [T-android-picker-scroll-guard] Swallow fling momentum at the top
             // of the list so it cannot dismiss the sheet, while leaving a
