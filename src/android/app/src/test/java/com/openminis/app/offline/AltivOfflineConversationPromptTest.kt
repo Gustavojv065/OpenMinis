@@ -148,6 +148,8 @@ class AltivOfflineConversationPromptTest {
         assertTrue(vm.contains("sendOfflineMessage(text)"))
         assertTrue(vm.contains("initialLocalChoice?.let { selectOfflineModel(it) }"))
         assertTrue(vm.contains("providerRepository.allVisibleEntries().isEmpty()"))
+        assertTrue(vm.contains("BuildConfig.FLAVOR == \"altiv\""))
+        assertTrue(vm.contains("providerRepository.configLoaded.value"))
         assertTrue(vm.contains("AltivOfflineModelDownloads.Phase.READY"))
     }
 
