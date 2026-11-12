@@ -6,10 +6,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -44,6 +43,7 @@ internal object AltivHtmlProjectPreview {
         if (source.toByteArray(Charsets.UTF_8).size > MAX_HTML_BYTES) return false
         val s = source.lowercase()
         return s.contains("<html") && s.contains("</html>") &&
+            s.contains("<head") && s.contains("</head>") &&
             s.contains("<body") && s.contains("</body>")
     }
 
@@ -67,10 +67,9 @@ internal object AltivHtmlProjectPreview {
     // but no script, form, iframe, fetch or external stylesheet will execute.
     fun lockedPreviewHtml(source: String): String {
         val csp = """<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; script-src 'none'; connect-src 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'">"""
-        return source.replaceFirst(
-            Regex("<head(?:\\s[^>]*)?>", RegexOption.IGNORE_CASE),
-            { it.value + csp },
-        )
+        val match = Regex("<head(?:\\s[^>]*)?>", RegexOption.IGNORE_CASE)
+            .find(source) ?: return source
+        return source.replaceRange(match.range, match.value + csp)
     }
 }
 
@@ -125,8 +124,8 @@ internal fun AltivHtmlProjectPreviewDialog(
                 )
                 AndroidView(
                     factory = { webView },
-                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .then(Modifier.padding(vertical = 4.dp))
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 280.dp, max = 440.dp)
+                        .padding(vertical = 4.dp)
                 )
                 Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                     Text("Fechar prévia")
