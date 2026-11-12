@@ -34,12 +34,14 @@ class AltivOfflineWebReferencesTest {
             listOf(AltivOfflineWebReferences.Reference(
                 label = "Gatos",
                 pageUrl = "https://openverse.org/image/placeholder",
-                detail = "Foto; autor: teste; licença: CC BY"
+                detail = "Foto; autor: teste; licença: CC BY",
+                mediaUrl = "https://images.example.org/cat.jpg",
             ))
         )
         assertTrue(result.markdownSources.contains("licença"))
         assertTrue(result.markdownSources.contains("https://openverse.org/image/placeholder"))
         assertTrue(result.promptContext.contains("autor: teste"))
+        assertTrue(result.promptContext.contains("https://images.example.org/cat.jpg"))
     }
 
     @Test fun ggufNeverFallsBackToCloudModelsAndWebIsOptIn() {
