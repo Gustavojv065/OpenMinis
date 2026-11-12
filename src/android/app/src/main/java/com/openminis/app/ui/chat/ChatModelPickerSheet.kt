@@ -300,6 +300,8 @@ internal fun ModelPickerSheet(
     onManageOfflineModels: () -> Unit = {},
     webResearchEnabled: Boolean = false,
     onWebResearchChange: (Boolean) -> Unit = {},
+    offlineRouterEnabled: Boolean = true,
+    onOfflineRouterChange: (Boolean) -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
      *  section header — dismisses the sheet and navigates to the Model Groups
@@ -638,6 +640,29 @@ internal fun ModelPickerSheet(
                             Switch(
                                 checked = webResearchEnabled,
                                 onCheckedChange = onWebResearchChange,
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Roteador automático offline",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    "Escolhe entre GGUFs de texto/código já instalados. " +
+                                        "Imagem, vídeo e voz exigem motores próprios; " +
+                                        "não serão gerados falsamente.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = offlineRouterEnabled,
+                                onCheckedChange = onOfflineRouterChange,
                             )
                         }
                         Text(
