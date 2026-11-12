@@ -79,7 +79,13 @@ class AltivOfflineTaskRouterTest {
         assertTrue(project.contains("filesDir, \"altiv-projects\""))
         assertTrue(project.contains("settings.javaScriptEnabled = false"))
         assertTrue(project.contains("settings.allowFileAccess = false"))
-        assertTrue(project.contains("Sem localhost ou comandos de terminal"))
+        assertTrue(project.contains("Localhost real: "))
+        assertTrue(project.contains("AltivOfflinePreviewServer(project)"))
+        val server = root.resolve("ui/chat/AltivOfflinePreviewServer.kt").readText()
+        assertTrue(server.contains("127.0.0.1"))
+        assertTrue(server.contains("server.close()"))
+        assertTrue(server.contains("GET /index.html"))
+        assertFalse(server.contains("shell_execute"))
         assertFalse(project.contains("shell_execute"))
     }
 }
