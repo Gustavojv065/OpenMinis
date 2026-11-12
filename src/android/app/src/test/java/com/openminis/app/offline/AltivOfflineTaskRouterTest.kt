@@ -42,11 +42,24 @@ class AltivOfflineTaskRouterTest {
         val large = requireNotNull(AltivOfflineModelCatalog.byId("qwen25coder-7b-q4km"))
         assertEquals(small, AltivOfflineTaskRouter.chooseTextModel(
             small, listOf(small, large), AltivOfflineTaskRouter.Task.CODE,
-            2_000_000_000L,
+            2_000_000_000L, 8,
         ))
         assertEquals(large, AltivOfflineTaskRouter.chooseTextModel(
             small, listOf(small, large), AltivOfflineTaskRouter.Task.CODE,
-            6_000_000_000L,
+            6_000_000_000L, 12,
+        ))
+    }
+
+
+    @Test fun imageForWhatsAppDoesNotBecomeCodeAndRamMatters() {
+        assertEquals(AltivOfflineTaskRouter.Task.IMAGE, AltivOfflineTaskRouter.classify(
+            "Crie uma imagem de gato para WhatsApp e meu site"
+        ))
+        val small = requireNotNull(AltivOfflineModelCatalog.byId("qwen25coder-15b-q4km"))
+        val large = requireNotNull(AltivOfflineModelCatalog.byId("qwen25coder-7b-q4km"))
+        assertEquals(small, AltivOfflineTaskRouter.chooseTextModel(
+            small, listOf(small, large), AltivOfflineTaskRouter.Task.CODE,
+            6_000_000_000L, 8,
         ))
     }
 
