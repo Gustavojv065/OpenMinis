@@ -6439,9 +6439,22 @@ class ChatViewModel(
                     // newest-provider/newest-text-model. Was firstOrNull().
                     applyNewChatDefaultModel()
                 }
-                // An installed GGUF chosen in the manager wins over cloud
-                // defaults on a new draft; persistence happens on first send.
-                initialOfflineModelId?.let { selectOfflineModel(it) }
+                // Explicit pick from the GGUF manager always wins over the
+                // cloud default. With NO provider configured, automatically
+                // choose the first compatible installed GGUF, so fresh installs
+                // can write in the main composer without ever adding an API.
+                val initialLocalChoice = initialOfflineModelId
+                    ?: if (providerRepository.allVisibleEntries().isEmpty()) {
+                        val downloads = com.openminis.app.offline.AltivOfflineModelDownloads(context)
+                        val ram = com.openminis.app.offline.AltivOfflineInference.totalRamGb(context)
+                        com.openminis.app.offline.AltivOfflineModelCatalog.models.firstOrNull { model ->
+                            model.codingLevel > 0 &&
+                                ram >= model.minimumDeviceRamGb &&
+                                downloads.state(model).phase ==
+                                    com.openminis.app.offline.AltivOfflineModelDownloads.Phase.READY
+                        }?.id
+                    } else null
+                initialLocalChoice?.let { selectOfflineModel(it) }
                 return@launch
             }
 
