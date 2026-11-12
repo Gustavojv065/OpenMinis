@@ -1546,7 +1546,7 @@ fun SessionListScreen(
                     onDelete = { showBulkDeleteDialog = true },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
-            } else if (hasProviders && (sessions.isNotEmpty() || isSearchActive)) {
+            } else if ((hasProviders || BuildConfig.FLAVOR == "altiv") && (sessions.isNotEmpty() || isSearchActive)) {
                 // Dual FAB row (matching iOS: New Chat left + Search right, or vice versa).
                 // Hidden while the onboarding landing is showing — Step 3 provides the CTA.
                 // T46: stay visible while search is active even when the result
