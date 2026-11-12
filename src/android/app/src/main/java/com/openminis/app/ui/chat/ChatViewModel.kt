@@ -1323,6 +1323,61 @@ class ChatViewModel(
 
     // A GGUF is a local inference mode, NOT a synthetic cloud ProviderInstance.
     // Keep the last cloud entry configured and route only UI user sends locally.
+    private val altivOnlinePrefs =
+        context.getSharedPreferences("altiv_online_first", Context.MODE_PRIVATE)
+    private val _freeOnlyOnline = MutableStateFlow(
+        altivOnlinePrefs.getBoolean("free_only", false)
+    )
+    val freeOnlyOnline: StateFlow<Boolean> = _freeOnlyOnline.asStateFlow()
+
+    /**
+     * Strict zero-cost *model choice*, not a guarantee about internet quota.
+     * Only OpenRouter IDs marked :free are known free here. Never auto-bill
+     * another model because a free endpoint was unavailable.
+     */
+    fun setFreeOnlyOnline(value: Boolean) {
+        if (_isStreaming.value) {
+            _error.value = "Conclua a resposta atual antes de alterar o modo gratuito."
+            return
+        }
+        _freeOnlyOnline.value = value
+        altivOnlinePrefs.edit().putBoolean("free_only", value).apply()
+        if (value && _offlineModelId.value == null) {
+            ensureFreeOnlineSelection()
+        }
+    }
+
+    private fun freeOnlineCandidates(): List<com.openminis.app.data.model.ModelEntry> {
+        val config = providerRepository.config.value
+        return com.openminis.app.data.model.AltivOnlineCostPolicy
+            .eligibleEntries(config.modelEntries, config.instances)
+            .filter { entry ->
+                providerRepository.instance(entry.providerInstanceId)?.let {
+                    providerRepository.hasAnyCredential(it)
+                } == true
+            }
+    }
+
+    private fun ensureFreeOnlineSelection(): Boolean {
+        if (!_freeOnlyOnline.value) return true
+        val active = providerRepository.config.value.modelEntries
+            .firstOrNull { it.id == _activeEntryId.value }
+        val instance = active?.let { providerRepository.instance(it.providerInstanceId) }
+        if (active != null && com.openminis.app.data.model.AltivOnlineCostPolicy
+                .isExplicitlyFree(active, instance)) return true
+        val next = com.openminis.app.data.model.AltivModelHealthRegistry.prioritize(
+            freeOnlineCandidates(), entryId = { it.id }
+        ).firstOrNull()
+        if (next == null) {
+            _error.value = "Modo gratuito estrito: configure no OpenRouter " +
+                "um modelo com sufixo :free e sua chave API. " +
+                "Outros planos gratuitos não são garantia de custo zero."
+            return false
+        }
+        selectEntry(next.id)
+        return _activeEntryId.value == next.id
+    }
+
     private val _offlineModelId = MutableStateFlow<String?>(null)
     val offlineModelId: StateFlow<String?> = _offlineModelId.asStateFlow()
     // Opt-in: only the text of web-search queries goes to public sources.
@@ -7312,7 +7367,12 @@ class ChatViewModel(
         // enabledMemberEntries (still used by the settings UI) deliberately
         // does not — "switched on" is the right question there, "usable right
         // now" is the right question here.
-        val available = providerRepository.availableMemberEntries(group)
+        val allAvailable = providerRepository.availableMemberEntries(group)
+        val available = if (_freeOnlyOnline.value) allAvailable.filter { entry ->
+            com.openminis.app.data.model.AltivOnlineCostPolicy.isExplicitlyFree(
+                entry, providerRepository.instance(entry.providerInstanceId)
+            )
+        } else allAvailable
         if (available.isEmpty()) return false
 
         // preferredEntryId comes from a prior session binding ("user picked
@@ -7597,6 +7657,16 @@ class ChatViewModel(
     }
 
     fun selectGroup(groupId: String) {
+        if (_freeOnlyOnline.value) {
+            val group = providerRepository.group(groupId)
+            val config = providerRepository.config.value
+            if (group == null || !com.openminis.app.data.model.AltivOnlineCostPolicy
+                    .isGroupFreeOnly(group, config.modelEntries, config.instances)) {
+                _error.value = "Este grupo pode usar modelos pagos. " +
+                    "Desative Somente :free para selecioná-lo."
+                return
+            }
+        }
         if (offlineJob?.isActive == true) {
             _error.value = "Finalize ou pare a resposta GGUF antes de trocar para a API."
             return
@@ -7616,6 +7686,15 @@ class ChatViewModel(
 
     /** Select a specific entry within a group (keeps group selected). */
     fun selectGroupEntry(groupId: String, entryId: String) {
+        if (_freeOnlyOnline.value) {
+            val entry = providerRepository.config.value.modelEntries
+                .firstOrNull { it.id == entryId }
+            if (entry == null || !com.openminis.app.data.model.AltivOnlineCostPolicy
+                    .isExplicitlyFree(entry, providerRepository.instance(entry.providerInstanceId))) {
+                _error.value = "Modelo não identificado como gratuito. Desative Somente :free."
+                return
+            }
+        }
         if (offlineJob?.isActive == true) {
             _error.value = "Finalize ou pare a resposta GGUF antes de trocar para a API."
             return
@@ -7745,7 +7824,12 @@ class ChatViewModel(
         val config = providerRepository.config.value
         val entry = config.modelEntries.find { it.id == entryId } ?: return
         val instance = providerRepository.instance(entry.providerInstanceId) ?: return
-        // [T-android-group-resolve-skip-uncredentialed] The user explicitly
+        if (_freeOnlyOnline.value &&
+            !com.openminis.app.data.model.AltivOnlineCostPolicy.isExplicitlyFree(entry, instance)) {
+            _error.value = "Modelo com custo desconhecido ou pago. Desative Somente :free para usar."
+            return
+        }
+        // [T-android-group-resolve-skip-uncredentialed] The user explicit
         // tapped this model; refusing it because the API-key slot is empty
         // made OAuth models unselectable from the picker.
         if (!providerRepository.hasAnyCredential(instance)) return
@@ -7899,6 +7983,10 @@ class ChatViewModel(
             val idx = if (currentIdx >= 0) (currentIdx + offset) % members.size else offset
             val entryId = members[idx]
             val entry = config.modelEntries.find { it.id == entryId } ?: continue
+            if (_freeOnlyOnline.value && !com.openminis.app.data.model.AltivOnlineCostPolicy
+                    .isExplicitlyFree(
+                        entry, config.instances.find { it.id == entry.providerInstanceId }
+                    )) continue
             val instance = config.instances.find { it.id == entry.providerInstanceId } ?: continue
             if (!instance.isEnabled) continue
             // [T-android-group-resolve-skip-uncredentialed] Credential test via
@@ -7987,6 +8075,10 @@ class ChatViewModel(
         for (entryId in group.memberEntryIds) {
             if (entryId == activeEntry) continue
             val entry = config.modelEntries.find { it.id == entryId } ?: continue
+            if (_freeOnlyOnline.value && !com.openminis.app.data.model.AltivOnlineCostPolicy
+                    .isExplicitlyFree(
+                        entry, config.instances.find { it.id == entry.providerInstanceId }
+                    )) continue
             if (entry.isHidden) continue
             // Skip an entry that is merely the same model we just failed on.
             if (entry.model.id == primaryProvider.model.id &&
@@ -9810,6 +9902,13 @@ class ChatViewModel(
         // [T-headless-own-attachments] A headless prompt's own files.
         headlessAttachments: List<InputAttachment> = emptyList(),
     ): SubmitOutcome {
+        // Stop before any network request. Switching a configured :free
+        // endpoint to a paid fallback is prohibited while this mode is on.
+        if (_freeOnlyOnline.value && _offlineModelId.value == null &&
+            !ensureFreeOnlineSelection()) {
+            if (!headless) setInputText(text)
+            return SubmitOutcome.Rejected("free_only_no_model")
+        }
         // [T-android-mute-reset-on-drain] Headless submits (submitPrompt, a
         // scheduled fire into an idle chat) reach this funnel without the
         // public sendMessage, and are new work too.
