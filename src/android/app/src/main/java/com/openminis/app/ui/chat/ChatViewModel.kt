@@ -9609,6 +9609,7 @@ class ChatViewModel(
                 available = ready,
                 task = task,
                 availableMemoryBytes = mem.availMem,
+                totalDeviceRamGb = com.openminis.app.offline.AltivOfflineInference.totalRamGb(context),
             )
         } else model
         _error.value = null
