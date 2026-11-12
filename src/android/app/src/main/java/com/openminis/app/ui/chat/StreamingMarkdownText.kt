@@ -2612,6 +2612,11 @@ private fun RenderBlock(block: MdBlock) {
                 LocalChatSearchPath.current?.let { com.openminis.app.ui.chat.search.ChatSearchUnits.markdown(it) },
             )
             val clipboardManager = LocalClipboardManager.current
+            val contextForProject = LocalContext.current
+            var htmlProject by remember(block.code) { mutableStateOf<File?>(null) }
+            val htmlCandidate = remember(block.language, block.code) {
+                AltivHtmlProjectPreview.isHtmlCandidate(block.language, block.code)
+            }
             var copied by remember { mutableStateOf(false) }
             if (copied) {
                 LaunchedEffect(Unit) {
@@ -2644,6 +2649,30 @@ private fun RenderBlock(block: MdBlock) {
                         color = MdCodeLangColor,
                         modifier = Modifier.weight(1f),
                     )
+                    if (htmlCandidate) {
+                        Text(
+                            text = "Salvar + prévia",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable {
+                                    runCatching {
+                                        AltivHtmlProjectPreview.save(
+                                            contextForProject, block.language, block.code
+                                        )
+                                    }.onSuccess { file ->
+                                        htmlProject = file
+                                    }.onFailure { error ->
+                                        Toast.makeText(
+                                            contextForProject,
+                                            error.message ?: "Não foi possível criar o projeto HTML.",
+                                            Toast.LENGTH_LONG,
+                                        ).show()
+                                    }
+                                }
+                                .padding(end = 12.dp),
+                        )
+                    }
                     Icon(
                         imageVector = if (copied) Icons.Default.Check else Icons.Default.ContentCopy,
                         contentDescription = if (copied) {
@@ -2658,6 +2687,12 @@ private fun RenderBlock(block: MdBlock) {
                                 clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(block.code))
                                 copied = true
                             },
+                    )
+                }
+                htmlProject?.let { file ->
+                    AltivHtmlProjectPreviewDialog(
+                        project = file,
+                        onDismiss = { htmlProject = null },
                     )
                 }
                 // iOS parity (SelectableMarkdownView.swift L971): cap visual
