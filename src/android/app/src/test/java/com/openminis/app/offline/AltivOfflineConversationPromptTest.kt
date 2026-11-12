@@ -105,7 +105,7 @@ class AltivOfflineConversationPromptTest {
         assertTrue(landing.contains("Começar uma conversa"))
         assertTrue(landing.contains("Modelos offline"))
         assertTrue(landing.contains("Configurar API (opcional)"))
-        assertTrue(landing.contains("onOfflineModelsClick = onOfflineModelsClick"))
+        assertTrue(landing.contains("onOfflineModels = onOfflineModelsClick"))
         assertTrue(landing.contains("onClick = onStartConversation"))
         assertTrue(landing.contains("isLocked = false"))
         assertTrue(landing.contains("hasProviders || BuildConfig.FLAVOR == \"altiv\""))
