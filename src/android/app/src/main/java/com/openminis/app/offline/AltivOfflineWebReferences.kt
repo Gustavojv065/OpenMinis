@@ -29,9 +29,10 @@ internal object AltivOfflineWebReferences {
         val references: List<Reference>,
         val attempted: Boolean = true,
     ) {
-        val promptContext: String get() = references.take(4).joinToString("\n") { ref ->
-            "- " + plain(ref.label, 72) + ": " + plain(ref.detail, 110)
-        }.take(600)
+        val promptContext: String get() = references.take(3).joinToString("\n") { ref ->
+            "- " + plain(ref.label, 52) + ": " + plain(ref.detail, 95) +
+                (ref.mediaUrl?.let { " URL da foto: " + it.take(205) } ?: "")
+        }.take(780)
 
         val markdownSources: String get() = if (references.isEmpty()) {
             "\n\n_Pesquisa web ativada, mas não foram encontradas referências nesta consulta._"
