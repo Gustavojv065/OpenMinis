@@ -302,6 +302,9 @@ internal fun ModelPickerSheet(
     onWebResearchChange: (Boolean) -> Unit = {},
     offlineRouterEnabled: Boolean = true,
     onOfflineRouterChange: (Boolean) -> Unit = {},
+    freeOnlyOnline: Boolean = false,
+    onFreeOnlyOnlineChange: (Boolean) -> Unit = {},
+    onAddApiProvider: () -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
      *  section header — dismisses the sheet and navigates to the Model Groups
@@ -332,6 +335,8 @@ internal fun ModelPickerSheet(
     }
 
     var searchText by remember { mutableStateOf("") }
+    // API Online First: collapse the existing local panel, never remove it.
+    var offlineExpanded by remember { mutableStateOf(selectedOfflineModelId != null) }
     var expandedGroupIds by remember { mutableStateOf(setOf<String>()) }
     // Note: the non-text-output "may not work as an Agent" confirmation lives
     // in ChatScreen's callback wrappers (ee828dba), NOT here — the sheet stays
@@ -544,6 +549,41 @@ internal fun ModelPickerSheet(
                 },
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "ALTIV Online First · APIs prioritárias",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Somente :free evita alternar para modelos pagos ou de preço desconhecido. " +
+                            "É necessário configurar um modelo OpenRouter :free. " +
+                            "O serviço pode limitar solicitações.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = freeOnlyOnline,
+                    onCheckedChange = onFreeOnlyOnlineChange,
+                )
+            }
+
+            Text(
+                "Adicionar chave ou provedor de API",
+                modifier = Modifier.fillMaxWidth()
+                    .clickable { onAddApiProvider() }
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+
             // [T-android-picker-scroll-guard] Swallow fling momentum at the top
             // of the list so it cannot dismiss the sheet, while leaving a
             // deliberate finger drag free to close it.
@@ -611,10 +651,16 @@ internal fun ModelPickerSheet(
                             .padding(12.dp),
                     ) {
                         Text(
-                            "Offline / IA Local",
-                            style = MaterialTheme.typography.titleMedium,
+                            if (offlineExpanded) "IA local preservada · ocultar"
+                            else "IA local pausada · mostrar opções",
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                                .clickable { offlineExpanded = !offlineExpanded }
+                                .padding(vertical = 6.dp),
                         )
+                        if (offlineExpanded || query.contains("offline", ignoreCase = true)) {
                         Text(
                             "No aparelho, sem API nem ferramentas de agente",
                             style = MaterialTheme.typography.bodySmall,
@@ -722,6 +768,7 @@ internal fun ModelPickerSheet(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
                         )
+                        } // End of optional offline panel.
                     }
                 }
                 // ── Model Groups (grouped section card with embedded header) ──

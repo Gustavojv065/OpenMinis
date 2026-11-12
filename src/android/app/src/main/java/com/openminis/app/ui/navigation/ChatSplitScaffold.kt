@@ -1007,6 +1007,7 @@ fun ChatSplitScaffoldRoute(
                 },
                 onModelGroupsClick = { navController.safeNavigate(Routes.MODEL_GROUPS) },
                 onEditProviderClick = { id -> navController.safeNavigate(Routes.providerDetail(id)) },
+                onAddApiProviderClick = { navController.safeNavigate(Routes.ADD_PROVIDER) },
                 onManageOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) },
             )
         },
