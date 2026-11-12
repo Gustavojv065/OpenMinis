@@ -147,6 +147,7 @@ import com.openminis.app.ui.components.MinisAlertDialog
 import com.openminis.app.ui.components.MinisMenu
 import com.openminis.app.ui.components.MinisMenuDivider
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -745,18 +746,39 @@ internal fun ModelPickerSheet(
                                 "offline local".contains(query, ignoreCase = true)
                         }.forEach { model ->
                             val isActive = selectedOfflineModelId == model.id
-                            Text(
-                                text = (if (isActive) "✓  " else "") +
-                                    model.name + (if (isActive) "  ·  Selecionado" else "  ·  Selecionar"),
+                            // Full-row radio selector: a model listed here is
+                            // ready to run locally, not just available to download.
+                            // A checked radio reflects ChatViewModel.offlineModelId,
+                            // NOT the cloud group or the model's own self-report.
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
                                     .clickable { onSelectOfflineModel(model.id) }
-                                    .padding(vertical = 14.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                                color = if (isActive) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface,
-                            )
+                                    .padding(horizontal = 8.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                RadioButton(
+                                    selected = isActive,
+                                    onClick = null,
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = model.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Medium,
+                                        color = if (isActive) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = if (isActive) "Selecionado agora · IA offline, sem API"
+                                            else "Toque para usar nesta conversa · sem internet",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
                         Text(
                             "Baixar ou gerenciar modelos offline",
