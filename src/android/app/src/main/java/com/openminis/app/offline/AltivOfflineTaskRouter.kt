@@ -18,11 +18,19 @@ internal object AltivOfflineTaskRouter {
     fun classify(message: String): Task {
         val s = normalize(message)
         // "Site com fotos" must NOT be treated as image generation.
+        // Explicit media generation takes priority even if the asset is for
+        // a website (for example: "gere uma imagem para meu site").
+        val mediaVerb = "(?:crie|criar|gere|gerar|produza|produzir|desenhe|faca|renderize)"
+        if (Regex("\\b$mediaVerb\\b.{0,55}\\b(?:video|clipe|filme)\\b").containsMatchIn(s))
+            return Task.VIDEO
+        if (Regex("\\b$mediaVerb\\b.{0,55}\\b(?:imagem|foto|ilustracao|desenho)\\b")
+                .containsMatchIn(s)) return Task.IMAGE
         val programming = listOf(
-            "site", "landing page", "pagina web", "html", "css", "javascript",
+            "landing page", "pagina web", "html", "css", "javascript",
             "typescript", "react", "codigo", "program", "frontend", "backend",
-            "aplicativo", "app", "sistema", "corrigir bug", "api", "arquivo index"
-        ).any { s.contains(it) }
+            "corrigir bug", "arquivo index"
+        ).any { s.contains(it) } || Regex("\\b(?:site|sites|app|aplicativo|api)\\b")
+            .containsMatchIn(s) || s.contains("crie um sistema")
         if (programming) return Task.CODE
         val creation = listOf(
             "crie", "criar", "gere", "gerar", "produza", "produzir",
@@ -66,10 +74,12 @@ internal object AltivOfflineTaskRouter {
         available: List<AltivOfflineModel>,
         task: Task,
         availableMemoryBytes: Long,
+        totalDeviceRamGb: Int,
     ): AltivOfflineModel {
         val ready = available.filter {
             it.category == AltivOfflineCategory.TEXT &&
                 it.codingLevel > 0 &&
+                it.minimumDeviceRamGb <= totalDeviceRamGb &&
                 it.sizeBytes + 350L * AltivOfflineModel.ONE_MB < availableMemoryBytes
         }
         if (ready.isEmpty()) return current
