@@ -6444,7 +6444,9 @@ class ChatViewModel(
                 // choose the first compatible installed GGUF, so fresh installs
                 // can write in the main composer without ever adding an API.
                 val initialLocalChoice = initialOfflineModelId
-                    ?: if (providerRepository.allVisibleEntries().isEmpty()) {
+                    ?: if (com.openminis.app.BuildConfig.FLAVOR == "altiv" &&
+                        providerRepository.configLoaded.value &&
+                        providerRepository.allVisibleEntries().isEmpty()) {
                         val downloads = com.openminis.app.offline.AltivOfflineModelDownloads(context)
                         val ram = com.openminis.app.offline.AltivOfflineInference.totalRamGb(context)
                         com.openminis.app.offline.AltivOfflineModelCatalog.models.firstOrNull { model ->
