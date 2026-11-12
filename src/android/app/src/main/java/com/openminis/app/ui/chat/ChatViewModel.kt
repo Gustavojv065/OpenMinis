@@ -5900,6 +5900,18 @@ class ChatViewModel(
     /** Whether this is a draft session (not yet persisted to DB). */
     private val isDraft: Boolean = sessionId.startsWith("__new__")
 
+    /**
+     * ALTIV's offline model manager can launch the shared chat directly.
+     * Only curated GGUF IDs are accepted by selectOfflineModel; this never
+     * creates a fake cloud provider or transmits a key.
+     */
+    private val initialOfflineModelId: String? =
+        sessionId.takeIf { it.startsWith("__new__") }
+            ?.substringAfter("__off__", "")
+            ?.substringBefore("__grp__")
+            ?.substringBefore("__fld__")
+            ?.takeIf { it.isNotBlank() }
+
     /** Model group ID from long-press FAB, encoded in the draft session ID.
      *  substringBefore strips the folder marker in case both are present. */
     private val initialGroupId: String? =
@@ -6427,6 +6439,9 @@ class ChatViewModel(
                     // newest-provider/newest-text-model. Was firstOrNull().
                     applyNewChatDefaultModel()
                 }
+                // An installed GGUF chosen in the manager wins over cloud
+                // defaults on a new draft; persistence happens on first send.
+                initialOfflineModelId?.let { selectOfflineModel(it) }
                 return@launch
             }
 
