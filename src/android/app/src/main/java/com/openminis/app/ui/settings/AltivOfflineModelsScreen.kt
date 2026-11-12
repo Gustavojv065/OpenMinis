@@ -55,7 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/** Catalog and real downloads; offline inference is a separate future feature. */
+/** Catalog of supported GGUF text models and external downloads for future runtimes. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AltivOfflineModelsScreen(
@@ -151,8 +151,8 @@ fun AltivOfflineModelsScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Baixe um GGUF e abra uma conversa offline independente. " +
-                            "Ela funciona sem chave API e preserva as mensagens no aparelho. " +
+                        "Baixe um GGUF compatível e use o mesmo chat com IA offline, " +
+                            "sem chave API. As mensagens ficam salvas no aparelho. " +
                             "Edição automática de repositórios exige o agente com ferramentas.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -188,8 +188,28 @@ fun AltivOfflineModelsScreen(
                         Switch(checked = wifiOnly, onCheckedChange = { wifiOnly = it })
                     }
                     Text(
-                        if (wifiOnly) "Dados móveis não serão usados para downloads novos."
+                        if (wifiOnly) "Somente Wi-Fi está ativado: no 4G/5G os downloads ficarão aguardando Wi-Fi."
                         else "Atenção: downloads podem consumir centenas de MB do seu plano móvel.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW,
+                                        Uri.parse("https://huggingface.co/Qwen"))
+                                        .addCategory(Intent.CATEGORY_BROWSABLE)
+                                )
+                            }.onFailure { errorText = "Não foi possível abrir o navegador." }
+                        },
+                    ) { Text("Explorar todos os modelos Qwen no navegador") }
+                    Text(
+                        "Escolha arquivos GGUF para download externo. " +
+                            "O app executa apenas arquiteturas aceitas pelo motor local; " +
+                            "baixar um modelo não garante que ele funcionará offline aqui.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -212,8 +232,8 @@ fun AltivOfflineModelsScreen(
                         }
                     }
                 }
-                // Catalog-only candidates: explicitly disabled until their runtime,
-                // file hashes, source and licensing are independently verified.
+                // Unsupported runtimes remain non-executable, but users may browse
+                // model weights independently in the external browser.
                 items(AltivMultimodalRoadmap.inCategory(category), key = { "candidate-" + it.name }) { candidate ->
                     Card {
                         Column(
@@ -223,7 +243,7 @@ fun AltivOfflineModelsScreen(
                             Text(candidate.name, style = MaterialTheme.typography.titleMedium)
                             Text(candidate.description, style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "Em avaliação — download indisponível nesta versão",
+                                "Execução no APK ainda indisponível — pesquisa e download externo liberados",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -231,9 +251,25 @@ fun AltivOfflineModelsScreen(
                                 "Necessário: " + candidate.engineRequirement,
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            OutlinedButton(enabled = false, onClick = {}) {
-                                Text("Instalação ainda não suportada")
+                            OutlinedButton(onClick = {
+                                runCatching {
+                                    val search = Uri.encode(candidate.name)
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://huggingface.co/models?search=" + search),
+                                        ).addCategory(Intent.CATEGORY_BROWSABLE)
+                                    )
+                                }.onFailure { errorText = "Não foi possível abrir o navegador." }
+                            }) {
+                                Text("Procurar e baixar pelo navegador")
                             }
+                            Text(
+                                "A pesquisa pode incluir modelos de terceiros. Confira origem, " +
+                                    "licença e arquivos. A instalação/execução nesta versão exige motor próprio.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
@@ -260,9 +296,9 @@ fun AltivOfflineModelsScreen(
                             Text(model.ramGuidance, style = MaterialTheme.typography.bodySmall)
                             if (!ramSuitable) {
                                 Text(
-                                    "Este celular não é recomendado para executar " +
-                                        "este modelo. O download será opcional, " +
-                                        "mas o teste local ficará indisponível.",
+                                    "RAM abaixo da recomendação do catálogo. " +
+                                        "Você pode baixar e tentar usar, mas o motor " +
+                                        "pode recusar a execução se faltar memória livre.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -312,6 +348,15 @@ fun AltivOfflineModelsScreen(
                                     Button(onClick = { confirmDownload = model }) {
                                         Text("Baixar")
                                     }
+                                } else if (state.phase == AltivOfflineModelDownloads.Phase.FAILED) {
+                                    Button(onClick = {
+                                        downloads.retryFailed(model, wifiOnly)
+                                            .onFailure { errorText = it.message ?: "Falha ao repetir download." }
+                                        refresh++
+                                    }) { Text("Tentar novamente") }
+                                    OutlinedButton(onClick = { confirmDelete = model }) {
+                                        Text("Excluir")
+                                    }
                                 } else {
                                     OutlinedButton(onClick = { confirmDelete = model }) {
                                         Text(
@@ -322,7 +367,7 @@ fun AltivOfflineModelsScreen(
                                 }
                                 if (state.phase == AltivOfflineModelDownloads.Phase.READY) {
                                     Button(
-                                        enabled = ramSuitable,
+                                        enabled = !importing,
                                         onClick = { runTestModel = model },
                                     ) { Text("Testar offline") }
                                 }
@@ -355,12 +400,12 @@ fun AltivOfflineModelsScreen(
                             }
                             if (state.phase == AltivOfflineModelDownloads.Phase.READY) {
                                 Button(
-                                    enabled = ramSuitable && !importing,
+                                    enabled = !importing,
                                     onClick = { onChatModelClick(model.id) },
                                     modifier = Modifier.fillMaxWidth(),
                                 ) { Text("Conversar offline · " + model.name) }
                                 Text(
-                                    "Conversa local separada, sem API. Sem Shell, MCP ou GitHub.",
+                                    "Mesmo histórico do chat principal, sem API. Sem Shell, MCP ou GitHub no motor offline.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -406,8 +451,8 @@ fun AltivOfflineModelsScreen(
                     "Arquivo aproximado de " +
                         model.sizeBytes / AltivOfflineModel.ONE_MB + " MB. " +
                         (if (wifiOnly) "Somente por Wi-Fi. " else "Pode usar dados móveis. ") +
-                        "Após baixar, você poderá conversar no chat offline independente. " +
-                        "A conversa padrão do ALTIV continua usando provedores online."
+                        "Após baixar, você poderá selecionar o GGUF na conversa principal " +
+                        "e alternar para APIs online. A geração offline não executa Shell, MCP ou GitHub."
                 )
             },
             confirmButton = {
