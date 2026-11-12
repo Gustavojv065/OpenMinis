@@ -154,6 +154,15 @@ data class LLMModel(
         // honours it. Mirrors iOS LLMTypes.swift defaults plus the
         // OpenAIAgentProvider `supportsReasoning ?? true` GPT-5.x
         // assumption (T119).
+        // ALTIV Online First: current API-key model choices verified against
+        // https://developers.openai.com/api/docs/models (2026-11-12).
+        // Visibility does NOT guarantee account access, free usage or quota.
+        // The provider's live /v1/models and diagnostic remain authoritative.
+        // Keep existing entries for backwards compatibility with saved chats.
+        val gpt6Astra = LLMModel("gpt-6-astra", "GPT-6 Astra · Avançado", "OpenAI", supportsReasoning = true)
+        val gpt61Sol = LLMModel("gpt-6.1-sol", "GPT-6.1 Sol · Programação", "OpenAI", supportsReasoning = true)
+        val gpt61Terra = LLMModel("gpt-6.1-terra", "GPT-6.1 Terra · Equilíbrio", "OpenAI", supportsReasoning = true)
+        val gpt6Luna = LLMModel("gpt-6-luna", "GPT-6 Luna · Econômico", "OpenAI", supportsReasoning = true)
         val gpt55 = LLMModel("gpt-5.5", "GPT-5.5", "OpenAI", supportsReasoning = true)
         val gpt53Codex = LLMModel("gpt-5.3-codex", "GPT-5.3 Codex", "OpenAI", supportsReasoning = true)
         val gpt52Codex = LLMModel("gpt-5.2-codex", "GPT-5.2 Codex", "OpenAI", supportsReasoning = true)
@@ -165,7 +174,11 @@ data class LLMModel(
         val o4Mini = LLMModel("o4-mini", "o4 Mini", "OpenAI", supportsReasoning = true)
         val codexMini = LLMModel("codex-mini-latest", "Codex Mini", "OpenAI", supportsReasoning = true)
 
-        val allOpenAI = listOf(gpt55, gpt53Codex, gpt52Codex, gpt51CodexMax, gpt52, gpt4o, gpt4oMini, o3, o4Mini, codexMini)
+        val allOpenAI = listOf(
+            gpt61Sol, gpt61Terra, gpt6Luna, gpt6Astra,
+            gpt55, gpt53Codex, gpt52Codex, gpt51CodexMax, gpt52,
+            gpt4o, gpt4oMini, o3, o4Mini, codexMini,
+        )
 
         // OpenRouter (matching iOS built-in set)
         val orClaudeSonnet4 = LLMModel("anthropic/claude-sonnet-4", "Claude Sonnet 4", "OpenRouter")
