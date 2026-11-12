@@ -570,6 +570,7 @@ fun ChatScreen(
     /** [T-android-picker-provider-edit] Open one provider instance's settings —
      *  wired to the edit button on each provider section of the model picker. */
     onEditProviderClick: (instanceId: String) -> Unit = {},
+    onAddApiProviderClick: () -> Unit = {},
     onManageOfflineModelsClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -8364,6 +8365,10 @@ fun ChatScreen(
             onOfflineRouterChange = { viewModel.setOfflineRouterEnabled(it) },
             freeOnlyOnline = freeOnlyOnline,
             onFreeOnlyOnlineChange = { viewModel.setFreeOnlyOnline(it) },
+            onAddApiProvider = {
+                showModelPicker = false
+                onAddApiProviderClick()
+            },
             defaultPrimaryGroupId = config.defaultPrimaryGroupId,
             config = config,
             providerRepository = providerRepository,
