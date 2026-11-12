@@ -38,8 +38,13 @@ internal class AltivOfflineInference(context: Context) {
         }
     }
 
-    suspend fun complete(model: AltivOfflineModel, prompt: String): Output =
+    suspend fun complete(
+        model: AltivOfflineModel,
+        prompt: String,
+        maxOutputTokens: Int = 384,
+    ): Output =
         withContext(Dispatchers.Default) {
+            require(maxOutputTokens in 96..1024) { "Limite de tokens local inválido." }
             require(prompt.isNotBlank() && prompt.length <= AltivOfflineConversationPrompt.MAX_PROMPT_CHARS) {
                 "O histórico da conversa excede o limite de contexto local."
             }
@@ -77,7 +82,7 @@ internal class AltivOfflineInference(context: Context) {
                             "brasileiro com código correto e objetivo quando solicitado. " +
                             "Não afirme que executou testes, Shell, Git ou modificou arquivos. " +
                             "Se o pedido exigir isso, explique que é preciso o agente com ferramentas.",
-                        maxTokens = 384,
+                        maxTokens = maxOutputTokens,
                     )
                     Output(
                         text = result.text,

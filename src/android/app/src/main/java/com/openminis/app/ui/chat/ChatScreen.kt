@@ -8313,6 +8313,7 @@ fun ChatScreen(
         val config by providerRepository.config.collectAsState()
         val activeEntryId by viewModel.activeEntryId.collectAsState()
         val webResearchEnabled by viewModel.webResearchEnabled.collectAsState()
+        val offlineRouterEnabled by viewModel.offlineRouterEnabled.collectAsState()
 
         // When the user picks a model whose output is image/audio/video, defer
         // the actual binding behind a confirmation dialog — those models can't
@@ -8344,6 +8345,8 @@ fun ChatScreen(
             selectedOfflineModelId = offlineModelId,
             webResearchEnabled = webResearchEnabled,
             onWebResearchChange = { viewModel.setWebResearchEnabled(it) },
+            offlineRouterEnabled = offlineRouterEnabled,
+            onOfflineRouterChange = { viewModel.setOfflineRouterEnabled(it) },
             defaultPrimaryGroupId = config.defaultPrimaryGroupId,
             config = config,
             providerRepository = providerRepository,
