@@ -28,6 +28,19 @@ class AltivProfessionalSkillRoutingTest {
         assertTrue(guidance.contains("project files in the sandbox"))
         assertTrue(guidance.contains("verified preview URL"))
         assertTrue(guidance.contains("what was not tested"))
+        assertTrue(guidance.contains("an HTTP 200 or running localhost"))
+        assertTrue(guidance.contains("Capture and inspect screenshots"))
+        assertTrue(guidance.contains("An empty white preview is a failure"))
+        assertTrue(guidance.contains("prefers-reduced-motion"))
+    }
+
+    @Test fun developerGuidanceIsActuallyInjectedIntoAgentSystemPrompt() {
+        val vm = java.io.File(
+            "src/main/java/com/openminis/app/ui/chat/ChatViewModel.kt"
+        ).readText()
+        assertTrue(
+            vm.contains("append(com.openminis.app.data.repository.AltivProfessionalSkillRouting.GUIDANCE)")
+        )
     }
 
     @Test fun currentOpenAiApiKeyCatalogListsQualityAndBudgetChoices() {
