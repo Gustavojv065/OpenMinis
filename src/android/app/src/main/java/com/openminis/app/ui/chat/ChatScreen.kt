@@ -642,6 +642,7 @@ fun ChatScreen(
     val compactProgress by viewModel.compactProgress.collectAsState()
     val error by viewModel.error.collectAsState()
     val modelName by viewModel.modelName.collectAsState()
+    val offlineModelId by viewModel.offlineModelId.collectAsState()
     val sessionTitle by viewModel.sessionTitle.collectAsState()
     val sessionCategory by viewModel.sessionCategory.collectAsState()
     val attachments by viewModel.attachments.collectAsState()
@@ -8339,6 +8340,7 @@ fun ChatScreen(
             groups = availableGroups,
             selectedGroupId = selectedGroupId,
             activeEntryId = activeEntryId,
+            selectedOfflineModelId = offlineModelId,
             defaultPrimaryGroupId = config.defaultPrimaryGroupId,
             config = config,
             providerRepository = providerRepository,
@@ -8387,19 +8389,22 @@ fun ChatScreen(
                 }
             },
             onSelectOfflineModel = { modelId ->
-                showModelPicker = false
                 if (viewModel.selectOfflineModel(modelId)) {
+                    showModelPicker = false
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(
-                            "IA local ativada nesta conversa. Mensagens e histórico no mesmo chat."
+                            "IA local ativada nesta conversa. Pode enviar sua mensagem sem internet."
                         )
                     }
                 } else {
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            "Modelo offline indisponível. Verifique o download ou aguarde a resposta atual."
-                        )
-                    }
+                    // The sheet obscures the chat's SnackbarHost, so show a
+                    // visible toast instead of silently dismissing the picker.
+                    android.widget.Toast.makeText(
+                        context,
+                        viewModel.error.value
+                            ?: "Modelo offline indisponível. Verifique o download e a RAM.",
+                        android.widget.Toast.LENGTH_LONG,
+                    ).show()
                 }
             },
             onManageOfflineModels = {

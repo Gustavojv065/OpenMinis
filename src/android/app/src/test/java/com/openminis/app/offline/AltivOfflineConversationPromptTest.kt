@@ -94,6 +94,41 @@ class AltivOfflineConversationPromptTest {
         AltivOfflineConversationStore.keyFor("qwen3-06b-q4km", "  ")
     }
 
+    @Test fun altivFirstRunNeverRequiresCloudApiForOfflineChat() {
+        val root = java.io.File("src/main/java/com/openminis/app")
+        val landing = root.resolve("ui/sessions/SessionListScreen.kt").readText()
+        val vm = root.resolve("ui/sessions/SessionListViewModel.kt").readText()
+        val nav = root.resolve("ui/navigation/AppNavigation.kt").readText()
+        val scaffold = root.resolve("ui/navigation/ChatSplitScaffold.kt").readText()
+        val chatVm = root.resolve("ui/chat/ChatViewModel.kt").readText()
+
+        assertTrue(landing.contains("Começar uma conversa"))
+        assertTrue(landing.contains("Modelos offline"))
+        assertTrue(landing.contains("Configurar API (opcional)"))
+        assertTrue(landing.contains("onOfflineModels = onOfflineModelsClick"))
+        assertTrue(landing.contains("onClick = onStartConversation"))
+        assertTrue(landing.contains("isLocked = false"))
+        assertTrue(landing.contains("hasProviders || BuildConfig.FLAVOR == \"altiv\""))
+        assertTrue(vm.contains("BuildConfig.FLAVOR != \"altiv\""))
+        assertTrue(scaffold.contains("onOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) }"))
+        assertTrue(nav.contains("__off__"))
+        assertTrue(nav.contains("navController.safeNavigate(Routes.chat(draft))"))
+        assertTrue(chatVm.contains("private val initialOfflineModelId: String?"))
+        assertTrue(chatVm.contains("initialOfflineModelId?.let { selectOfflineModel(it) }"))
+    }
+
+    @Test fun offlineModelSelectionShowsActiveStateAndError() {
+        val root = java.io.File("src/main/java/com/openminis/app")
+        val chat = root.resolve("ui/chat/ChatScreen.kt").readText()
+        val picker = root.resolve("ui/chat/ChatModelPickerSheet.kt").readText()
+        assertTrue(picker.contains("selectedOfflineModelId: String? = null"))
+        assertTrue(picker.contains("selectedOfflineModelId == model.id"))
+        assertTrue(picker.contains("Selecionado"))
+        assertTrue(chat.contains("selectedOfflineModelId = offlineModelId"))
+        assertTrue(chat.contains("viewModel.error.value"))
+        assertTrue(chat.contains("android.widget.Toast.makeText"))
+    }
+
     @Test fun unifiedOnlineAndOfflineUseSingleComposerAndTranscript() {
         val root = java.io.File("src/main/java/com/openminis/app")
         val chat = root.resolve("ui/chat/ChatScreen.kt").readText()

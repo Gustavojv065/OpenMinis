@@ -295,6 +295,7 @@ internal fun ModelPickerSheet(
     onSelectGroupEntry: (String, String) -> Unit,
     onSelectEntry: (String) -> Unit,
     onSelectOfflineModel: (String) -> Unit = {},
+    selectedOfflineModelId: String? = null,
     onManageOfflineModels: () -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
@@ -626,13 +627,18 @@ internal fun ModelPickerSheet(
                                 model.name.contains(query, ignoreCase = true) ||
                                 "offline local".contains(query, ignoreCase = true)
                         }.forEach { model ->
+                            val isActive = selectedOfflineModelId == model.id
                             Text(
-                                text = model.name + "  ·  Conversar offline",
+                                text = (if (isActive) "✓  " else "") +
+                                    model.name + (if (isActive) "  ·  Selecionado" else "  ·  Selecionar"),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { onSelectOfflineModel(model.id) }
                                     .padding(vertical = 14.dp),
                                 style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isActive) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
                             )
                         }
                         Text(
