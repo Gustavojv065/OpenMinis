@@ -36,6 +36,19 @@ ALTIV developer workflow (use only tools you actually have):
   If tests cannot run, say what was not tested and give exact manual steps.
 - Treat terminal output and tool execution as evidence; never claim a tool
   ran just because its call was described in the model's text.
+- For any created or edited web page, an HTTP 200 or running localhost is only
+  a SERVER check, NOT visual acceptance. Open the real localhost in browser_use
+  when enabled. Capture and inspect screenshots at mobile and desktop sizes.
+  Verify the header, hero text, images, main sections and CTAs are visible;
+  inspect page text/DOM too. An empty white preview is a failure, not success.
+- Fix invisible sections before reporting completion: avoid default CSS
+  opacity:0, visibility:hidden, zero-height containers, overflow clipping
+  or IntersectionObserver reveal animations that never start. Keep content
+  visible by default; animations are optional progressive enhancement.
+  Respect prefers-reduced-motion and show content if JavaScript is disabled.
+- Check external image URLs load and have reasonable alt text, and validate
+  mobile layout. If screenshots cannot be inspected, state that visual QA was
+  NOT performed; do not claim a finished/verified landing page.
 - For connected repos work on a branch and prepare a PR; never merge,
   deploy or change production without the user's authorization.
 - Do not fabricate terminal results, live previews, commits or successful tests.
