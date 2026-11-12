@@ -164,6 +164,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -297,6 +298,8 @@ internal fun ModelPickerSheet(
     onSelectOfflineModel: (String) -> Unit = {},
     selectedOfflineModelId: String? = null,
     onManageOfflineModels: () -> Unit = {},
+    webResearchEnabled: Boolean = false,
+    onWebResearchChange: (Boolean) -> Unit = {},
     onDismiss: () -> Unit,
     /** [T-android-modelpicker-group-edit] "Edit" affordance on the Model Groups
      *  section header — dismisses the sheet and navigates to the Model Groups
@@ -614,6 +617,49 @@ internal fun ModelPickerSheet(
                             "No aparelho, sem API nem ferramentas de agente",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Pesquisar fotos e referências na internet",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    "Opcional: envia termos ao Openverse/Wikipédia. " +
+                                        "A IA GGUF continua local, sem API paga.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = webResearchEnabled,
+                                onCheckedChange = onWebResearchChange,
+                            )
+                        }
+                        Text(
+                            "Buscar inspiração de sites no navegador",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    runCatching {
+                                        val keywords = searchText.ifBlank {
+                                            "referências visuais de landing pages e sites"
+                                        }
+                                        val url = "https://www.google.com/search?q=" +
+                                            Uri.encode(keywords.take(120))
+                                        offlineContext.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                                .addCategory(Intent.CATEGORY_BROWSABLE)
+                                        )
+                                    }
+                                }
+                                .padding(vertical = 10.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                         if (installedOfflineModels.isEmpty()) {
                             Text(
