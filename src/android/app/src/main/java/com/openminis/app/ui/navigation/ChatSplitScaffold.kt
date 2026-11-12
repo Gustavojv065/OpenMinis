@@ -930,6 +930,7 @@ fun ChatSplitScaffoldRoute(
                 onSettingsClick = { navController.safeNavigate(Routes.SETTINGS) },
                 onAddProviderClick = { navController.safeNavigate(Routes.ADD_PROVIDER) },
                 onSelectModelsClick = { navController.safeNavigate(Routes.ONBOARDING_MODELS) },
+                onOfflineModelsClick = { navController.safeNavigate(Routes.ALTIV_OFFLINE_MODELS) },
                 onRestoreBackupClick = {
                     navController.currentBackStackEntry?.savedStateHandle?.set(Routes.BACKUP_INITIAL_TAB_KEY, 1)
                     navController.safeNavigate(Routes.BACKUP)
