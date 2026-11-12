@@ -682,7 +682,11 @@ fun AppNavigation(
             com.openminis.app.ui.settings.AltivOfflineModelsScreen(
                 onBack = { navController.safePopBackStack() },
                 onChatModelClick = { modelId ->
-                    navController.safeNavigate(Routes.offlineChat(modelId))
+                    // Open the shared ALTIV chat composer, preselecting the
+                    // downloaded GGUF. The model is NOT a cloud ProviderInstance.
+                    // The draft ID stays unique and has no DB row until send.
+                    val draft = "__new__${java.util.UUID.randomUUID()}__off__${modelId}"
+                    navController.safeNavigate(Routes.chat(draft))
                 },
             )
         }
