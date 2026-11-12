@@ -16913,6 +16913,11 @@ Scheduled tasks: crontab / at / nohup loops will stop when the app is suspended,
 
         return buildString {
             append(base)
+            // ALTIV Online First: verified development/visual QA guidance.
+            // This is part of the actual agent SYSTEM prompt, not just a
+            // disconnected constant. Static prefix preserves cache hits.
+            append("\n\n")
+            append(com.openminis.app.data.repository.AltivProfessionalSkillRouting.GUIDANCE)
             if (skillFragment != null) {
                 append("\n\n")
                 append(skillFragment)
