@@ -80,6 +80,11 @@ internal fun AltivHtmlProjectPreviewDialog(
     onDismiss: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    // Real server is loopback only, bound to an ephemeral port; it is shut
+    // down when the preview closes. No terminal command is started.
+    val previewServer = remember(project.absolutePath) {
+        AltivOfflinePreviewServer(project)
+    }
     val webView = remember(project.absolutePath) {
         WebView(context).apply {
             settings.javaScriptEnabled = false
@@ -96,15 +101,15 @@ internal fun AltivHtmlProjectPreviewDialog(
                     view: WebView?, request: android.webkit.WebResourceRequest?
                 ): Boolean = true // block navigation outside the preview
             }
-            loadDataWithBaseURL(
-                "https://altiv-preview.invalid/",
-                AltivHtmlProjectPreview.lockedPreviewHtml(project.readText()),
-                "text/html", "UTF-8", null,
-            )
+            loadUrl(previewServer.url)
         }
     }
-    DisposableEffect(webView) {
-        onDispose { webView.stopLoading(); webView.destroy() }
+    DisposableEffect(webView, previewServer) {
+        onDispose {
+            webView.stopLoading()
+            webView.destroy()
+            previewServer.close()
+        }
     }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -118,8 +123,13 @@ internal fun AltivHtmlProjectPreviewDialog(
             ) {
                 Text("ALTIV · Prévia local HTML", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Arquivo criado: " + project.name +
-                        " · Pasta ALTIV Projects · Sem localhost ou comandos de terminal",
+                    "Projeto salvo: altiv-projects/" + project.parentFile?.name +
+                        "/index.html",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "Localhost real: " + previewServer.url +
+                        " · Temporário, sem comandos de terminal",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 AndroidView(
