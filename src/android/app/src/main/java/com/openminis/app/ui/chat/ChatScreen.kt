@@ -8314,6 +8314,7 @@ fun ChatScreen(
         val activeEntryId by viewModel.activeEntryId.collectAsState()
         val webResearchEnabled by viewModel.webResearchEnabled.collectAsState()
         val offlineRouterEnabled by viewModel.offlineRouterEnabled.collectAsState()
+        val freeOnlyOnline by viewModel.freeOnlyOnline.collectAsState()
 
         // When the user picks a model whose output is image/audio/video, defer
         // the actual binding behind a confirmation dialog — those models can't
@@ -8337,6 +8338,20 @@ fun ChatScreen(
         }
         fun entryById(entryId: String): ModelEntry? =
             config.modelEntries.firstOrNull { it.id == entryId }
+        fun isRecognizedFree(entry: ModelEntry?): Boolean =
+            entry != null && com.openminis.app.data.model.AltivOnlineCostPolicy
+                .isExplicitlyFree(
+                    entry,
+                    config.instances.firstOrNull { it.id == entry.providerInstanceId },
+                )
+        fun warnFreeOnly() {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    "Modo Somente :free: selecione OpenRouter :free ou desligue essa opção."
+                )
+            }
+        }
+
 
         ModelPickerSheet(
             groups = availableGroups,
@@ -8347,11 +8362,18 @@ fun ChatScreen(
             onWebResearchChange = { viewModel.setWebResearchEnabled(it) },
             offlineRouterEnabled = offlineRouterEnabled,
             onOfflineRouterChange = { viewModel.setOfflineRouterEnabled(it) },
+            freeOnlyOnline = freeOnlyOnline,
+            onFreeOnlyOnlineChange = { viewModel.setFreeOnlyOnline(it) },
             defaultPrimaryGroupId = config.defaultPrimaryGroupId,
             config = config,
             providerRepository = providerRepository,
             onSelectGroup = { groupId ->
                 val group = availableGroups.firstOrNull { it.id == groupId }
+                if (freeOnlyOnline && (group == null ||
+                    !com.openminis.app.data.model.AltivOnlineCostPolicy
+                        .isGroupFreeOnly(group, config.modelEntries, config.instances))) {
+                    warnFreeOnly()
+                } else {
                 val firstEntry = group?.memberEntryIds?.firstNotNullOfOrNull(::entryById)
                 val label = firstEntry?.model?.let(::nonTextLabelFor)
                 if (label != null) {
@@ -8364,9 +8386,13 @@ fun ChatScreen(
                     viewModel.selectGroup(groupId)
                     showModelPicker = false
                 }
+                }
             },
             onSelectGroupEntry = { groupId, entryId ->
                 val entry = entryById(entryId)
+                if (freeOnlyOnline && !isRecognizedFree(entry)) {
+                    warnFreeOnly()
+                } else {
                 val label = entry?.model?.let(::nonTextLabelFor)
                 if (entry != null && label != null) {
                     pendingNonTextSelection = PendingNonTextSelection.GroupEntry(
@@ -8379,9 +8405,13 @@ fun ChatScreen(
                     viewModel.selectGroupEntry(groupId, entryId)
                     showModelPicker = false
                 }
+                }
             },
             onSelectEntry = { entryId ->
                 val entry = entryById(entryId)
+                if (freeOnlyOnline && !isRecognizedFree(entry)) {
+                    warnFreeOnly()
+                } else {
                 val label = entry?.model?.let(::nonTextLabelFor)
                 if (entry != null && label != null) {
                     pendingNonTextSelection = PendingNonTextSelection.Entry(
@@ -8392,6 +8422,7 @@ fun ChatScreen(
                 } else {
                     viewModel.selectEntry(entryId)
                     showModelPicker = false
+                }
                 }
             },
             onSelectOfflineModel = { modelId ->
