@@ -129,6 +129,28 @@ class AltivOfflineConversationPromptTest {
         assertTrue(chat.contains("android.widget.Toast.makeText"))
     }
 
+    @Test fun offlineModelsAreSelectableAndHighlightedInTheMainChat() {
+        val root = java.io.File("src/main/java/com/openminis/app")
+        val picker = root.resolve("ui/chat/ChatModelPickerSheet.kt").readText()
+        val chat = root.resolve("ui/chat/ChatScreen.kt").readText()
+        val vm = root.resolve("ui/chat/ChatViewModel.kt").readText()
+        assertTrue(picker.contains("RadioButton("))
+        assertTrue(picker.contains("selected = isActive"))
+        assertTrue(picker.contains("onSelectOfflineModel(model.id)"))
+        assertTrue(picker.contains("Selecionado agora · IA offline, sem API"))
+        assertTrue(picker.contains("Toque para usar nesta conversa · sem internet"))
+        assertTrue(chat.contains("selectedOfflineModelId = offlineModelId"))
+        assertTrue(chat.contains("offlineModelId != null"))
+        assertTrue(chat.contains("\"OFFLINE · \" + modelName.removeSuffix"))
+        assertTrue(chat.contains("viewModel.selectOfflineModel(modelId)"))
+        assertTrue(vm.contains("fun selectOfflineModel(modelId: String): Boolean"))
+        assertTrue(vm.contains("if (_offlineModelId.value != null) {"))
+        assertTrue(vm.contains("sendOfflineMessage(text)"))
+        assertTrue(vm.contains("initialLocalChoice?.let { selectOfflineModel(it) }"))
+        assertTrue(vm.contains("providerRepository.allVisibleEntries().isEmpty()"))
+        assertTrue(vm.contains("AltivOfflineModelDownloads.Phase.READY"))
+    }
+
     @Test fun unifiedOnlineAndOfflineUseSingleComposerAndTranscript() {
         val root = java.io.File("src/main/java/com/openminis/app")
         val chat = root.resolve("ui/chat/ChatScreen.kt").readText()
