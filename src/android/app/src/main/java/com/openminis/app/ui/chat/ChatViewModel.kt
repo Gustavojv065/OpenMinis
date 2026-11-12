@@ -7548,10 +7548,9 @@ class ChatViewModel(
             return false
         }
         val downloads = com.openminis.app.offline.AltivOfflineModelDownloads(context)
-        if (downloads.state(model).phase != com.openminis.app.offline.AltivOfflineModelDownloads.Phase.READY ||
-            com.openminis.app.offline.AltivOfflineInference.totalRamGb(context) < model.minimumDeviceRamGb
-        ) {
-            _error.value = "Baixe o GGUF e verifique a memória do celular antes de selecionar."
+        if (downloads.state(model).phase != com.openminis.app.offline.AltivOfflineModelDownloads.Phase.READY) {
+            _error.value = "Baixe ou importe o GGUF antes de selecionar. " +
+                "A execução verificará a memória realmente livre."
             return false
         }
         _offlineModelId.value = model.id
