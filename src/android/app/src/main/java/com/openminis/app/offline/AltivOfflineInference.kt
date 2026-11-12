@@ -50,10 +50,9 @@ internal class AltivOfflineInference(context: Context) {
             val am = app.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val info = ActivityManager.MemoryInfo()
             am.getMemoryInfo(info)
-            check(totalRamGb(app) >= model.minimumDeviceRamGb) {
-                "Este celular tem pouca RAM para o modelo selecionado. " +
-                    "Escolha outro menor."
-            }
+            // Catalog RAM recommendations are guidance, not a hard block.
+            // Users may try larger GGUFs at their own risk; protect the OS
+            // with a check of *currently available* physical RAM before load.
             // Conservative free-memory check; model weights + KV cache/compute.
             val required = model.sizeBytes + 350L * AltivOfflineModel.ONE_MB
             check(info.availMem > required) {
