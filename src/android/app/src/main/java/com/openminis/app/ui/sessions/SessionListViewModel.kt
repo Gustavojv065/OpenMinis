@@ -978,7 +978,9 @@ class SessionListViewModel(
      *   iOS defers the same way via pendingFolderDraft).
      */
     fun createNewSession(groupId: String? = null, folderId: String? = null): String? {
-        if (providerRepository.allVisibleEntries().isEmpty()) return null
+        // ALTIV: a new chat must be possible with an installed GGUF and no
+        // cloud provider. The model can be selected after entering the chat.
+        // This only mints a draft id; it does not create a DB row or a paid API.
         // [OpenMinis#433] Reopen the new chat the user left with unsent text
         // for this model group and folder, if any, before minting a fresh id.
         return com.openminis.app.ui.chat.ChatViewModelStore.newChatDraftId(groupId, folderId)
