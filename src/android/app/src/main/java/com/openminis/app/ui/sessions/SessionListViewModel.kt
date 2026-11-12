@@ -980,7 +980,9 @@ class SessionListViewModel(
     fun createNewSession(groupId: String? = null, folderId: String? = null): String? {
         // ALTIV: a new chat must be possible with an installed GGUF and no
         // cloud provider. The model can be selected after entering the chat.
-        // This only mints a draft id; it does not create a DB row or a paid API.
+        // Keep the original non-ALTIV flavor onboarding rule untouched.
+        if (com.openminis.app.BuildConfig.FLAVOR != "altiv" &&
+            providerRepository.allVisibleEntries().isEmpty()) return null
         // [OpenMinis#433] Reopen the new chat the user left with unsent text
         // for this model group and folder, if any, before minting a fresh id.
         return com.openminis.app.ui.chat.ChatViewModelStore.newChatDraftId(groupId, folderId)
