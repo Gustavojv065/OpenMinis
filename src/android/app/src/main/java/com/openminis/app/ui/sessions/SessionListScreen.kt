@@ -603,6 +603,7 @@ fun SessionListScreen(
     onSettingsClick: () -> Unit,
     onAddProviderClick: () -> Unit = {},
     onSelectModelsClick: () -> Unit = {},
+    onOfflineModelsClick: () -> Unit = {},
     onRestoreBackupClick: () -> Unit = {},
     onTerminalClick: () -> Unit = {},
     onRootfsClick: () -> Unit = {},
@@ -1167,6 +1168,7 @@ fun SessionListScreen(
                             hasGroups = hasGroups,
                             onAddProvider = onAddProviderClick,
                             onSelectModels = onSelectModelsClick,
+                            onOfflineModels = onOfflineModelsClick,
                             onRestoreBackup = onRestoreBackupClick,
                             onStartConversation = {
                                 scope.launch {
@@ -3537,6 +3539,7 @@ private fun OnboardingLanding(
     hasGroups: Boolean,
     onAddProvider: () -> Unit,
     onSelectModels: () -> Unit,
+    onOfflineModels: () -> Unit,
     onStartConversation: () -> Unit,
     onRestoreBackup: () -> Unit = {},
 ) {
@@ -3583,9 +3586,38 @@ private fun OnboardingLanding(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            SetupStepCard(
-                number = 1,
-                title = stringResource(R.string.sessionlist_welcome_step1_title),
+            if (BuildConfig.FLAVOR == "altiv") {
+                // ALTIV is offline-first: these are independent actions, not
+                // mandatory setup steps. API credentials are always optional.
+                SetupStepCard(
+                    number = 1,
+                    title = "Começar uma conversa",
+                    subtitle = "Entre no chat e selecione IA offline ou online",
+                    isDone = false,
+                    isLocked = false,
+                    onClick = onStartConversation,
+                )
+                SetupStepCard(
+                    number = 2,
+                    title = "Modelos offline",
+                    subtitle = "Baixe, importe ou gerencie modelos GGUF no aparelho",
+                    isDone = false,
+                    isLocked = false,
+                    onClick = onOfflineModels,
+                )
+                SetupStepCard(
+                    number = 3,
+                    title = "Configurar API (opcional)",
+                    subtitle = if (hasProviders) "Adicionar ou gerenciar outras IAs online"
+                        else "Use NVIDIA, OpenRouter e outras APIs quando desejar",
+                    isDone = false,
+                    isLocked = false,
+                    onClick = onAddProvider,
+                )
+            } else {
+                SetupStepCard(
+                    number = 1,
+                    title = stringResource(R.string.sessionlist_welcome_step1_title),
                 subtitle = if (hasProviders) {
                     stringResource(R.string.sessionlist_welcome_step_done)
                 } else {
@@ -3621,6 +3653,7 @@ private fun OnboardingLanding(
                 isLocked = !hasGroups,
                 onClick = { if (hasGroups) onStartConversation() },
             )
+            }
         }
 
         // [T-onboarding-restore-link] A side route for someone moving from
@@ -3629,7 +3662,7 @@ private fun OnboardingLanding(
         // Shown only until models are selected — after that this landing also
         // greets returning users with no chats, whose path is Settings →
         // Backup & Restore. Restore merges, so it is safe after step 1 too.
-        if (!hasGroups) {
+        if (BuildConfig.FLAVOR == "altiv" || !hasGroups) {
             Spacer(Modifier.height(12.dp))
             Row(
                 modifier = Modifier
