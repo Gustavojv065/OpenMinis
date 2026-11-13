@@ -120,6 +120,8 @@ jobs:
             --tests 'com.openminis.app.data.model.AltivOnlineCostPolicyTest' \
             --tests 'com.openminis.app.offline.AltivOfflineModelCatalogTest' \
             --tests 'com.openminis.app.offline.AltivOfflineConversationPromptTest' \
+            --tests 'com.openminis.app.provider.OpenAIProviderTest' \
+            --tests 'com.openminis.app.provider.openai.OpenAIFamilyGatesTest' \
             --tests 'com.openminis.app.data.repository.AltivProfessionalSkillRoutingTest' \
             --tests 'com.openminis.app.ui.settings.AltivBrandingConsistencyTest' \
             --tests 'com.openminis.app.ui.settings.AltivFullBrandingTest' \

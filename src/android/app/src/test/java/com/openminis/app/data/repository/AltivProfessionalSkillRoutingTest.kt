@@ -25,5 +25,38 @@ class AltivProfessionalSkillRoutingTest {
         assertTrue(guidance.contains("typecheck"))
         assertTrue(guidance.contains("without the user's authorization"))
         assertTrue(guidance.contains("repeatedly asking"))
+        assertTrue(guidance.contains("project files in the sandbox"))
+        assertTrue(guidance.contains("verified preview URL"))
+        assertTrue(guidance.contains("what was not tested"))
+        assertTrue(guidance.contains("an HTTP 200 or running localhost"))
+        assertTrue(guidance.contains("Capture and inspect screenshots"))
+        assertTrue(guidance.contains("An empty white preview is a failure"))
+        assertTrue(guidance.contains("prefers-reduced-motion"))
+    }
+
+    @Test fun developerGuidanceIsActuallyInjectedIntoAgentSystemPrompt() {
+        val vm = java.io.File(
+            "src/main/java/com/openminis/app/ui/chat/ChatViewModel.kt"
+        ).readText()
+        assertTrue(
+            vm.contains("append(com.openminis.app.data.repository.AltivProfessionalSkillRouting.GUIDANCE)")
+        )
+    }
+
+    @Test fun currentOpenAiApiKeyCatalogListsQualityAndBudgetChoices() {
+        val models = com.openminis.app.data.model.LLMModel.allOpenAI
+        val ids = models.map { it.id }
+        for (id in listOf(
+            "gpt-6-astra", "gpt-6.1-sol",
+            "gpt-6.1-terra", "gpt-6-luna",
+        )) {
+            val model = models.firstOrNull { it.id == id }
+            assertTrue("Missing OpenAI official model $id", model != null)
+            assertEquals(true, model?.supportsReasoning)
+            assertEquals(1, ids.count { it == id })
+        }
+        // Existing sessions using older model IDs must still load.
+        assertTrue(ids.contains("gpt-5.5"))
+        assertTrue(ids.contains("gpt-4o-mini"))
     }
 }
