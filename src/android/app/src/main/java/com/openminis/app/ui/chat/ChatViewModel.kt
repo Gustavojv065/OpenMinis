@@ -9351,6 +9351,15 @@ class ChatViewModel(
             prepared,
             ::visionPlaceholderFor,
         )
+        val queuedVisual = AltivVisualBuilder.decide(
+            queued.joinToString(" ") { it.text },
+            prepared.imageParts.isNotEmpty(), prepared.attachmentNames,
+            currentModelHasNativeVision,
+            com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+        )
+        if (queuedVisual.instructions.isNotEmpty()) {
+            queuedTurn.parts.add(AgentContentPart.Text(queuedVisual.instructions))
+        }
         val combinedParts = queuedTurn.parts
 
         // Guard: every queued prompt produced no content (no text, no
@@ -9517,6 +9526,15 @@ class ChatViewModel(
             // <user-attached-files> XML. Keeps caption adjacent to image and
             // lets the agent re-read the file via read_image.
             val queuedTurn = ChatAttachmentIngest.queuedTurn(queued.map { it.text }, prepared, ::visionPlaceholderFor)
+            val queuedVisual = AltivVisualBuilder.decide(
+                queued.joinToString(" ") { it.text },
+                prepared.imageParts.isNotEmpty(), prepared.attachmentNames,
+                currentModelHasNativeVision,
+                com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+            )
+            if (queuedVisual.instructions.isNotEmpty()) {
+                queuedTurn.parts.add(AgentContentPart.Text(queuedVisual.instructions))
+            }
             val combinedParts = queuedTurn.parts
 
             val userText = queuedTurn.text
@@ -9936,6 +9954,26 @@ class ChatViewModel(
         // here — clearing at this point would strip the content out from under
         // a send that then bails on the context-check paths below.
         val trimmed = text.trim()
+        // ALTIVE Visual Builder: do not charge a text-only model to guess
+        // at an image-based website design. The existing Vision Group is an
+        // opt-in, never a silent fallback to another (possibly paid) provider.
+        val visualBuilder = if (!headless) {
+            AltivVisualBuilder.decide(
+                message = trimmed,
+                hasImage = promptAttachments.any { it.isImage },
+                attachmentNames = promptAttachments.map { it.fileName },
+                supportsNativeVision = currentModelHasNativeVision,
+                visionGroupConfigured = !currentModelHasNativeVision &&
+                    promptAttachments.any { it.isImage } &&
+                    com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+            )
+        } else AltivVisualBuilder.Decision(AltivVisualBuilder.Route.NONE)
+        if (visualBuilder.blocked) {
+            _error.value = AltivVisualBuilder.blockedNotice()
+            setInputText(text)
+            return SubmitOutcome.Rejected("visual_reference_requires_vision")
+        }
+
         // While streaming, enqueue instead of silently dropping (iOS: send vs enqueuePrompt).
         if (_isStreaming.value) {
             // enqueuePrompt has its own blank/attachment guard and returns Unit;
@@ -10178,9 +10216,13 @@ class ChatViewModel(
             // toLLMMessage's mediaRef branch, so history replay (retry, rerun,
             // session reload, compaction) sees the identical text.
             val modelBody = pasted?.modelText ?: trimmed
+            // Only the model-facing turn includes these focused instructions:
+            // the visible bubble and saved user's actual text stay unchanged.
+            val modelBodyForAgent = if (visualBuilder.instructions.isBlank()) modelBody
+                else modelBody + "\n\n" + visualBuilder.instructions
 
             agentHistory.add(ChatAttachmentIngest.liveUserTurn(
-                modelBody, imageParts, prepared.imageUploadPaths, prepared.imageModelNotes,
+                modelBodyForAgent, imageParts, prepared.imageUploadPaths, prepared.imageModelNotes,
                 prepared.attachedFilesXml, persistedUser.id, ::visionPlaceholderFor,
             ))
 
