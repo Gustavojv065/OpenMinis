@@ -11643,6 +11643,9 @@ class ChatViewModel(
         var didStopStaleReadAloud = false
         // [T-p1-delegate-task] Helpers get a much tighter ceiling (design §4.3).
         val turnCap = helperConfig?.maxTurns ?: MAX_AGENT_TURNS
+        // ALTIVE: one safety budget per user request. Unlike a sliding-window
+        // repeat detector, this also stops browser/JS loops with unique inputs.
+        val turnToolBudget = com.openminis.app.agent.AgentTurnToolBudget()
         // [T-agent-wrapup-turn] Once true the tool list is withdrawn for the
         // rest of this run: a model with no tools can only answer in text.
         var helperWrapUpInjected = false
@@ -11657,6 +11660,26 @@ class ChatViewModel(
         // prefill re-arms it (see the injectQueuedPromptsAsNewTurn call site).
         var pendingScriptedTurn: com.openminis.app.scheduled.ScriptedToolTurn? = scriptedTurnFor(prefill)
         for (turn in 0 until turnCap) {
+            // Finish at a safe tool-result boundary, instead of letting the
+            // model consume hundreds of browser/JS calls and response tokens.
+            // The already executed tool results remain in the session history.
+            if (turn > 0 && turnToolBudget.exhausted()) {
+                val (total, browser, shell) = turnToolBudget.snapshot()
+                withContext(Dispatchers.Main) {
+                    updateAssistantMessage(assistantId, accumulatedText, false, allToolBlocks)
+                    setInlineError(
+                        "ALTIVE DEV AI interrompeu esta tarefa por segurança após " +
+                            "$total ferramentas (navegador: $browser, comandos: $shell). " +
+                            "O projeto foi preservado. Revise o resultado e envie uma " +
+                            "nova tarefa menor para continuar."
+                    )
+                }
+                markLiveInterruption()
+                _canResume.value = true
+                stopDiagExit = "tool-budget"
+                loopExitedNormally = true
+                break
+            }
             // [stop-diag] Every iteration is one model request; turn>0 means the
             // previous turn's tool results were judged worth sending on.
             AppLogger.info(TAG_STREAM, "[stop-diag] turn=$turn START sid=$activeSessionId — requesting the model")
@@ -13978,9 +14001,16 @@ class ChatViewModel(
                         // Exempt it from the pre-check so a long-lived follow-up
                         // session cannot trip the same-args threshold on it.
                         val precheck = if (com.openminis.app.scheduled.ScriptedToolTurn.isScriptedId(id)) {
+                            // Scheduled fires are explicit user instructions,
+                            // not retries in this conversational request.
                             com.openminis.app.agent.LoopCheckResult.NONE
                         } else {
-                            toolLoopDetector.check(name, paramsMap)
+                            val budgetError = turnToolBudget.reserve(name)
+                            if (budgetError != null) {
+                                com.openminis.app.agent.LoopCheckResult(Level.CRITICAL, budgetError)
+                            } else {
+                                toolLoopDetector.check(name, paramsMap)
+                            }
                         }
                         if (precheck.level == Level.CRITICAL) {
                             val blockedMsg = precheck.message ?: "[LOOP BLOCKED] tool execution blocked"
