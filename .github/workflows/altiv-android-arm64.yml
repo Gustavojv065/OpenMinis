@@ -130,7 +130,8 @@ jobs:
             --tests 'com.openminis.app.mcp.AltivGitHubRepositoryAccessTest' \
             --tests 'com.openminis.app.mcp.AltivGitHubProjectInspectorTest' \
             --tests 'com.openminis.app.ui.settings.AltivCustomerSettingsPolicyTest' \
-            --tests 'com.openminis.app.data.repository.AltivSkillBundleArchiveTest'
+            --tests 'com.openminis.app.data.repository.AltivSkillBundleArchiveTest' \
+            --tests 'com.openminis.app.agent.AgentTurnToolBudgetTest'
 
       - name: Version APK independently of ephemeral CI checkouts
         shell: bash
