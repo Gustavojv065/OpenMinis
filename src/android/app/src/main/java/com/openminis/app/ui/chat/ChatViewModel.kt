@@ -9959,6 +9959,25 @@ class ChatViewModel(
         // an empty text + non-empty attachments still produces a valid user
         // message. Without this an image-only "look at this" send dropped.
         if (trimmed.isBlank() && promptAttachments.isEmpty()) return SubmitOutcome.Rejected("empty_prompt")
+        // ALTIVE Visual Builder: do not charge a text-only model to guess
+        // at an image-based website design. The existing Vision Group is an
+        // opt-in, never a silent fallback to another (possibly paid) provider.
+        val visualBuilder = if (!headless) {
+            AltivVisualBuilder.decide(
+                message = trimmed,
+                hasImage = promptAttachments.any { it.isImage },
+                attachmentNames = promptAttachments.map { it.fileName },
+                supportsNativeVision = currentModelHasNativeVision,
+                visionGroupConfigured = !currentModelHasNativeVision &&
+                    promptAttachments.any { it.isImage } &&
+                    com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+            )
+        } else AltivVisualBuilder.Decision(AltivVisualBuilder.Route.NONE)
+        if (visualBuilder.blocked) {
+            _error.value = AltivVisualBuilder.blockedNotice()
+            setInputText(text)
+            return SubmitOutcome.Rejected("visual_reference_requires_vision")
+        }
         // [T-android-image-input-preflight] Refuse to send images to a model
         // that does not accept them — the request would only come back as an
         // upstream 400 (or have its pixels silently swapped for a placeholder).
@@ -10178,9 +10197,13 @@ class ChatViewModel(
             // toLLMMessage's mediaRef branch, so history replay (retry, rerun,
             // session reload, compaction) sees the identical text.
             val modelBody = pasted?.modelText ?: trimmed
+            // Only the model-facing turn includes these focused instructions:
+            // the visible bubble and saved user's actual text stay unchanged.
+            val modelBodyForAgent = if (visualBuilder.instructions.isBlank()) modelBody
+                else modelBody + "\n\n" + visualBuilder.instructions
 
             agentHistory.add(ChatAttachmentIngest.liveUserTurn(
-                modelBody, imageParts, prepared.imageUploadPaths, prepared.imageModelNotes,
+                modelBodyForAgent, imageParts, prepared.imageUploadPaths, prepared.imageModelNotes,
                 prepared.attachedFilesXml, persistedUser.id, ::visionPlaceholderFor,
             ))
 
