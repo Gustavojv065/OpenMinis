@@ -9351,6 +9351,15 @@ class ChatViewModel(
             prepared,
             ::visionPlaceholderFor,
         )
+        val queuedVisual = AltivVisualBuilder.decide(
+            queued.joinToString(" ") { it.text },
+            prepared.imageParts.isNotEmpty(), prepared.attachmentNames,
+            currentModelHasNativeVision,
+            com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+        )
+        if (queuedVisual.instructions.isNotEmpty()) {
+            queuedTurn.parts.add(AgentContentPart.Text(queuedVisual.instructions))
+        }
         val combinedParts = queuedTurn.parts
 
         // Guard: every queued prompt produced no content (no text, no
@@ -9517,6 +9526,15 @@ class ChatViewModel(
             // <user-attached-files> XML. Keeps caption adjacent to image and
             // lets the agent re-read the file via read_image.
             val queuedTurn = ChatAttachmentIngest.queuedTurn(queued.map { it.text }, prepared, ::visionPlaceholderFor)
+            val queuedVisual = AltivVisualBuilder.decide(
+                queued.joinToString(" ") { it.text },
+                prepared.imageParts.isNotEmpty(), prepared.attachmentNames,
+                currentModelHasNativeVision,
+                com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+            )
+            if (queuedVisual.instructions.isNotEmpty()) {
+                queuedTurn.parts.add(AgentContentPart.Text(queuedVisual.instructions))
+            }
             val combinedParts = queuedTurn.parts
 
             val userText = queuedTurn.text
@@ -9936,6 +9954,26 @@ class ChatViewModel(
         // here — clearing at this point would strip the content out from under
         // a send that then bails on the context-check paths below.
         val trimmed = text.trim()
+        // ALTIVE Visual Builder: do not charge a text-only model to guess
+        // at an image-based website design. The existing Vision Group is an
+        // opt-in, never a silent fallback to another (possibly paid) provider.
+        val visualBuilder = if (!headless) {
+            AltivVisualBuilder.decide(
+                message = trimmed,
+                hasImage = promptAttachments.any { it.isImage },
+                attachmentNames = promptAttachments.map { it.fileName },
+                supportsNativeVision = currentModelHasNativeVision,
+                visionGroupConfigured = !currentModelHasNativeVision &&
+                    promptAttachments.any { it.isImage } &&
+                    com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
+            )
+        } else AltivVisualBuilder.Decision(AltivVisualBuilder.Route.NONE)
+        if (visualBuilder.blocked) {
+            _error.value = AltivVisualBuilder.blockedNotice()
+            setInputText(text)
+            return SubmitOutcome.Rejected("visual_reference_requires_vision")
+        }
+
         // While streaming, enqueue instead of silently dropping (iOS: send vs enqueuePrompt).
         if (_isStreaming.value) {
             // enqueuePrompt has its own blank/attachment guard and returns Unit;
@@ -9959,25 +9997,6 @@ class ChatViewModel(
         // an empty text + non-empty attachments still produces a valid user
         // message. Without this an image-only "look at this" send dropped.
         if (trimmed.isBlank() && promptAttachments.isEmpty()) return SubmitOutcome.Rejected("empty_prompt")
-        // ALTIVE Visual Builder: do not charge a text-only model to guess
-        // at an image-based website design. The existing Vision Group is an
-        // opt-in, never a silent fallback to another (possibly paid) provider.
-        val visualBuilder = if (!headless) {
-            AltivVisualBuilder.decide(
-                message = trimmed,
-                hasImage = promptAttachments.any { it.isImage },
-                attachmentNames = promptAttachments.map { it.fileName },
-                supportsNativeVision = currentModelHasNativeVision,
-                visionGroupConfigured = !currentModelHasNativeVision &&
-                    promptAttachments.any { it.isImage } &&
-                    com.openminis.app.tools.VisionGroupResolver.isConfigured(providerRepository, context),
-            )
-        } else AltivVisualBuilder.Decision(AltivVisualBuilder.Route.NONE)
-        if (visualBuilder.blocked) {
-            _error.value = AltivVisualBuilder.blockedNotice()
-            setInputText(text)
-            return SubmitOutcome.Rejected("visual_reference_requires_vision")
-        }
         // [T-android-image-input-preflight] Refuse to send images to a model
         // that does not accept them — the request would only come back as an
         // upstream 400 (or have its pixels silently swapped for a placeholder).
