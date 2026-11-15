@@ -40,6 +40,19 @@ class AltivOnlineCostPolicyTest {
         ))
     }
 
+    @Test fun autoFreeGroupIsCredentialAwareAndKeepsPaidModelsOut() {
+        val root = File("src/main/java/com/openminis/app")
+        val repo = root.resolve("data/repository/ProviderRepository.kt").readText()
+        val picker = root.resolve("ui/chat/ChatScreen.kt").readText()
+        assertTrue(repo.contains("fun ensureAltivFreeRoutingGroup("))
+        assertTrue(repo.contains("AltivOnlineCostPolicy.eligibleEntries("))
+        assertTrue(repo.contains("hasAnyCredential(it)"))
+        assertTrue(repo.contains("altiv-free-auto-text"))
+        assertTrue(repo.contains("strategy = com.openminis.app.data.model.RoutingStrategy.fallback"))
+        assertTrue(picker.contains("providerRepository.ensureAltivFreeRoutingGroup()"))
+        assertTrue(picker.contains("viewModel.selectGroup(autoGroup)"))
+    }
+
     @Test fun mixedFallbackGroupIsNeverLabeledCostFree() {
         val free = entry("free-model:free")
         val paid = entry("paid-model")
