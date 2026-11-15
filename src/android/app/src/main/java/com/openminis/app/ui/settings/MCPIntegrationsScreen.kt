@@ -56,6 +56,7 @@ import com.openminis.app.data.repository.MCPRepository
 import com.openminis.app.mcp.MCPQuickConnectCatalog
 import com.openminis.app.mcp.MCPQuickConnectPreset
 import com.openminis.app.mcp.SupabaseMcpProjectScope
+import com.openminis.app.mcp.SupabaseMcpAccountScope
 import com.openminis.app.mcp.oauth.MCPOAuthConfig
 import com.openminis.app.mcp.oauth.MCPOAuthController
 import com.openminis.app.mcp.oauth.MCPOAuthSignInLogic
@@ -109,6 +110,9 @@ fun MCPIntegrationsScreen(
         it.id.startsWith("supabase-") &&
             SupabaseMcpProjectScope.isSafeConfiguration(it.id, it.url.orEmpty(), !it.isStdio)
     }
+    val supabaseAccounts = servers.filter {
+        SupabaseMcpAccountScope.isAccountConnection(it.id, it.url.orEmpty(), !it.isStdio)
+    }
     // [T-mcp-review-fixes-android] FIX 1: tapping a row opens the form in EDIT
     // mode (matches iOS). null = the sheet is for adding a new server.
     var editServer by remember { mutableStateOf<MCPRepository.MCPServerConfig?>(null) }
@@ -143,7 +147,99 @@ fun MCPIntegrationsScreen(
                 )
             }
             SettingsRow(
-                title = "Supabase",
+                title = "Conectar conta Supabase",
+                subtitle = if (supabaseBusy) "Autorização em andamento..."
+                    else "Entrar pelo navegador • várias contas • somente leitura de projetos",
+                showChevron = true,
+                showDivider = true,
+                onClick = {
+                    if (!supabaseBusy) {
+                        val serverId = SupabaseMcpAccountScope.nextId(servers.map { it.id })
+                        val url = SupabaseMcpAccountScope.DISCOVERY_URL
+                        supabaseBusy = true
+                        supabaseStatus = "Abrindo autorização Supabase..."
+                        supabaseError = null
+                        supabaseAuthScope.launch {
+                            try {
+                                val outcome = supabaseOAuthController.signIn(
+                                    server = serverId,
+                                    serverUrl = url,
+                                    persist = { discovered ->
+                                        mcpRepository.add(
+                                            MCPRepository.MCPServerConfig(
+                                                id = serverId,
+                                                note = "Conta Supabase para descoberta de projetos; sem banco",
+                                                url = url,
+                                                enabled = true,
+                                                oauth = MCPOAuthSignInLogic.browserBlock(discovered),
+                                            ),
+                                        )
+                                    },
+                                    progress = { phase ->
+                                        supabaseAuthScope.launch {
+                                            supabaseStatus = when (phase) {
+                                                MCPOAuthController.SignInPhase.DISCOVERING ->
+                                                    "Verificando Supabase..."
+                                                MCPOAuthController.SignInPhase.REGISTERING_AGAIN ->
+                                                    "Atualizando autorização..."
+                                                MCPOAuthController.SignInPhase.WAITING_FOR_BROWSER ->
+                                                    "Autorize sua conta no navegador."
+                                                MCPOAuthController.SignInPhase.FINISHING ->
+                                                    "Finalizando conexão..."
+                                            }
+                                        }
+                                    },
+                                )
+                                if (outcome is MCPOAuthController.SignInOutcome.SignedIn) {
+                                    supabaseStatus = "Conta conectada. Para acessar um banco, conecte o projeto separadamente."
+                                } else {
+                                    mcpRepository.delete(serverId)
+                                    supabaseOAuthController.purge(serverId)
+                                    supabaseError = when (outcome) {
+                                        is MCPOAuthController.SignInOutcome.DiscoveryFailed ->
+                                            mcpDiscoveryMessage(screenContext, outcome.error)
+                                        is MCPOAuthController.SignInOutcome.NotSignedIn ->
+                                            "Login Supabase não autorizado. Tente novamente."
+                                        else -> "Falha na autenticação Supabase."
+                                    }
+                                    supabaseStatus = null
+                                }
+                            } catch (_: Exception) {
+                                mcpRepository.delete(serverId)
+                                supabaseOAuthController.purge(serverId)
+                                supabaseStatus = null
+                                supabaseError = "Não foi possível autorizar esta conta Supabase."
+                            } finally {
+                                supabaseBusy = false
+                            }
+                        }
+                    }
+                },
+            )
+            if (supabaseStatus != null) {
+                Text(supabaseStatus!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            }
+            if (supabaseError != null) {
+                Text(supabaseError!!,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            }
+            supabaseAccounts.forEachIndexed { index, account ->
+                SettingsRow(
+                    title = SupabaseMcpAccountScope.displayName(account.id),
+                    subtitle = if (supabaseOAuthController.isAuthorized(account.id))
+                        "Autorizada • listar projetos • somente leitura"
+                    else "Autorização pendente • toque para gerenciar",
+                    showChevron = true,
+                    showDivider = true,
+                    onClick = { editServer = account },
+                )
+            }
+            SettingsRow(
+                title = "Supabase — conectar projeto",
                 subtitle = if (supabaseConnections.isEmpty()) {
                     "Conectar meu projeto pelo navegador"
                 } else {
