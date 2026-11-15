@@ -556,14 +556,16 @@ internal fun ModelPickerSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "ALTIV Online First · APIs prioritárias",
+                        "ALTIVE Auto · modelos gratuitos",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         "Somente :free evita alternar para modelos pagos ou de preço desconhecido. " +
-                            "É necessário configurar um modelo OpenRouter :free. " +
-                            "O serviço pode limitar solicitações.",
+                            "Ao ativar, o ALTIVE monta automaticamente um fallback seguro com modelos " +
+                            "OpenRouter :free das APIs conectadas, sem exigir grupo manual. " +
+                            "Outras APIs podem ter cota gratuita, mas preço não confirmado; " +
+                            "não serão incluídas sem verificação.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

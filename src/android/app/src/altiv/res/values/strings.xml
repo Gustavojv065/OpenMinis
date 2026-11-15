@@ -88,4 +88,16 @@
     <string name="network_entry_note">ALTIV DEV AI listens on 127.0.0.1 for its own connections. Other apps on this device can reach that port but cannot use it without a password that changes every time ALTIV DEV AI starts.</string>
     <string name="network_tailscale_failing_footer">Turn Tailscale off above to connect directly again, or keep it on and ALTIV DEV AI keeps trying.</string>
     <string name="filebrowser_delete_mount_point_refused">\"%1$s\" is a folder ALTIV DEV AI mounts here, so it can\'t be deleted from the file browser. Nothing was deleted. To remove an external folder, use Settings › Mount External Folders.</string>
+
+    <!-- Keep technical sandbox paths/extensions intact for existing backups. -->
+    <string name="perm_allow_minis_config">Allow ALTIVE agent configuration</string>
+    <string name="perm_minis_config_desc">When disabled, ALTIVE DEV AI cannot read or change app settings. Configuration history remains available under Logs.</string>
+    <string name="settings_shared_folders_subtitle">Browse ALTIVE shared files, skills and memory</string>
+    <string name="settings_mount_external_folders_subtitle">Make selected folders available in the ALTIVE Linux workspace</string>
+    <string name="backup_choose_file_footer">Select a compatible backup from device files or connected cloud storage.</string>
+    <string name="restore_browse_footer">Looking for compatible backups in this server folder.</string>
+    <string name="mount_folders_info_banner">Selected folders are accessible in the ALTIVE Linux workspace. Up to 10 folders can be mounted.</string>
+    <string name="mount_add_name_hint">Name for this folder in the ALTIVE Linux workspace</string>
+    <string name="scheduled_task_trigger_readonly_note">Scheduled by ALTIVE DEV AI. Ask the agent to change the time or delete the task.</string>
+
 </resources>

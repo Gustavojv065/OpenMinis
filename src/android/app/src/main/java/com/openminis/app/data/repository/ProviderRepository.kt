@@ -1502,6 +1502,50 @@ class ProviderRepository(private val context: Context) {
         saveConfig(config)
     }
 
+    /**
+     * ALTIVE: one-tap free routing without asking customers to hand-build fallback groups.
+     * Reuses the existing, credential-aware ModelGroup routing path.
+     *
+     * Only entries independently classified as zero-price by AltivOnlineCostPolicy
+     * may enter this group. A free provider *tier* is not proof that the model
+     * itself costs nothing. A group never contains paid/unknown-priced entries.
+     * This function is idempotent and never overwrites the user's own groups.
+     */
+    fun ensureAltivFreeRoutingGroup(visionRequired: Boolean = false): String? =
+        synchronized(configLock) {
+            ensureConfigLoaded()
+            val live = _config.value
+            val eligible = com.openminis.app.data.model.AltivOnlineCostPolicy.eligibleEntries(
+                live.modelEntries, live.instances,
+            ).filter { entry ->
+                entry.model.isTextOutput &&
+                    (!visionRequired || entry.model.hasImageInput) &&
+                    live.instances.firstOrNull { it.id == entry.providerInstanceId }
+                        ?.let { hasAnyCredential(it) } == true
+            }
+            if (eligible.isEmpty()) return@synchronized null
+            val ordered = com.openminis.app.data.model.AltivModelHealthRegistry.prioritize(
+                eligible, entryId = { it.id },
+            ).map { it.id }
+            val id = if (visionRequired) "altiv-free-auto-vision" else "altiv-free-auto-text"
+            val current = live.modelGroups.firstOrNull { it.id == id }
+            if (current?.memberEntryIds == ordered) return@synchronized id
+            val config = workingCopy()
+            val existing = config.modelGroups.indexOfFirst { it.id == id }
+            val group = com.openminis.app.data.model.ModelGroup(
+                id = id,
+                name = if (visionRequired) "ALTIVE Auto · visão gratuita"
+                       else "ALTIVE Auto · modelos gratuitos",
+                memberEntryIds = ordered.toMutableList(),
+                strategy = com.openminis.app.data.model.RoutingStrategy.fallback,
+                fallbackStrategy = com.openminis.app.data.model.FallbackStrategy.default,
+            )
+            if (existing >= 0) config.modelGroups[existing] = group
+            else config.modelGroups.add(0, group)
+            saveConfig(config)
+            id
+        }
+
     // --- Model Group management ---
 
     fun addGroup(group: ModelGroup): Unit = synchronized(configLock) {
