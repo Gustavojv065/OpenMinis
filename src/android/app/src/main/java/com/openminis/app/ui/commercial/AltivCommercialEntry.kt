@@ -37,6 +37,7 @@ import com.openminis.app.commercial.AltivAuthTokens
 import com.openminis.app.commercial.AltivCommercialAccountState
 import com.openminis.app.commercial.AltivCommercialAuthApi
 import com.openminis.app.commercial.AltivLicenseActivationApi
+import com.openminis.app.commercial.AltivLicenseActivationContract
 import com.openminis.app.commercial.AltivLicenseSession
 import com.openminis.app.commercial.AltivCommercialSessionStore
 import com.openminis.app.commercial.AltivSubscription
@@ -224,8 +225,7 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Button(
-                        enabled = !busy && com.openminis.app.commercial
-                            .AltivLicenseActivationContract.acceptsCode(licenseKey),
+                        enabled = !busy && AltivLicenseActivationContract.acceptsCode(licenseKey),
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             if (busy) return@Button
