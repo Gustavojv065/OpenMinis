@@ -36,6 +36,9 @@ import androidx.compose.ui.unit.dp
 import com.openminis.app.commercial.AltivAuthTokens
 import com.openminis.app.commercial.AltivCommercialAccountState
 import com.openminis.app.commercial.AltivCommercialAuthApi
+import com.openminis.app.commercial.AltivLicenseActivationApi
+import com.openminis.app.commercial.AltivLicenseActivationContract
+import com.openminis.app.commercial.AltivLicenseSession
 import com.openminis.app.commercial.AltivCommercialSessionStore
 import com.openminis.app.commercial.AltivSubscription
 import com.openminis.app.commercial.AltivSubscriptionPolicy
@@ -52,9 +55,11 @@ import kotlinx.coroutines.flow.collect
 internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
     val context = LocalContext.current
     val api = remember { AltivCommercialAuthApi() }
+    val licenseApi = remember { AltivLicenseActivationApi() }
     val store = remember { AltivCommercialSessionStore(context.applicationContext) }
     val scope = rememberCoroutineScope()
-    var phase by remember { mutableStateOf(if (api.configured) "checking" else "setup") }
+    var phase by remember { mutableStateOf(if (api.configured || licenseApi.configured) "checking" else "setup") }
+    var licenseKey by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -75,8 +80,32 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
         }
     }
 
-    LaunchedEffect(api) {
-        if (!api.configured) return@LaunchedEffect
+    LaunchedEffect(api, licenseApi) {
+        val licensed = store.readLicense()
+        if (licensed != null && licenseApi.configured) {
+            try {
+                val valid = licenseApi.validate(context, licensed.activationToken)
+                store.saveLicense(valid)
+                val active = AltivSubscription(true, "license", "active", valid.expiresAt,
+                    java.time.Instant.now().toString())
+                subscription = active
+                AltivCommercialAccountState.signedIn.value = true
+                AltivCommercialAccountState.subscription.value = active
+                phase = "app"
+                error = null
+                return@LaunchedEffect
+            } catch (_: Exception) {
+                // Never grant access based only on an encrypted local token.
+                store.clearLicense()
+                phase = "license"
+                error = "Não foi possível validar a ativação anterior. Tente novamente."
+                return@LaunchedEffect
+            }
+        }
+        if (!api.configured) {
+            phase = if (licenseApi.configured) "login" else "setup"
+            return@LaunchedEffect
+        }
         val stored = store.read()
         if (stored == null) {
             phase = "login"
@@ -98,7 +127,24 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
             store.clear()
             subscription = null
             password = ""
-            phase = if (api.configured) "login" else "setup"
+            val licensed = store.readLicense()
+            var deactivationFailed = false
+            if (licensed != null) {
+                try {
+                    // Release the server device slot when the user explicitly signs out.
+                    licenseApi.deactivate(context, licensed.activationToken)
+                } catch (_: Exception) {
+                    deactivationFailed = true
+                }
+            }
+            store.clearLicense()
+            AltivCommercialAccountState.signedIn.value = false
+            AltivCommercialAccountState.subscription.value = null
+            error = if (deactivationFailed) {
+                "Sessão encerrada, mas o servidor não confirmou a liberação do dispositivo. " +
+                    "Verifique os dispositivos no ALTIV ADMIN."
+            } else null
+            phase = if (api.configured || licenseApi.configured) "login" else "setup"
         }
     }
 
@@ -129,6 +175,18 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                     Text("Nenhuma credencial deve ser digitada até que o serviço seja publicado.")
                 }
                 "login" -> {
+                    Text("Entre com e-mail e senha ou utilize a chave gerada pelo painel ALTIV ADMIN.")
+                    if (licenseApi.configured) {
+                        OutlinedButton(onClick = {
+                            error = null
+                            phase = "license"
+                        }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Ativar com chave ALTIV")
+                        }
+                    }
+                    if (!api.configured) {
+                        Text("Entrada por e-mail indisponível nesta compilação; utilize a chave ALTIV.")
+                    } else {
                     Text("Entre com as credenciais recebidas na contratação do serviço ALTIV.")
                     OutlinedTextField(
                         value = email,
@@ -168,6 +226,53 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                         enabled = !busy && email.contains('@') && password.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(if (busy) "Validando..." else "Entrar com e-mail e senha") }
+                    }
+                }
+                "license" -> {
+                    Text("Digite uma chave ALTIV-... gerada no painel administrativo. " +
+                        "A chave é verificada pelo servidor e vinculada a este aparelho.")
+                    OutlinedTextField(
+                        value = licenseKey,
+                        onValueChange = { licenseKey = it.take(120) },
+                        label = { Text("Chave de licença ALTIV") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Button(
+                        enabled = !busy && AltivLicenseActivationContract.acceptsCode(licenseKey),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            if (busy) return@Button
+                            busy = true
+                            error = null
+                            scope.launch {
+                                try {
+                                    val activated = licenseApi.activate(context, licenseKey)
+                                    store.saveLicense(activated)
+                                    licenseKey = ""
+                                    val active = AltivSubscription(
+                                        true, "license", "active", activated.expiresAt,
+                                        java.time.Instant.now().toString())
+                                    subscription = active
+                                    AltivCommercialAccountState.signedIn.value = true
+                                    AltivCommercialAccountState.subscription.value = active
+                                    phase = "app"
+                                } catch (e: Exception) {
+                                    error = e.message ?: "Não foi possível validar a licença."
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        },
+                    ) { Text(if (busy) "Verificando..." else "Ativar licença") }
+                    OutlinedButton(onClick = {
+                        licenseKey = ""
+                        error = null
+                        phase = "login"
+                    }, modifier = Modifier.fillMaxWidth()) { Text("Voltar") }
+                    Text("A licença não é uma chave API. Nunca compartilhe chaves de clientes.",
+                        style = MaterialTheme.typography.bodySmall)
                 }
                 "expired" -> {
                     Text("Seu acesso aos serviços comerciais ALTIV não está ativo.")
@@ -204,15 +309,25 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                     }
                     OutlinedButton(onClick = {
                         store.clear()
+                        store.clearLicense()
                         AltivCommercialAccountState.signedIn.value = false
                         AltivCommercialAccountState.subscription.value = null
                         phase = "login"
                     }, modifier = Modifier.fillMaxWidth()) { Text("Trocar conta") }
+                    if (licenseApi.configured) {
+                        OutlinedButton(onClick = { error = null; phase = "license" },
+                            modifier = Modifier.fillMaxWidth()) { Text("Ativar outra licença") }
+                    }
                 }
                 "offline" -> {
                     Text("Não foi possível confirmar sua assinatura agora. Os serviços hospedados permanecem indisponíveis.")
                     OutlinedButton(onClick = { phase = "login" }, modifier = Modifier.fillMaxWidth()) {
                         Text("Tentar novamente")
+                    }
+                    if (licenseApi.configured) {
+                        OutlinedButton(onClick = { phase = "license" }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Entrar com licença ALTIV")
+                        }
                     }
                 }
             }

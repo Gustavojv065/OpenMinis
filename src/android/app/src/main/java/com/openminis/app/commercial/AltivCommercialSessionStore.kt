@@ -62,6 +62,50 @@ internal class AltivCommercialSessionStore(context: Context) {
         }
     }
 
+    /** License activation token: distinct from user OAuth sessions and API keys. */
+    fun saveLicense(license: AltivLicenseSession) {
+        val plain = JSONObject()
+            .put("token", license.activationToken)
+            .put("last4", license.last4)
+            .put("expiresAt", license.expiresAt)
+            .put("maxDevices", license.maxDevices)
+            .toString().toByteArray(Charsets.UTF_8)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey())
+        val packed = cipher.iv + cipher.doFinal(plain)
+        check(prefs.edit().putString(
+            "license_activation", Base64.encodeToString(packed, Base64.NO_WRAP)
+        ).commit()) { "Não foi possível salvar a ativação com segurança." }
+    }
+
+    fun readLicense(): AltivLicenseSession? {
+        val stored = prefs.getString("license_activation", null) ?: return null
+        return try {
+            val packed = Base64.decode(stored, Base64.NO_WRAP)
+            if (packed.size < 29) return null
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.DECRYPT_MODE, secretKey(),
+                GCMParameterSpec(128, packed.copyOfRange(0, 12)))
+            val json = JSONObject(String(cipher.doFinal(
+                packed.copyOfRange(12, packed.size)), Charsets.UTF_8))
+            AltivLicenseSession(
+                activationToken = json.getString("token"),
+                last4 = json.optString("last4"),
+                expiresAt = json.optString("expiresAt").takeUnless {
+                    it.isBlank() || it == "null"
+                },
+                maxDevices = json.optInt("maxDevices", 1),
+            )
+        } catch (_: Exception) {
+            clearLicense()
+            null
+        }
+    }
+
+    fun clearLicense() {
+        prefs.edit().remove("license_activation").apply()
+    }
+
     fun clear() {
         prefs.edit().remove("session").apply()
     }
