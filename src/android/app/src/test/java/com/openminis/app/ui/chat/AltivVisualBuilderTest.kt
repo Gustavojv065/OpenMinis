@@ -39,6 +39,26 @@ class AltivVisualBuilderTest {
         assertTrue(d.instructions.contains("Do not run"))
     }
 
+    @Test fun webCreationWithoutReferenceReceivesPremiumWorkflowAndPreview() {
+        val d = AltivVisualBuilder.decide(
+            "Crie uma landing page premium para barbearia com fotos reais",
+            false, emptyList(), false, false)
+        assertEquals(AltivVisualBuilder.Route.WEB_PROJECT, d.route)
+        assertTrue(d.instructions.contains("localhost"))
+        assertTrue(d.instructions.contains("mobile-first"))
+        assertTrue(d.instructions.contains("WCAG AA"))
+        assertTrue(d.instructions.contains("rollback regressions"))
+    }
+
+    @Test fun requestForExistingLocalPreviewReceivesVerifiedServerRule() {
+        val d = AltivVisualBuilder.decide(
+            "Me dê o localhost para visualizar",
+            false, emptyList(), false, false)
+        assertEquals(AltivVisualBuilder.Route.WEB_PROJECT, d.route)
+        assertTrue(d.instructions.contains("ACTUAL port"))
+        assertFalse(d.blocked)
+    }
+
     @Test fun unrelatedImagesAndZipsAreNotIntercepted() {
         assertEquals(AltivVisualBuilder.Route.NONE,
             AltivVisualBuilder.decide("O que tem nesta foto?", true, listOf("photo.jpg"),
