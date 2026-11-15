@@ -8364,7 +8364,34 @@ fun ChatScreen(
             offlineRouterEnabled = offlineRouterEnabled,
             onOfflineRouterChange = { viewModel.setOfflineRouterEnabled(it) },
             freeOnlyOnline = freeOnlyOnline,
-            onFreeOnlyOnlineChange = { viewModel.setFreeOnlyOnline(it) },
+            onFreeOnlyOnlineChange = { enabled ->
+                if (!enabled) {
+                    viewModel.setFreeOnlyOnline(false)
+                } else {
+                    // Build a guarded fallback group from already connected and
+                    // explicitly zero-cost models. Customers need no manual group.
+                    val autoGroup = providerRepository.ensureAltivFreeRoutingGroup()
+                    viewModel.setFreeOnlyOnline(true)
+                    if (autoGroup != null) {
+                        viewModel.selectGroup(autoGroup)
+                        showModelPicker = false
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                "ALTIVE Auto: modelos :free conectados selecionados. " +
+                                    "Fallback automático em erros de cota ou servidor."
+                            )
+                        }
+                    } else {
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                "Nenhum modelo gratuito confirmado está configurado. " +
+                                    "Adicione um OpenRouter :free; APIs com cota grátis " +
+                                    "não garantem preço zero."
+                            )
+                        }
+                    }
+                }
+            },
             onAddApiProvider = {
                 showModelPicker = false
                 onAddApiProviderClick()
