@@ -127,8 +127,23 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
             store.clear()
             subscription = null
             password = ""
+            val licensed = store.readLicense()
+            var deactivationFailed = false
+            if (licensed != null) {
+                try {
+                    // Release the server device slot when the user explicitly signs out.
+                    licenseApi.deactivate(context, licensed.activationToken)
+                } catch (_: Exception) {
+                    deactivationFailed = true
+                }
+            }
             store.clearLicense()
-            AltivCommercialAccountState.signedOut()
+            AltivCommercialAccountState.signedIn.value = false
+            AltivCommercialAccountState.subscription.value = null
+            error = if (deactivationFailed) {
+                "Sessão encerrada, mas o servidor não confirmou a liberação do dispositivo. " +
+                    "Verifique os dispositivos no ALTIV ADMIN."
+            } else null
             phase = if (api.configured || licenseApi.configured) "login" else "setup"
         }
     }
