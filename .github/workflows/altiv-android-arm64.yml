@@ -132,7 +132,9 @@ jobs:
             --tests 'com.openminis.app.ui.settings.AltivCustomerSettingsPolicyTest' \
             --tests 'com.openminis.app.data.repository.AltivSkillBundleArchiveTest' \
             --tests 'com.openminis.app.agent.AgentTurnToolBudgetTest' \
-            --tests 'com.openminis.app.ui.chat.AltivVisualBuilderTest'
+            --tests 'com.openminis.app.ui.chat.AltivVisualBuilderTest' \
+            --tests 'com.openminis.app.commercial.AltivLicenseActivationContractTest' \
+            --tests 'com.openminis.app.mcp.SupabaseMcpAccountScopeTest'
 
       - name: Version APK independently of ephemeral CI checkouts
         shell: bash
