@@ -108,3 +108,25 @@ O usuário enviou dados públicos de uma ficha no Google e quatro fotografias pa
 - Pesquisa realizada de referências quando há navegador disponível, com links consultados; sem navegador, nenhuma referência inventada.
 - Tipografia e contraste legíveis em 360/390/1440 px; ícones discretos, fotos carregadas e controles funcionais.
 - Sem ferramentas em loops infinitos, sem consumo surpresa de serviços pagos, sem sobrescrever dados de clientes.
+
+
+## Regressão grave após o "upgrade premium" da Barbearia CRS — 15/11/2026
+
+**Evidências:** screenshots reais do usuário mostram o hero com imagem, porém o menu desktop inteiro comprimido na largura de celular, galeria e depoimentos com enormes áreas brancas e conteúdo invisível, rodapé com baixo contraste. O agente declarou "visualmente aprovado" e "tudo premium funcionando", contradizendo a captura do navegador. O servidor responder e o build passar não significam QA visual aprovado.
+
+### Correção necessária no projeto local
+1. Inspecionar o DOM, assets e CSS da versão atual antes de aplicar novo redesenho; comparar com versão anterior que exibia os cards e quatro imagens.
+2. Verificar `opacity: 0`, `visibility: hidden`, `display: none`, `transform`, `overflow: hidden`, `min-height`, `height: 100vh`, `IntersectionObserver`, animações `reveal` e falhas no console. Não presumir a causa apenas pela captura.
+3. Garantir conteúdo visível por padrão; animações nunca podem bloquear conteúdo; honorar `prefers-reduced-motion`.
+4. Substituir nav desktop esmagado por menu hambúrguer acessível no mobile, com área de toque adequada.
+5. Preservar a identidade real e as fotos do cliente, eliminar depoimentos inventados e estatísticas não comprovadas.
+6. Testar screenshot real em 360 e 390 px, scroll completo até rodapé, 1440 px desktop, sem blocos brancos vazios; preservar URL localhost funcionando.
+
+### Nova regra do agente / Visual Builder
+- Nunca afirmar "visual aprovado" por build/HTTP 200 ou inspeção de código isolada.
+- Checar visualização real de cada seção e se ela é renderizada **visivelmente**, não apenas presente no DOM.
+- Se o QA detectar piora relevante, desfazer mudanças ou aplicar correção cirúrgica antes de declarar sucesso. Preservar checkpoint/commit anterior para rollback.
+- Descrever falhas observadas e screenshots utilizados; quando screenshot indisponível, registrar "não verificado" com honestidade.
+- Limitar novas mudanças visuais a duas rodadas e não reescrever toda a landing page para corrigir um componente.
+
+**Status:** feedback documentado; site local não foi corrigido diretamente por este PR de documentação.
