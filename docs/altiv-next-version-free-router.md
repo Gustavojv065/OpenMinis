@@ -80,3 +80,31 @@ O usuário está testando a construção de uma landing page a partir de dados e
 - A nova chave foi emitida pelo painel real e validada pelo aplicativo; **não registrar nem copiar o valor da chave, token de ativação ou credenciais**.
 - Adicionar teste automatizado contra backend controlado/simulado e testes negativos (chave inválida, vencida, bloqueada, limite de dispositivos, rede offline, sessão renovada, logout), sem tocar em licenças de clientes.
 - Manter credenciais criptografadas e separadas de chaves API; não introduzir regressão na ativação concluída.
+
+
+## Refinamento premium automático e preview local obrigatório — feedback Barbearia CRS, 15/11/2026
+
+### Evidência do teste
+O usuário enviou dados públicos de uma ficha no Google e quatro fotografias para criar a landing page da **Barbearia CRS**. O agente afirmou ter criado React/Vite/TS, 7 cards, galeria e contato e apresentou o projeto em `http://localhost:5173` depois de o usuário solicitar o preview manualmente. As capturas mobile e de página completa mostram estrutura e imagens funcionais, mas também iconografia simples/colorida, baixo contraste em blocos claros (especialmente avaliação Google), letras pequenas, hero e menu pouco sofisticados. Não afirmar aprovação de interação/desktop sem testes independentes; a imagem fornecida é um screenshot comprimido.
+
+### Regras comportamentais propostas para SOUL.md + GLOBAL.md (não configuradas automaticamente no aparelho)
+- **Pesquisa de referências antes de construir:** quando o pedido for criar ou modernizar um site e a ferramenta de navegação/web estiver conectada, pesquisar 2 a 4 referências verificáveis e recentes do segmento (por exemplo barbearia, odontologia, delivery), detectar padrões de layout, paleta, tipografia, CTA e experiência mobile. Não copiar identidade ou fotos de terceiros sem licença; fazer síntese original. Se não houver acesso à web, usar design system consolidado e informar limitação, sem inventar pesquisas.
+- **Acabamento premium por padrão:** identidade visual coerente com o cliente, títulos com hierarquia, tipografia adulta, ícones lineares monocrômicos (20–24 px usualmente), contraste WCAG AA, botões com toque confortável, consistência de padding/bordas/card, imagens reais com enquadramento e autorização, CTA de WhatsApp/agendamento funcional, nenhuma seção invisível ou espaço vazio excessivo. Evitar emojis decorativos, cores claras ilegíveis e avaliações fictícias.
+- **Self-review:** avaliar visualmente o DOM e screenshots (somente se houver ferramenta de visão real), pelo menos um breakpoint mobile 360/390 e desktop 1440, além de typecheck/build; limitar retrabalhos a duas passagens e declarar explicitamente verificações não executadas.
+- **Preview automático em toda criação E atualização de sites**: encontrar porta livre, iniciar/reativar o servidor correto no Linux interno (por exemplo Vite), validar porta e HTTP response, abrir captura quando possível, manter processo ativo durante teste e devolver link local real clicável ao final, sem esperar que o usuário peça 'me dê localhost'. Nunca inventar `localhost:5173` nem prometer servidor em execução sem verificação. Em edição de repositório remoto sem preview local, informar o impedimento e passar o link do deploy de preview somente após verificação.
+- **Respeitar dados reais**: integrar dados e fotografias autorizados fornecidos pelo cliente, identificar informações não verificadas, não alegar acesso ao perfil privado do Google Business, não inventar avaliações, preços, contatos ou horários.
+- **Concluir com evidências:** o resultado final sempre inclui resumo de alterações, testes, URL localhost verificada ou erro específico, e screenshot real quando disponível. O cliente não deve conhecer comandos `npm run dev`.
+
+### Próxima implementação no APK (memória não garante execução)
+1. Adicionar um **post-task preview lifecycle** no agente/Visual Builder para tarefas de criação ou edição web; identificar `package.json`, comando de preview, porta livre e servidor reutilizável; obter URL pela saída do processo e efetuar health check de rota/página.
+2. Persistir metadados de preview por workspace, não por chat somente; botão 'Abrir preview' no resultado final, evitar processos órfãos e limpar ao encerrar o projeto.
+3. Orquestrador de skills de pesquisa de referência / direção de arte / Visual QA (aproveitar 12 skills web já instaladas, sem duplicá-las), seleção por tarefa, limitações de visão.
+4. Aferir contraste e tamanho dos ícones; validar navegação e conteúdo em mobile/desktop. Guardar screenshots e diferenciar `testado` de `não testado`.
+5. Regressão de localhost ao atualizar projeto existente: garantir que o servidor mostra a **nova** versão (hot reload ou reinício), não cache ou outra porta/projeto.
+
+### Critérios de aceite
+- 'Crie uma landing page da barbearia' -> recebe URL localhost comprovadamente funcionando, sem perguntar endereço/porta ao cliente, e captura quando possível.
+- 'Corrija o visual da página' -> recebe URL da versão atualizada e resultado de testes sem novo prompt.
+- Pesquisa realizada de referências quando há navegador disponível, com links consultados; sem navegador, nenhuma referência inventada.
+- Tipografia e contraste legíveis em 360/390/1440 px; ícones discretos, fotos carregadas e controles funcionais.
+- Sem ferramentas em loops infinitos, sem consumo surpresa de serviços pagos, sem sobrescrever dados de clientes.
