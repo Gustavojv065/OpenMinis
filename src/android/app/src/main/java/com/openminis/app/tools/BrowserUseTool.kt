@@ -12,7 +12,7 @@ object BrowserUseTool {
 
     const val NAME = "browser_use"
 
-    val description = """Control web browser with up to 3 tabs. Actions: navigate to URL, take screenshot, click elements, type text, get page text, scroll, get page info, execute JavaScript, find elements by selector, hover, get readable content, set user agent, get page backbone (DOM structure), fetch resource, manage tabs (new_tab, close_tab, list_tabs).""".trimIndent()
+    val description = """Control web browser with up to 3 tabs. Actions: navigate to URL, take screenshot, visual_audit (read-only layout checks plus viewport screenshot; screenshot needs actual visual review), click elements, type text, get page text, scroll, get page info, execute JavaScript, find elements by selector, hover, get readable content, set user agent, get page backbone (DOM structure), fetch resource, manage tabs (new_tab, close_tab, list_tabs).""".trimIndent()
 
     /**
      * Build the JSON tool definition for the Anthropic / OpenAI / Gemini API.
@@ -93,6 +93,18 @@ object BrowserUseTool {
             put("description", "Tab ID for tab management actions")
         })
 
+        properties.put("viewport_width", JSONObject().apply {
+            put("type", "integer")
+            put("description", "set_viewport: viewport width in CSS pixels")
+        })
+        properties.put("viewport_height", JSONObject().apply {
+            put("type", "integer")
+            put("description", "set_viewport: viewport height in CSS pixels")
+        })
+        properties.put("reset", JSONObject().apply {
+            put("type", "boolean")
+            put("description", "set_viewport: clear viewport override")
+        })
         properties.put("full_page", JSONObject().apply {
             put("type", "boolean")
             put("default", false)

@@ -768,6 +768,7 @@ class BrowserUseManager(
         var result: BrowserActionResult = when (input.action) {
             BrowserAction.NAVIGATE -> navigate(input.url)
             BrowserAction.SCREENSHOT -> return screenshot(fullPage = input.fullPage)
+            BrowserAction.VISUAL_AUDIT -> return visualAudit()
             BrowserAction.CLICK -> click(input.selector, input.coordinateX, input.coordinateY)
             BrowserAction.TYPE -> type(input.selector, input.text)
             BrowserAction.GET_TEXT -> return getText(input.selector)
@@ -1246,6 +1247,26 @@ class BrowserUseManager(
 
     private suspend fun getPageInfo(): BrowserActionResult {
         return evaluateAndReturn(BrowserUseJS.getPageInfo())
+    }
+
+    // -- ALTIVE Visual QA 2.0 --
+    // Couple objective DOM measurements with a REAL viewport screenshot.
+    // A screenshot is evidence for a vision-capable reviewer, not automatic
+    // certification. Never claim approval if either part fails.
+    private suspend fun visualAudit(): BrowserActionResult {
+        val audit = executeJS(AltivVisualAudit.script)
+        if (!audit.success) return audit
+        val image = screenshot(fullPage = false)
+        if (!image.success || image.base64Image == null) {
+            return audit.copy(text = audit.text + "\nScreenshot unavailable; Visual QA NOT VERIFIED.")
+        }
+        return audit.copy(
+            text = audit.text + "\n" + image.text +
+                "\nVisual approval requires actual screenshot inspection; DOM heuristics alone do not approve a site.",
+            base64Image = image.base64Image,
+            imageFilePath = image.imageFilePath,
+            pageURL = image.pageURL,
+        )
     }
 
     // -- Execute JS --

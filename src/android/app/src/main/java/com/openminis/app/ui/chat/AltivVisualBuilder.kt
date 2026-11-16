@@ -84,7 +84,11 @@ internal object AltivVisualBuilder {
   reviews, dummy ratings, or invisible empty sections. 3D/animation is optional,
   lightweight and must respect reduced-motion. Content must remain visible when
   JavaScript animations fail.
-- Run real typecheck/build; inspect screenshots at 360/390px mobile and 1440px
+- Run real typecheck/build; use browser_use set_viewport then visual_audit at 390px
+  and 1440px, inspect warnings, then take actual screenshots. The DOM audit
+  is HEURISTIC only, not visual sign-off. Check overflowing elements, broken
+  images, hidden sections, small touch targets and approximate contrast.
+- Inspect screenshots at 360/390px mobile and 1440px
   desktop, compare section-by-section with the reference, and correct defects.
 - Iteration limit: at most two visual refinement cycles; do not loop browser_use
   or Execute JS without an identifiable code change.
