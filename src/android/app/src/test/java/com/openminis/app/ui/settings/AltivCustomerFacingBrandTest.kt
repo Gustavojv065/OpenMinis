@@ -54,6 +54,12 @@ class AltivCustomerFacingBrandTest {
         assertFalse(terminal.contains("newPlainText(\"Minis Shell\""))
     }
 
+    @Test fun emergencyForegroundNotificationShowsTheFlavorBrand() {
+        val s = source("src/main/java/com/openminis/app/service/AgentForegroundService.kt")
+        assertTrue(s.contains(".setContentTitle(getString(R.string.app_name))"))
+        assertFalse(s.contains(".setContentTitle(\"Minis\")"))
+    }
+
     @Test fun emptySoulNameUsesAltiveIdentityButPreservesUserCustomizations() {
         val s = source("src/main/java/com/openminis/app/agent/SoulStore.kt")
         assertTrue(s.contains("val defaultName = if (context.packageName == \"online.altiv.devai\")"))
