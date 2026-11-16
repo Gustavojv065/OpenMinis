@@ -100,7 +100,9 @@ class MemoryRepository(private val memoryDir: File) {
         val normalized = projectKey.trim().lowercase(Locale.ROOT)
             .replace(Regex("\\s+"), " ")
         if (normalized.length !in 3..160 ||
-            !Regex("[\\p{L}\\p{N}:._/ -]+").matches(normalized)) return null
+            !Regex("[\\p{L}\\p{N}:._/ -]+").matches(normalized) ||
+            normalized.startsWith("/") || normalized.endsWith("/") ||
+            normalized.split('/').any { it == "." || it == ".." }) return null
         val digest = java.security.MessageDigest.getInstance("SHA-256")
             .digest(normalized.toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
