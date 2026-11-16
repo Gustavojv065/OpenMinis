@@ -48,8 +48,9 @@ import kotlinx.coroutines.flow.collect
 
 /**
  * Commercial account entry point for ALTIV builds only.
- * Does not lock the GPL app's local files or BYOK features. ALTIV-hosted
- * premium endpoints must independently enforce subscription on the server.
+ * The ALTIV commercial flavor requires a server-verified activation before
+ * exposing the workspace or BYOK configuration. Existing local files remain
+ * stored on device. Hosted endpoints independently enforce authorization.
  */
 @Composable
 internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
@@ -148,7 +149,7 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
         }
     }
 
-    if (phase == "app" || phase == "local") {
+    if (AltivSubscriptionPolicy.allowsAppAccess(phase, subscription)) {
         content()
         return
     }
@@ -335,11 +336,8 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = { phase = "local" }, modifier = Modifier.fillMaxWidth()) {
-                Text("Continuar com meus arquivos e ferramentas locais")
-            }
             Text(
-                "Arquivos e conversas existentes permanecem no aparelho. O acesso aos serviços pagos exige assinatura validada no servidor.",
+                "Ative sua licença ALTIV para acessar arquivos, conversas, ferramentas e configurar suas próprias chaves de API. Seus arquivos existentes permanecem no aparelho.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

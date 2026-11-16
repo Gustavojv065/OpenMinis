@@ -19,6 +19,25 @@ class AltivSubscriptionPolicyTest {
         assertFalse(AltivSubscriptionPolicy.allowsHostedServices(null))
     }
 
+    @Test fun commercialAppNeverOpensWithoutActiveVerifiedLicense() {
+        val active = entry("active", true)
+        assertTrue(AltivSubscriptionPolicy.allowsAppAccess("app", active))
+        for (phase in listOf("local", "login", "license", "setup", "checking", "expired", "offline")) {
+            assertFalse(AltivSubscriptionPolicy.allowsAppAccess(phase, active))
+        }
+        assertFalse(AltivSubscriptionPolicy.allowsAppAccess("app", null))
+        assertFalse(AltivSubscriptionPolicy.allowsAppAccess("app", entry("active", false)))
+        assertFalse(AltivSubscriptionPolicy.allowsAppAccess("app", entry("suspended", true)))
+    }
+
+    @Test fun commercialEntryDoesNotOfferLocalBypass() {
+        val source = File("src/main/java/com/openminis/app/ui/commercial/AltivCommercialEntry.kt").readText()
+        assertFalse(source.contains("phase = \"local\""))
+        assertFalse(source.contains("Continuar com meus arquivos e ferramentas locais"))
+        assertTrue(source.contains("AltivSubscriptionPolicy.allowsAppAccess(phase, subscription)"))
+        assertTrue(source.contains("Ativar com chave ALTIV"))
+    }
+
     @Test fun statusNeverConvertsAnUnverifiedSessionIntoActive() {
         assertEquals("not_found", AltivSubscriptionPolicy.safeStatus(null))
         assertEquals("expired", AltivSubscriptionPolicy.safeStatus(entry("active", false)))
