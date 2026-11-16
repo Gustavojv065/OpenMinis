@@ -6,6 +6,7 @@ package com.openminis.app.browser
 enum class BrowserAction(val value: String) {
     NAVIGATE("navigate"),
     SCREENSHOT("screenshot"),
+    VISUAL_AUDIT("visual_audit"),
     CLICK("click"),
     TYPE("type"),
     GET_TEXT("get_text"),
