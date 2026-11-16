@@ -768,6 +768,7 @@ class BrowserUseManager(
         var result: BrowserActionResult = when (input.action) {
             BrowserAction.NAVIGATE -> navigate(input.url)
             BrowserAction.SCREENSHOT -> return screenshot(fullPage = input.fullPage)
+            BrowserAction.VISUAL_AUDIT -> return executeJS(AltivVisualAudit.script)
             BrowserAction.CLICK -> click(input.selector, input.coordinateX, input.coordinateY)
             BrowserAction.TYPE -> type(input.selector, input.text)
             BrowserAction.GET_TEXT -> return getText(input.selector)
