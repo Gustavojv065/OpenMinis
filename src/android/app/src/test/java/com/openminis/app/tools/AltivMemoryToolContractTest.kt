@@ -85,6 +85,14 @@ class AltivMemoryToolContractTest {
         assertFalse(helper.any { it.name == "memory_write" })
     }
 
+    @Test fun agentSystemPromptNoLongerDirectsProjectMemoriesToDailyLog() {
+        val source = java.io.File("src/main/java/com/openminis/app/ui/chat/ChatViewModel.kt")
+            .readText()
+        assertTrue(source.contains("For named projects use scope=project AND the exact project_key"))
+        assertTrue(source.contains("do not substitute keyword hits from the daily log"))
+        assertTrue(source.contains("project-specific decisions and fixes MUST use project_key"))
+    }
+
     @Test fun oldSeparateJsonDefinitionsStayConsistentWithCanonicalSchema() {
         for (name in listOf("memory_get", "memory_write")) {
             val canonical = tool(name).toAnthropicJson().getJSONObject("input_schema")
