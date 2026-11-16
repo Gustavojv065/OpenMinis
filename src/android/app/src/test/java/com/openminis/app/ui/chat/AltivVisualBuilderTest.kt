@@ -47,6 +47,9 @@ class AltivVisualBuilderTest {
         assertTrue(d.instructions.contains("localhost"))
         assertTrue(d.instructions.contains("mobile-first"))
         assertTrue(d.instructions.contains("WCAG AA"))
+        assertTrue(d.instructions.contains("visual_audit"))
+        assertTrue(d.instructions.contains("HEURISTIC"))
+        assertTrue(d.instructions.contains("screenshots"))
         assertTrue(d.instructions.contains("rollback regressions"))
     }
 
