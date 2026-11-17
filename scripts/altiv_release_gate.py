@@ -95,7 +95,7 @@ MANUAL_ACCEPTANCE = (
     "localhost_live_preview", "mobile_visual_qa_390",
     "desktop_visual_qa_1440", "image_subjects_checked",
     "backup_restore_tested", "persistent_signing_verified",
-    "merged_pr_inventory_reviewed",
+    "merged_pr_inventory_reviewed", "toolchain_readiness_verified",
 )
 
 def collect_static_errors():
