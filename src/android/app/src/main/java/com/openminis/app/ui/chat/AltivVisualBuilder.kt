@@ -76,6 +76,7 @@ internal object AltivVisualBuilder {
     private fun instructionsFor(route: Route): String = """
 [ALTIVE VISUAL BUILDER — premium web creation, reference and preview workflow]
 ${AltivRootQualityMemory.instructions}
+${AltivDevToolchainPolicy.instructions}
 - Detect available enabled frontend/UI-UX/visual-QA skills; read their actual SKILL.md
   before using. Never invent loaded skills or results.
 - Inspect existing project files and all supplied assets before editing.
