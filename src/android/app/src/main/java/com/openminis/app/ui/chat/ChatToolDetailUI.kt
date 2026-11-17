@@ -342,7 +342,9 @@ internal fun ToolDetailSheet(
                 // the elapsed-duration text) so it sits next to where the
                 // user is already scanning timing info.
                 Text(
-                    text = "Minis Computer",
+                    text = if (BuildConfig.FLAVOR == "altiv")
+                        LocalContext.current.getString(R.string.app_name)
+                    else "Minis Computer",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = ChatColors.primaryText,
