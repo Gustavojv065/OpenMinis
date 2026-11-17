@@ -13,6 +13,10 @@ internal object AltivSubscriptionPolicy {
     fun allowsHostedServices(subscription: AltivSubscription?): Boolean =
         subscription?.active == true && subscription.status == "active"
 
+    /** Commercial APK workspace and BYOK configuration are license-gated. */
+    fun allowsAppAccess(phase: String, subscription: AltivSubscription?): Boolean =
+        phase == "app" && allowsHostedServices(subscription)
+
     fun safeStatus(subscription: AltivSubscription?): String = when {
         subscription == null -> "not_found"
         subscription.status == "suspended" -> "suspended"
