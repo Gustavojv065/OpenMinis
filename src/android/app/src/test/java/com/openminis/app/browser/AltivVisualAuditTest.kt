@@ -25,6 +25,17 @@ class AltivVisualAuditTest {
         assertTrue(script.contains("read-only DOM heuristics"))
     }
 
+    @Test fun unavailableVisualFallbacksCannotBecomeSuccessfulImageQa() {
+        val script = AltivVisualAudit.script
+        assertTrue(script.contains("assetPlaceholders:0"))
+        assertTrue(script.contains("visible missing-media fallback"))
+        assertTrue(script.contains("indispon[ií]vel"))
+        assertTrue(script.contains("sem[ ]+imagem"))
+        assertTrue(script.contains("semanticImageApproval:\"NOT_VERIFIED\""))
+        assertTrue(script.contains("screenshotRequired:true"))
+        assertFalse(script.contains("visualApproval:\"PASS\""))
+    }
+
     @Test fun auditDoesNotModifyThePageOrMakeNetworkRequests() {
         val script = AltivVisualAudit.script
         assertFalse(script.contains("fetch("))
