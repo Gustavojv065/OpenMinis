@@ -12,12 +12,14 @@ on:
       - 'src/android/**'
       - 'deps/**'
       - 'scripts/prepare_android_sandbox.sh'
+      - 'scripts/altiv_release_gate.py'
   pull_request:
     paths:
       - '.github/workflows/altiv-android-arm64.yml'
       - 'src/android/**'
       - 'deps/**'
       - 'scripts/prepare_android_sandbox.sh'
+      - 'scripts/altiv_release_gate.py'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +41,15 @@ jobs:
         with:
           submodules: recursive
           persist-credentials: false
+
+      - name: ALTIVE global quality and integrated release contract preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail before costly native compilation if a previously agreed
+          # commercial feature, security check or regression test disappeared.
+          # A green preflight is only a review CANDIDATE, not physical signoff.
+          python3 scripts/altiv_release_gate.py --mode candidate
 
       - name: Configure Java 17
         uses: actions/setup-java@v4
