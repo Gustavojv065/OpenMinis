@@ -141,7 +141,7 @@ class AltivVisualBuilderTest {
         for (request in listOf(
             "Crie um script Python para exportação de planilhas",
             "Corrija uma API de pagamentos",
-            "Atualize código Kotlin no aplicativo",
+            "Atualize código Kotlin do serviço",
             "Desenvolva automação GitHub",
             "Implemente dependências no backend"
         )) {
