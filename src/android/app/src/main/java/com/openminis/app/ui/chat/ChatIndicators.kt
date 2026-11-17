@@ -209,7 +209,8 @@ internal fun TypingIndicator(
     // (MinisApp.onCreate via refreshCache); collectAsState makes Compose
     // recompose the indicator immediately when it changes.
     val soulMeta by com.openminis.app.agent.SoulStore.cachedMetadata.collectAsState()
-    val soulName = soulMeta.name.trim().ifEmpty { "Minis" }
+    val fallbackName = stringResource(R.string.app_name)
+    val soulName = soulMeta.name.trim().ifEmpty { fallbackName }
 
     Row(
         modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),

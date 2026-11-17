@@ -62,6 +62,63 @@ class AltivVisualBuilderTest {
         assertFalse(d.blocked)
     }
 
+    @Test fun permanentAssetRulesApplyToAllNewAndUpdatedWebProjects() {
+        val scenarios = listOf(
+            AltivVisualBuilder.decide("Crie uma landing page para uma concessionária", false, emptyList(), false, false),
+            AltivVisualBuilder.decide("Corrija o site da Vértice Motors", false, emptyList(), false, false),
+            AltivVisualBuilder.decide("Refaça um site igual ao print", true, listOf("ref.png"), true, false),
+            AltivVisualBuilder.decide("Refaça o site usando o projeto ZIP de referência", false, listOf("site.zip"), false, false),
+        )
+        for (scenario in scenarios) {
+            val rules = scenario.instructions
+            assertTrue("root quality policy missing for ${scenario.route}", rules.contains("ALTIVE ROOT QUALITY MEMORY"))
+            assertTrue(rules.contains("SEMANTIC IMAGE CHECK NOT VERIFIED"))
+            assertTrue(rules.contains("placeholder image"))
+            assertTrue(rules.contains("real mobile/desktop screenshots"))
+            assertTrue(rules.contains("BLOCKED or NOT_VERIFIED"))
+            assertTrue(rules.contains("Do not use this section as authorization to edit another repository"))
+        }
+    }
+
+    @Test fun standaloneGalleryAndMobileFixesStillReceiveRootQualityMemory() {
+        for (request in listOf("Corrija a galeria", "Melhore os cards", "Ajuste o menu mobile", "Atualize o hero")) {
+            val d = AltivVisualBuilder.decide(request, false, emptyList(), false, false)
+            assertEquals(request, AltivVisualBuilder.Route.WEB_PROJECT, d.route)
+            assertTrue(request, d.instructions.contains("ALTIVE ROOT QUALITY MEMORY"))
+        }
+    }
+
+    @Test fun rootQualityLessonsApplyAcrossCustomerBusinessNiches() {
+        val commands = listOf(
+            "Crie um sistema de agenda para clínica odontológica",
+            "Desenvolva portal para membros da igreja",
+            "Modernize a vitrine de uma farmácia",
+            "Melhore o catálogo de produtos do mercado",
+            "Refine a tela de agendamentos da barbearia",
+            "Corrija a responsividade no painel da clínica",
+            "Ajuste o formulário da loja virtual",
+            "Substitua fotos de veículos no showroom",
+            "Evolua o dashboard do restaurante"
+        )
+        for (command in commands) {
+            val d = AltivVisualBuilder.decide(command, false, emptyList(), false, false)
+            assertEquals("Missing root policy for $command", AltivVisualBuilder.Route.WEB_PROJECT, d.route)
+            assertTrue(d.instructions.contains("GLOBAL LESSONS — ANY CUSTOMER NICHE"))
+            assertTrue(d.instructions.contains("Do not use this section as authorization to edit another repository"))
+            assertTrue(d.instructions.contains("Any essential missing, unrelated or placeholder image"))
+            assertTrue(d.instructions.contains("SEMANTIC IMAGE CHECK NOT VERIFIED"))
+            assertTrue(d.instructions.contains("Supabase"))
+        }
+    }
+
+    @Test fun regularQuestionsDoNotTriggerExpensiveVisualWorkflow() {
+        for (command in listOf("Como funciona o Supabase?", "Explique React", "O que é uma loja virtual?",
+                            "Qual é o preço do carro?", "Como usar formulário?")) {
+            assertEquals(command, AltivVisualBuilder.Route.NONE,
+                AltivVisualBuilder.decide(command, false, emptyList(), false, false).route)
+        }
+    }
+
     @Test fun unrelatedImagesAndZipsAreNotIntercepted() {
         assertEquals(AltivVisualBuilder.Route.NONE,
             AltivVisualBuilder.decide("O que tem nesta foto?", true, listOf("photo.jpg"),

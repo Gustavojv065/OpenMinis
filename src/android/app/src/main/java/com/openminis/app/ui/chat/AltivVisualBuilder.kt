@@ -11,14 +11,25 @@ internal object AltivVisualBuilder {
     }
 
     private val siteWords = listOf("site", "website", "landing", "página", "pagina", "web",
-        "react", "layout", "interface", "frontend", "front-end", "ui/ux", "design")
+        "react", "layout", "interface", "frontend", "front-end", "ui/ux", "design",
+        "galeria", "showroom", "portfólio", "portfolio", "carrossel", "cards", "hero",
+        "menu mobile", "rodapé", "imagens do site", "fotos do site",
+        "sistema", "aplicativo", "dashboard", "painel", "portal", "vitrine",
+        "loja virtual", "e-commerce", "catálogo", "catalogo",
+        "formulário", "formulario", "responsividade", "contraste",
+        "tela", "tipografia", "navegação", "navegacao", "botões", "botoes",
+        "agendamento", "fotos", "carrossel", "section", "seção", "secao")
     private val refWords = listOf("referência", "referencia", "imagem", "print", "captura",
         "screenshot", "igual", "idêntic", "identic", "fidelidade", "replic",
         "reprodu", "copi", "clon", "visual", "modelo", "anex")
 
     private val taskVerbs = listOf("crie", "criar", "cria ", "desenvolva", "desenvolver",
         "melhore", "melhorar", "corrija", "corrigir", "atualize", "atualizar",
-        "construa", "refaça", "refazer", "faça um", "fazer um")
+        "construa", "refaça", "refazer", "faça um", "fazer um",
+        "ajuste", "ajustar", "otimize", "otimizar", "conserte", "repare",
+        "evolua", "evoluir", "aperfeiçoe", "aperfeicoe", "refine",
+        "revise", "revisar", "melhoremos", "troque", "substitua",
+        "implemente", "implementar", "modernize", "personalize")
 
     private fun isWebProjectTask(message: String): Boolean {
         val t = message.lowercase()
@@ -64,6 +75,7 @@ internal object AltivVisualBuilder {
 
     private fun instructionsFor(route: Route): String = """
 [ALTIVE VISUAL BUILDER — premium web creation, reference and preview workflow]
+${AltivRootQualityMemory.instructions}
 - Detect available enabled frontend/UI-UX/visual-QA skills; read their actual SKILL.md
   before using. Never invent loaded skills or results.
 - Inspect existing project files and all supplied assets before editing.
