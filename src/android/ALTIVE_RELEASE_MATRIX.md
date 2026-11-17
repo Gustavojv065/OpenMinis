@@ -2,7 +2,7 @@
 
 Esta lista consolida os pedidos registrados para o APK comercial. **O build verde gera apenas CANDIDATO DE TESTE; não significa “100%”, não significa validação visual ou que o aparelho recebeu a versão correta.** Não divulgar como APK final de cliente até confirmar os itens manuais e o commit exato da `main`.
 
-## 19 verificações de release
+## 20 verificações de release
 
 | # | Requisito contratado | Validação automatizada | Evidência manual ainda necessária |
 |---|---|---|---|
@@ -25,6 +25,8 @@ Esta lista consolida os pedidos registrados para o APK comercial. **O build verd
 | 17 | Backup/restauração de projetos, memórias, skills e configurações | Rotinas `BackupExporter` / `BackupImporter` presentes | Exportar, restaurar após reinstalação de teste e conferir arquivos |
 | 18 | APK ARM64 íntegro, versão única e atualização por cima | aapt, apksigner, SHA-256 e validação PRoot/Alpine | Mesma assinatura persistente + instalação de atualização em aparelho |
 | 19 | Sem PRs esquecidos, CI completa e versão final da `main` | Gate de contratos + testes Android no CI | Conferir histórico de PRs e excluir explicitamente o que foi pausado |
+
+| 20 | Diagnóstico de Python/Git/Node/npm/Bash e dependências do ambiente Alpine PRoot | `altive-dev-check` + `AltivDevToolchainPolicy` + testes de pré-requisitos | Primeiro pedido de programação mostra status real, não instala sem consentimento, confirma comandos após instalar |
 
 ## Critérios de bloqueio
 
@@ -58,8 +60,9 @@ Exemplo (salvar fora do repositório; preencher cada campo com `true` só após 
   "image_subjects_checked": false,
   "backup_restore_tested": false,
   "persistent_signing_verified": false,
-  "merged_pr_inventory_reviewed": false
+  "merged_pr_inventory_reviewed": false,
+  "toolchain_readiness_verified": false
 }
 ```
 
-**Regra de entrega:** nunca afirmar que 19/19 estão aprovados apenas porque o CI concluiu. Reportar itens verificados, pendentes e bloqueadores. APK só é “final” após evidência completa.
+**Regra de entrega:** nunca afirmar que 20/20 estão aprovados apenas porque o CI concluiu. Reportar itens verificados, pendentes e bloqueadores. APK só é “final” após evidência completa.

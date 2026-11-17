@@ -119,6 +119,56 @@ class AltivVisualBuilderTest {
         }
     }
 
+    @Test fun firstDevelopmentTaskIncludesReadOnlyToolchainProbe() {
+        val commands = listOf(
+            "Crie um site premium para um pet shop",
+            "Modernize o dashboard da clínica",
+            "Desenvolva o portal de clientes"
+        )
+        for (command in commands) {
+            val decision = AltivVisualBuilder.decide(
+                command, false, emptyList(), false, false
+            )
+            assertEquals(AltivVisualBuilder.Route.WEB_PROJECT, decision.route)
+            assertTrue(decision.instructions.contains("sh /usr/local/bin/altive-dev-check"))
+            assertTrue(decision.instructions.contains("BEFORE calling apk add"))
+            assertTrue(decision.instructions.contains("READ-ONLY"))
+            assertTrue(decision.instructions.contains("NOT_VERIFIED"))
+        }
+    }
+
+    @Test fun nonWebProgrammingTasksCheckEnvironmentWithoutVisualRebuild() {
+        for (request in listOf(
+            "Crie um script Python para exportação de planilhas",
+            "Corrija uma API de pagamentos",
+            "Atualize código Kotlin do serviço",
+            "Desenvolva automação GitHub",
+            "Implemente dependências no backend"
+        )) {
+            val d = AltivVisualBuilder.decide(request, false, emptyList(), false, false)
+            assertEquals(request, AltivVisualBuilder.Route.DEV_ENVIRONMENT, d.route)
+            assertTrue(d.instructions.contains("sh /usr/local/bin/altive-dev-check"))
+            assertFalse(d.instructions.contains("ALTIVE ROOT QUALITY MEMORY"))
+        }
+        val greeting = AltivVisualBuilder.decide("olá", false, emptyList(), false, false)
+        assertEquals(AltivVisualBuilder.Route.NONE, greeting.route)
+    }
+
+    @Test fun toolchainCheckerShipsWithRootfsAndDoesNotInstallAnything() {
+        val file = java.io.File("src/main/assets/default_mount/usr/local/bin/altive-dev-check")
+        assertTrue("bundled toolchain check missing", file.isFile)
+        val source = file.readText()
+        assertTrue(source.contains("ALTIVE_DEV_CHECK_V1"))
+        assertTrue(source.contains("command -v"))
+        for (binary in listOf("git", "python3", "pip3", "node", "npm", "npx", "bash", "curl",
+                               "wget", "tar", "unzip", "zip", "jq", "make", "gcc", "g++")) {
+            assertTrue("Missing diagnostic for $binary", source.contains("probe ") && source.contains(" $binary "))
+        }
+        assertFalse("Probe must never install packages",
+            source.lineSequence().any { it.trimStart().startsWith("apk add ") })
+        assertFalse("Probe must not execute curl or wget", source.contains("curl -"))
+    }
+
     @Test fun unrelatedImagesAndZipsAreNotIntercepted() {
         assertEquals(AltivVisualBuilder.Route.NONE,
             AltivVisualBuilder.decide("O que tem nesta foto?", true, listOf("photo.jpg"),

@@ -28,6 +28,12 @@ SOURCE_CHECKS = {
     "Agent loop actually invokes the recovery": (
         f"{ANDROID}/main/java/com/openminis/app/ui/chat/ChatViewModel.kt",
         "AltivPrematureWorkContinuation.shouldRetry"),
+    "Bundled read-only toolchain check": (
+        f"{ANDROID}/main/assets/default_mount/usr/local/bin/altive-dev-check",
+        "ALTIVE_DEV_CHECK_V1"),
+    "Developer environment is checked before coding": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivDevToolchainPolicy.kt",
+        "sh /usr/local/bin/altive-dev-check"),
     "Web task routing invokes global lessons": (
         f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivVisualBuilder.kt",
         "AltivRootQualityMemory.instructions"),
@@ -95,7 +101,7 @@ MANUAL_ACCEPTANCE = (
     "localhost_live_preview", "mobile_visual_qa_390",
     "desktop_visual_qa_1440", "image_subjects_checked",
     "backup_restore_tested", "persistent_signing_verified",
-    "merged_pr_inventory_reviewed",
+    "merged_pr_inventory_reviewed", "toolchain_readiness_verified",
 )
 
 def collect_static_errors():

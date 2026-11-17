@@ -1,0 +1,55 @@
+#!/bin/sh
+# ALTIVE DEV AI — development environment readiness report (read-only).
+# Shipped as an Android rootfs default_mount overlay, so it works offline and
+# requires only the Alpine /bin/sh. NEVER installs packages or reads secrets.
+# Usage: sh /usr/local/bin/altive-dev-check
+set -u
+
+printf 'ALTIVE_DEV_CHECK_V1\n'
+printf 'FORMAT|category|tool|status|alpine_package\n'
+
+present=0
+missing=0
+
+probe() {
+    category="$1"
+    binary="$2"
+    package="$3"
+    if command -v "$binary" >/dev/null 2>&1; then
+        printf 'CHECK|%s|%s|READY|%s\n' "$category" "$binary" "$package"
+        present=$((present + 1))
+    else
+        printf 'CHECK|%s|%s|MISSING|%s\n' "$category" "$binary" "$package"
+        missing=$((missing + 1))
+    fi
+}
+
+# Core build and source control. GitHub MCP is NOT equivalent to Git CLI.
+probe core sh busybox
+probe core git git
+probe python python3 python3
+probe python pip3 py3-pip
+probe frontend node nodejs
+probe frontend npm npm
+probe frontend npx npm
+probe shell bash bash
+probe network curl curl
+probe network wget wget
+probe archive tar tar
+probe archive unzip unzip
+probe archive zip zip
+probe utilities jq jq
+probe native make make
+probe native gcc gcc
+probe native g++ g++
+
+if command -v apk >/dev/null 2>&1; then
+    printf 'PACKAGE_MANAGER|apk|AVAILABLE\n'
+else
+    printf 'PACKAGE_MANAGER|apk|MISSING\n'
+fi
+
+printf 'SUMMARY|ready=%s|missing=%s\n' "$present" "$missing"
+printf 'NOTICE|No package was installed; no network request was made.\n'
+printf 'NOTICE|Missing does not always mean required: select packages by project task.\n'
+printf 'NOTICE|Ask for consent BEFORE apk add; do not run apk upgrade or auto-install on greeting.\n'
