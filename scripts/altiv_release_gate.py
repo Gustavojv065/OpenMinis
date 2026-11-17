@@ -22,6 +22,12 @@ SOURCE_CHECKS = {
     "Root quality memory, cross-niche": (
         f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivRootQualityMemory.kt",
         "GLOBAL LESSONS — ANY CUSTOMER NICHE"),
+    "Bundled read-only toolchain check": (
+        f"{ANDROID}/main/assets/default_mount/usr/local/bin/altive-dev-check",
+        "ALTIVE_DEV_CHECK_V1"),
+    "Developer environment is checked before coding": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivDevToolchainPolicy.kt",
+        "sh /usr/local/bin/altive-dev-check"),
     "Web task routing invokes global lessons": (
         f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivVisualBuilder.kt",
         "AltivRootQualityMemory.instructions"),
