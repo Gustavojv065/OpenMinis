@@ -137,6 +137,23 @@ class AltivVisualBuilderTest {
         }
     }
 
+    @Test fun nonWebProgrammingTasksCheckEnvironmentWithoutVisualRebuild() {
+        for (request in listOf(
+            "Crie um script Python para exportação de planilhas",
+            "Corrija uma API de pagamentos",
+            "Atualize código Kotlin no aplicativo",
+            "Desenvolva automação GitHub",
+            "Implemente dependências no backend"
+        )) {
+            val d = AltivVisualBuilder.decide(request, false, emptyList(), false, false)
+            assertEquals(request, AltivVisualBuilder.Route.DEV_ENVIRONMENT, d.route)
+            assertTrue(d.instructions.contains("sh /usr/local/bin/altive-dev-check"))
+            assertFalse(d.instructions.contains("ALTIVE ROOT QUALITY MEMORY"))
+        }
+        val greeting = AltivVisualBuilder.decide("olá", false, emptyList(), false, false)
+        assertEquals(AltivVisualBuilder.Route.NONE, greeting.route)
+    }
+
     @Test fun toolchainCheckerShipsWithRootfsAndDoesNotInstallAnything() {
         val file = java.io.File("src/main/assets/default_mount/usr/local/bin/altive-dev-check")
         assertTrue("bundled toolchain check missing", file.isFile)
