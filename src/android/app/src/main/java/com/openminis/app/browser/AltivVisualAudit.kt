@@ -8,7 +8,7 @@ internal object AltivVisualAudit {
         const root=document.documentElement;
         const w=window.innerWidth, h=window.innerHeight;
         const docWidth=Math.max(root.scrollWidth,document.body?.scrollWidth||0);
-        const counts={overflow:0,brokenImages:0,pendingImages:0,
+        const counts={overflow:0,brokenImages:0,pendingImages:0,assetPlaceholders:0,
             hiddenSections:0,tinyText:0,smallTargets:0,lowContrast:0,contrastUnknown:0};
         const samples=[];
         const issue=(kind,e,description)=>{
@@ -30,6 +30,15 @@ internal object AltivVisualAudit {
         for(const e of Array.from(document.images).slice(0,160)){
             if(!e.complete)issue("pendingImages",e,"image loading");
             else if(e.naturalWidth===0)issue("brokenImages",e,"image failed to decode");
+        }
+        // Visible fallback placeholders are not valid image assets. The browser's
+        // DOM cannot establish whether a successful image depicts the right subject.
+        const fallbackText=/^(?:imagem[ ]+)?(?:indispon[ií]vel|sem[ ]+imagem|image[ ]+unavailable|no[ ]+image|image[ ]+not[ ]+found)$/i;
+        for(const e of Array.from(document.querySelectorAll("main span,main p,main div,article span,article p,[class*=gallery] span,[class*=showroom] span")).slice(0,900)){
+            if(e.children.length||!visible(e))continue;
+            const text=(e.textContent||"").trim();
+            if(fallbackText.test(text))
+                issue("assetPlaceholders",e,"visible missing-media fallback: "+text.slice(0,55));
         }
         for(const e of Array.from(document.querySelectorAll("main section,main article,body>section")).slice(0,60)){
             const r=e.getBoundingClientRect(),s=getComputedStyle(e);
@@ -72,6 +81,7 @@ internal object AltivVisualAudit {
             method:"read-only DOM heuristics, not image-based review",
             viewport:{width:w,height:h,documentWidth:docWidth},
             hasViewportMeta:!!document.querySelector('meta[name="viewport"]'),
-            counts,samples,visualApproval:"NOT_VERIFIED",screenshotRequired:true};
+            counts,samples,visualApproval:"NOT_VERIFIED",
+            semanticImageApproval:"NOT_VERIFIED",screenshotRequired:true};
     """.trimIndent()
 }
