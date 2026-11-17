@@ -588,9 +588,12 @@ object SystemPromptBuilder {
      */
     fun identitySection(context: Context): String {
         val file = SoulStore.load(context)
-        val name = (file?.metadata?.name ?: SoulMetadata.DEFAULT.name)
+        val defaultName = if (context.packageName == "online.altiv.devai") {
+            "ALTIV DEV AI"
+        } else SoulMetadata.DEFAULT.name
+        val name = (file?.metadata?.name ?: defaultName)
             .trim()
-            .ifEmpty { "Minis" }
+            .ifEmpty { defaultName }
 
         val style = (file?.metadata?.style ?: "").trim()
 
