@@ -20,7 +20,8 @@ internal object AltivVisualBuilder {
 
     private val taskVerbs = listOf("crie", "criar", "cria ", "desenvolva", "desenvolver",
         "melhore", "melhorar", "corrija", "corrigir", "atualize", "atualizar",
-        "construa", "refaça", "refazer", "faça um", "fazer um")
+        "construa", "refaça", "refazer", "faça um", "fazer um",
+        "ajuste", "ajustar", "otimize", "otimizar", "conserte", "repare")
 
     private fun isWebProjectTask(message: String): Boolean {
         val t = message.lowercase()
