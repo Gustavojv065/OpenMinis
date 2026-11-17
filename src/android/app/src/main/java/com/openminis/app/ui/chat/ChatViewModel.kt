@@ -11669,6 +11669,8 @@ class ChatViewModel(
         // we surface a real error instead of a silent blank bubble. Mirrors iOS
         // AIChatViewModel.didInjectEmptyToolReminderThisRun.
         var didInjectEmptyToolReminder = false
+        // ALTIVE: bounded retry when model announces an action without a tool call.
+        var prematureActionNudges = 0
         // [T-android-dsml-leak] Resends spent on DeepSeek tool calls that
         // leaked into the reasoning channel (see DsmlLeak). Per run.
         var dsmlLeakRetries = 0
@@ -13799,6 +13801,66 @@ class ChatViewModel(
                         "⏰[ScheduledPreempt] model stopped after an inserted scheduled fire — sent the one-shot resume nudge (turn=$turn)",
                     )
                     continue
+                }
+                // ALTIVE: a model can say "Agora vou executar..." and return
+                // finish=stop with zero tool calls. Never count that as success.
+                // Retry at most twice, with existing permissions and budgets.
+                val prematureAction = com.openminis.app.BuildConfig.FLAVOR == "altiv" &&
+                    !isEmptyTurn && cleanStop && helperConfig == null &&
+                    agentTools.isNotEmpty() && !helperWrapUpInjected &&
+                    !turnToolBudget.exhausted() && turn + 1 < turnCap
+                if (prematureAction && AltivPrematureWorkContinuation.shouldRetry(
+                        text = turnText,
+                        finishReason = turnFinishReason,
+                        hasToolsAvailable = agentTools.isNotEmpty(),
+                        isHelper = false,
+                        userPromptWaiting = userPromptWaiting,
+                        retryCount = prematureActionNudges,
+                    )
+                ) {
+                    prematureActionNudges++
+                    val nudge = AltivPrematureWorkContinuation.REMINDER
+                    agentHistory.add(LLMMessage(
+                        role = LLMMessage.Role.USER,
+                        content = nudge,
+                        contentParts = listOf(AgentContentPart.Text(nudge)),
+                    ))
+                    val nudgeSid = activeSessionId
+                    viewModelScope.launch(Dispatchers.IO) {
+                        chatRepository.appendMessage(nudgeSid, "user",
+                            """[{"type":"text","value":${escapeJson(nudge)}}]""")
+                    }
+                    AppLogger.warning(TAG_STREAM,
+                        "[altive-premature-action] no tool calls after announced action; " +
+                            "retry=" + prematureActionNudges.toString() +
+                            "/" + AltivPrematureWorkContinuation.MAX_RETRIES +
+                            " turn=" + turn + " model=" + currentProvider.model.id)
+                    withContext(Dispatchers.Main) {
+                        updateAssistantMessage(assistantId, accumulatedText, true, allToolBlocks)
+                    }
+                    continue
+                }
+                if (prematureAction && AltivPrematureWorkContinuation.needsUserVisibleInterruption(
+                        text = turnText,
+                        finishReason = turnFinishReason,
+                        hasToolsAvailable = agentTools.isNotEmpty(),
+                        isHelper = false,
+                        userPromptWaiting = userPromptWaiting,
+                        retryCount = prematureActionNudges,
+                    )
+                ) {
+                    AppLogger.warning(TAG_STREAM,
+                        "[altive-premature-action] retries exhausted; status INCOMPLETE")
+                    withContext(Dispatchers.Main) {
+                        setInlineError("ALTIVE DEV AI anunciou uma ação, mas não executou a ferramenta " +
+                            "após novas tentativas. A tarefa está incompleta; use Retomar ou escolha " +
+                            "outro modelo. Os arquivos e o projeto foram preservados.")
+                    }
+                    markLiveInterruption()
+                    _canResume.value = true
+                    stopDiagExit = "premature-action-retries-exhausted"
+                    loopExitedNormally = true
+                    break
                 }
                 // [T-subagent-steer-continues-loop] Port of iOS 671a12ce2. A
                 // course correction that arrived while this turn was converging
