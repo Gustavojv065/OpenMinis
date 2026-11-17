@@ -5,7 +5,7 @@ package com.openminis.app.ui.chat
  * Never silently changes providers, enables a paid model, or claims to see pixels.
  */
 internal object AltivVisualBuilder {
-    enum class Route { NONE, NATIVE_VISION, VISION_GROUP, PROJECT_FILES, NEEDS_VISION, WEB_PROJECT }
+    enum class Route { NONE, NATIVE_VISION, VISION_GROUP, PROJECT_FILES, NEEDS_VISION, WEB_PROJECT, DEV_ENVIRONMENT }
     data class Decision(val route: Route, val instructions: String = "") {
         val blocked: Boolean get() = route == Route.NEEDS_VISION
     }
@@ -38,6 +38,20 @@ internal object AltivVisualBuilder {
                 listOf("abra", "inicie", "me dê", "entregue", "mostre", "visualizar").any { it in t })
     }
 
+    // Non-web coding tasks also need an environment check, but MUST NOT run
+    // a premium web/visual workflow or install packages on the first greeting.
+    private val codingWords = listOf(
+        "python", "script", "backend", "api", "supabase", "sql", "postgres",
+        "git", "github", "repositório", "repositorio", "kotlin", "java",
+        "código", "codigo", "programa", "compilar", "compilação",
+        "node", "npm", "dependências", "dependencias", "apk"
+    )
+
+    private fun isProgrammingTask(message: String): Boolean {
+        val text = message.lowercase()
+        return codingWords.any { it in text } && taskVerbs.any { it in text }
+    }
+
     fun decide(
         message: String,
         hasImage: Boolean,
@@ -47,9 +61,13 @@ internal object AltivVisualBuilder {
     ): Decision {
         val hasProjectZip = attachmentNames.any { it.trim().lowercase().endsWith(".zip") }
         if (!hasImage && !hasProjectZip) {
-            return if (isWebProjectTask(message))
-                Decision(Route.WEB_PROJECT, instructionsFor(Route.WEB_PROJECT))
-            else Decision(Route.NONE)
+            return when {
+                isWebProjectTask(message) ->
+                    Decision(Route.WEB_PROJECT, instructionsFor(Route.WEB_PROJECT))
+                isProgrammingTask(message) ->
+                    Decision(Route.DEV_ENVIRONMENT, AltivDevToolchainPolicy.instructions)
+                else -> Decision(Route.NONE)
+            }
         }
         val text = message.lowercase()
         val relevant = (siteWords.any { it in text } && refWords.any { it in text }) ||
