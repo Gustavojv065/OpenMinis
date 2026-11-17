@@ -80,6 +80,14 @@ class AltivVisualBuilderTest {
         }
     }
 
+    @Test fun standaloneGalleryAndMobileFixesStillReceiveRootQualityMemory() {
+        for (request in listOf("Corrija a galeria", "Melhore os cards", "Ajuste o menu mobile", "Atualize o hero")) {
+            val d = AltivVisualBuilder.decide(request, false, emptyList(), false, false)
+            assertEquals(request, AltivVisualBuilder.Route.WEB_PROJECT, d.route)
+            assertTrue(request, d.instructions.contains("ALTIVE ROOT QUALITY MEMORY"))
+        }
+    }
+
     @Test fun unrelatedImagesAndZipsAreNotIntercepted() {
         assertEquals(AltivVisualBuilder.Route.NONE,
             AltivVisualBuilder.decide("O que tem nesta foto?", true, listOf("photo.jpg"),
