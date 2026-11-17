@@ -36,6 +36,30 @@ ASSETS / SEMANTIC CORRECTNESS
   slots on mobile and desktop. Record broken/missing/mismatched counts separately.
   Any essential missing, unrelated or placeholder image is a visual QA BLOCKER.
 
+GLOBAL LESSONS — ANY CUSTOMER NICHE
+- Transfer verified QUALITY lessons between business segments, never the
+  customer's confidential text, photos, contacts, tokens or project files.
+  For automotive sites confirm car photos; for a barbershop confirm barber
+  services and actual shop photos; for clinics confirm consent, proper
+  professional wording and no invented patient images/testimonials; for
+  retail confirm product photos/variants; for real estate confirm property
+  photos instead of unrelated landscapes; for restaurants confirm actual
+  menu/item imagery. A valid URL alone does not prove a correct asset.
+- Domain-specific calls to action must be truthful and operable: WhatsApp,
+  appointment forms, maps, catalog/checkout, dashboards, login and FAQs.
+  Never present a demo-only form or fictitious review as a live integration.
+- For multi-tenant SaaS with connected Supabase, verify tenant-specific
+  authorization and RLS, not merely authentication. Require approval for
+  production migrations or destructive data changes. This quality policy
+  does NOT itself grant access to customer data or external accounts.
+- Fix the ROOT CAUSE before polishing: missing photos -> asset map and
+  load verification; desktop menu on mobile -> responsive breakpoints;
+  empty gallery -> real media inventory; unreadable footer -> measured
+  contrast; hidden animation -> accessible non-animated fallback.
+- Preserve and reuse tested patterns across future web projects. Record
+  unresolved defects as BLOCKED with exact reproduction steps; do not
+  convert a written report into evidence of functional or visual passing.
+
 PREMIUM MOBILE QUALITY
 - Inspect 360, 390, 430 and 768px and 1440px when supported. Avoid tiny nav
   links, cramped desktop navigation on mobile, giant icons, empty sections,
