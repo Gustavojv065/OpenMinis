@@ -62,6 +62,24 @@ class AltivVisualBuilderTest {
         assertFalse(d.blocked)
     }
 
+    @Test fun permanentAssetRulesApplyToAllNewAndUpdatedWebProjects() {
+        val scenarios = listOf(
+            AltivVisualBuilder.decide("Crie uma landing page para uma concessionária", false, emptyList(), false, false),
+            AltivVisualBuilder.decide("Corrija o site da Vértice Motors", false, emptyList(), false, false),
+            AltivVisualBuilder.decide("Refaça um site igual ao print", true, listOf("ref.png"), true, false),
+            AltivVisualBuilder.decide("Refaça o site usando o projeto ZIP de referência", false, listOf("site.zip"), false, false),
+        )
+        for (scenario in scenarios) {
+            val rules = scenario.instructions
+            assertTrue("root quality policy missing for ${scenario.route}", rules.contains("ALTIVE ROOT QUALITY MEMORY"))
+            assertTrue(rules.contains("SEMANTIC IMAGE CHECK NOT VERIFIED"))
+            assertTrue(rules.contains("image or placeholder"))
+            assertTrue(rules.contains("real mobile/desktop screenshots"))
+            assertTrue(rules.contains("BLOCKED or NOT_VERIFIED"))
+            assertTrue(rules.contains("no authorization to edit another repository") || rules.contains("not authorization to edit another repository"))
+        }
+    }
+
     @Test fun unrelatedImagesAndZipsAreNotIntercepted() {
         assertEquals(AltivVisualBuilder.Route.NONE,
             AltivVisualBuilder.decide("O que tem nesta foto?", true, listOf("photo.jpg"),
