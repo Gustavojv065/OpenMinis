@@ -118,12 +118,15 @@ class MinisDocumentsProvider : DocumentsProvider() {
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
     }
 
+    private fun brandedRootName(): String =
+        context?.getString(com.openminis.app.R.string.app_name) ?: "App files"
+
     override fun queryRoots(projection: Array<String>?): Cursor {
         val cursor = MatrixCursor(projection ?: ROOT_PROJECTION)
         cursor.newRow()
             .add(Root.COLUMN_ROOT_ID, ROOT_ID)
             .add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY or Root.FLAG_SUPPORTS_IS_CHILD)
-            .add(Root.COLUMN_TITLE, "Minis")
+            .add(Root.COLUMN_TITLE, brandedRootName())
             .add(Root.COLUMN_DOCUMENT_ID, ROOT_DOC_ID)
             .add(Root.COLUMN_MIME_TYPES, "*/*")
             .add(Root.COLUMN_ICON, 0)
@@ -133,7 +136,7 @@ class MinisDocumentsProvider : DocumentsProvider() {
     override fun queryDocument(documentId: String, projection: Array<String>?): Cursor {
         val cursor = MatrixCursor(projection ?: DOCUMENT_PROJECTION)
         val file = resolveDoc(documentId)
-        val displayName = if (documentId.isEmpty()) "Minis" else file.name
+        val displayName = if (documentId.isEmpty()) brandedRootName() else file.name
         cursor.newRow()
             .add(Document.COLUMN_DOCUMENT_ID, documentId)
             .add(Document.COLUMN_DISPLAY_NAME, displayName)
