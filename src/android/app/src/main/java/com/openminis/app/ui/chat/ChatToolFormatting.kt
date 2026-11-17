@@ -1,6 +1,7 @@
 package com.openminis.app.ui.chat
 
 import com.openminis.app.R
+import com.openminis.app.BuildConfig
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.NoteAdd
@@ -51,6 +52,10 @@ internal fun formatStepDuration(seconds: Long, stillRunning: Boolean): String {
     }
     return if (stillRunning) "$base…" else base
 }
+
+/** Keep the upstream flavor intact while branding ALTIVE screens. */
+internal val toolAgentName: String
+    get() = if (BuildConfig.FLAVOR == "altiv") "ALTIVE DEV AI" else "Minis"
 
 // Helper: tool accent color
 internal fun toolAccentColor(toolName: String): Color = when (toolName) {
@@ -127,7 +132,7 @@ internal fun toolAccentColorInt(toolName: String?): Int = when (toolName) {
  * several sessions edit concurrently; the vocabulary here is small and stable.
  */
 internal fun friendlyToolTitleFor(toolName: String?): String = when (toolName) {
-    null, "" -> "Minis"
+    null, "" -> toolAgentName
     "shell_execute" -> "Execute Shell"
     "file_read" -> "Read File"
     "file_write" -> "Write File"
@@ -143,7 +148,7 @@ internal fun friendlyToolTitleFor(toolName: String?): String = when (toolName) {
         .joinToString(" ") { it.replaceFirstChar { ch -> ch.uppercase() } }
 }
 
-// Helper: tool display name for "Minis is using X"
+// Helper: tool display name for agent activity.
 internal fun toolDisplayName(toolName: String): String = when (toolName) {
     "shell_execute" -> "terminal"
     "file_read" -> "file reader"
@@ -163,16 +168,16 @@ internal fun toolDisplayName(toolName: String): String = when (toolName) {
  * Mirrors iOS ToolLiveSheet.toolTitle so the wording matches per tool.
  */
 internal fun toolTitleLabel(toolName: String): String = when (toolName) {
-    "shell_execute" -> "Minis is using Shell"
-    "file_read" -> "Minis is reading File"
-    "file_write" -> "Minis is using Editor"
-    "file_edit" -> "Minis is editing File"
-    "browser_use" -> "Minis is using Browser"
-    "read_image" -> "Minis is reading Image"
-    "memory_write", "memory_get" -> "Minis is using Memory"
-    "web_search" -> "Minis is using Search"
-    "subagent_task", "delegate_task", "agent_status" -> "Minis is using an Agent"
-    else -> "Minis is using ${toolDisplayName(toolName)}"
+    "shell_execute" -> "${toolAgentName} is using Shell"
+    "file_read" -> "${toolAgentName} is reading File"
+    "file_write" -> "${toolAgentName} is using Editor"
+    "file_edit" -> "${toolAgentName} is editing File"
+    "browser_use" -> "${toolAgentName} is using Browser"
+    "read_image" -> "${toolAgentName} is reading Image"
+    "memory_write", "memory_get" -> "${toolAgentName} is using Memory"
+    "web_search" -> "${toolAgentName} is using Search"
+    "subagent_task", "delegate_task", "agent_status" -> "${toolAgentName} is using an Agent"
+    else -> "${toolAgentName} is using ${toolDisplayName(toolName)}"
 }
 
 // Helper: format duration (iOS: < 1s → "0.1s", < 60s → "45s", >= 60s → "2m 10s")
