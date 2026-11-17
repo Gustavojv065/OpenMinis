@@ -11,7 +11,9 @@ internal object AltivVisualBuilder {
     }
 
     private val siteWords = listOf("site", "website", "landing", "página", "pagina", "web",
-        "react", "layout", "interface", "frontend", "front-end", "ui/ux", "design")
+        "react", "layout", "interface", "frontend", "front-end", "ui/ux", "design",
+        "galeria", "showroom", "portfólio", "portfolio", "carrossel", "cards", "hero",
+        "menu mobile", "rodapé", "imagens do site", "fotos do site")
     private val refWords = listOf("referência", "referencia", "imagem", "print", "captura",
         "screenshot", "igual", "idêntic", "identic", "fidelidade", "replic",
         "reprodu", "copi", "clon", "visual", "modelo", "anex")
