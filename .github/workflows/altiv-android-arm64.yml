@@ -138,6 +138,7 @@ jobs:
             --tests 'com.openminis.app.ui.settings.AltivFullBrandingTest' \
             --tests 'com.openminis.app.ui.settings.AltivCustomerFacingBrandTest' \
             --tests 'com.openminis.app.ui.chat.AltivToolBrandingTest' \
+            --tests 'com.openminis.app.ui.chat.AltivPrematureWorkContinuationTest' \
             --tests 'com.openminis.app.data.repository.AltivProjectMemoryTest' \
             --tests 'com.openminis.app.tools.AltivMemoryToolContractTest' \
             --tests 'com.openminis.app.commercial.AltivSubscriptionPolicyTest' \
