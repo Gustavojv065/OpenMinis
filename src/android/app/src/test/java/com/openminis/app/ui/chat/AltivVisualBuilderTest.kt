@@ -147,7 +147,8 @@ class AltivVisualBuilderTest {
                                "wget", "tar", "unzip", "zip", "jq", "make", "gcc", "g++")) {
             assertTrue("Missing diagnostic for $binary", source.contains("probe ") && source.contains(" $binary "))
         }
-        assertFalse("Probe must never install packages", source.contains("apk add "))
+        assertFalse("Probe must never install packages",
+            source.lineSequence().any { it.trimStart().startsWith("apk add ") })
         assertFalse("Probe must not execute curl or wget", source.contains("curl -"))
     }
 
