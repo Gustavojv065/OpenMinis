@@ -22,6 +22,12 @@ SOURCE_CHECKS = {
     "Root quality memory, cross-niche": (
         f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivRootQualityMemory.kt",
         "GLOBAL LESSONS — ANY CUSTOMER NICHE"),
+    "Bounded recovery for premature model tool narration": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivPrematureWorkContinuation.kt",
+        "MAX_RETRIES = 2"),
+    "Agent loop actually invokes the recovery": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/ChatViewModel.kt",
+        "AltivPrematureWorkContinuation.shouldRetry"),
     "Bundled read-only toolchain check": (
         f"{ANDROID}/main/assets/default_mount/usr/local/bin/altive-dev-check",
         "ALTIVE_DEV_CHECK_V1"),
@@ -74,7 +80,7 @@ SOURCE_CHECKS = {
         f"{ANDROID}/main/java/com/openminis/app/backup/BackupImporter.kt", None),
 }
 TEST_NAMES = (
-    "AltivToolBrandingTest", "AltivVisualBuilderTest", "AltivVisualAuditTest",
+    "AltivToolBrandingTest", "AltivPrematureWorkContinuationTest", "AltivVisualBuilderTest", "AltivVisualAuditTest",
     "AltivProjectMemoryTest", "AltivMemoryToolContractTest",
     "AltivSubscriptionPolicyTest", "AltivLicenseActivationContractTest",
     "MCPQuickConnectCatalogTest", "SupabaseMcpProjectScopeTest",
