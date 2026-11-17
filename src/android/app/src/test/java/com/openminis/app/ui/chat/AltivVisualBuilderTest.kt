@@ -73,10 +73,10 @@ class AltivVisualBuilderTest {
             val rules = scenario.instructions
             assertTrue("root quality policy missing for ${scenario.route}", rules.contains("ALTIVE ROOT QUALITY MEMORY"))
             assertTrue(rules.contains("SEMANTIC IMAGE CHECK NOT VERIFIED"))
-            assertTrue(rules.contains("image or placeholder"))
+            assertTrue(rules.contains("placeholder image"))
             assertTrue(rules.contains("real mobile/desktop screenshots"))
             assertTrue(rules.contains("BLOCKED or NOT_VERIFIED"))
-            assertTrue(rules.contains("no authorization to edit another repository") || rules.contains("not authorization to edit another repository"))
+            assertTrue(rules.contains("Do not use this section as authorization to edit another repository"))
         }
     }
 
