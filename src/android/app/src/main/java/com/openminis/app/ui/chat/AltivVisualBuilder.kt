@@ -65,7 +65,8 @@ internal object AltivVisualBuilder {
                 isWebProjectTask(message) ->
                     Decision(Route.WEB_PROJECT, instructionsFor(Route.WEB_PROJECT))
                 isProgrammingTask(message) ->
-                    Decision(Route.DEV_ENVIRONMENT, AltivDevToolchainPolicy.instructions)
+                    Decision(Route.DEV_ENVIRONMENT, AltivDevToolchainPolicy.instructions + "\n" +
+                        AltivAutonomousSupervisorPolicy.instructions)
                 else -> Decision(Route.NONE)
             }
         }
@@ -97,6 +98,7 @@ ${AltivRootQualityMemory.instructions}
 ${AltivDevToolchainPolicy.instructions}
 ${AltivRealPhotoPolicy.instructions}
 ${AltivSemanticDirectorPolicy.instructions}
+${AltivAutonomousSupervisorPolicy.instructions}
 - Detect available enabled frontend/UI-UX/visual-QA skills; read their actual SKILL.md
   before using. Never invent loaded skills or results.
 - Inspect existing project files and all supplied assets before editing.

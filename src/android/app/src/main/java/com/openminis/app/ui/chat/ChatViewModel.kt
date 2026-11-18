@@ -10173,6 +10173,12 @@ class ChatViewModel(
                 bodyPartsJson = pasted?.partsJson,
             )
             val persistedUser = chatRepository.appendMessage(activeSessionId, "user", userPartsJson)
+            // ALTIVE supervisor starts only on accepted development requests.
+            // Journal data is scoped by this session and contains no prompt/secret.
+            if (com.openminis.app.BuildConfig.FLAVOR == "altiv" && !headless &&
+                helperConfig == null && visualBuilder.route != AltivVisualBuilder.Route.NONE) {
+                AltivAutonomousTaskJournal.begin(context, activeSessionId)
+            }
 
             val userMsg = ChatMessage(
                 id = persistedUser.id,
@@ -10218,8 +10224,20 @@ class ChatViewModel(
             val modelBody = pasted?.modelText ?: trimmed
             // Only the model-facing turn includes these focused instructions:
             // the visible bubble and saved user's actual text stay unchanged.
-            val modelBodyForAgent = if (visualBuilder.instructions.isBlank()) modelBody
-                else modelBody + "\n\n" + visualBuilder.instructions
+            val isAutonomousResume = trimmed.lowercase().let { prompt ->
+                listOf("continue", "continua", "prossiga", "retome", "retomar")
+                    .any { prompt.startsWith(it) }
+            }
+            val journalReminder = if (com.openminis.app.BuildConfig.FLAVOR == "altiv" &&
+                helperConfig == null && !headless &&
+                (visualBuilder.route != AltivVisualBuilder.Route.NONE || isAutonomousResume)) {
+                AltivAutonomousTaskJournal.contextForResume(context, activeSessionId)
+            } else ""
+            val modelBodyForAgent = buildString {
+                append(modelBody)
+                if (visualBuilder.instructions.isNotBlank()) append("\n\n").append(visualBuilder.instructions)
+                if (journalReminder.isNotBlank()) append("\n\n").append(journalReminder)
+            }
 
             agentHistory.add(ChatAttachmentIngest.liveUserTurn(
                 modelBodyForAgent, imageParts, prepared.imageUploadPaths, prepared.imageModelNotes,
@@ -13857,6 +13875,7 @@ class ChatViewModel(
                             "outro modelo. Os arquivos e o projeto foram preservados.")
                     }
                     markLiveInterruption()
+                    AltivAutonomousTaskJournal.markInterrupted(context, activeSessionId)
                     _canResume.value = true
                     stopDiagExit = "premature-action-retries-exhausted"
                     loopExitedNormally = true
@@ -14242,6 +14261,10 @@ class ChatViewModel(
                         }
                         if (toolInterrupted) AppLogger.info(TAG_STREAM, "[stop-tool] turn=$turn $name ${id.take(16)} stopped by the user (tool only)")
                         android.util.Log.d("ToolChain[VM]", "[turn=$turn] executeTool END name=$name success=${result.success} title=${result.toolTitle} outputLen=${result.output.length} output=${result.output.take(200)}")
+                        // Persist tool ATTEMPTS, not unverified claims of site completion.
+                        if (com.openminis.app.BuildConfig.FLAVOR == "altiv" && helperConfig == null) {
+                            AltivAutonomousTaskJournal.noteTool(context, activeSessionId, name, result.success)
+                        }
 
                         // Record post-execution. WARNING text is appended to the tool
                         // result so the model sees it on its next turn. No block here —

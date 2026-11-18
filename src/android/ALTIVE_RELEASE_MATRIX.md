@@ -2,7 +2,7 @@
 
 Esta lista consolida os pedidos registrados para o APK comercial. **O build verde gera apenas CANDIDATO DE TESTE; não significa “100%”, não significa validação visual ou que o aparelho recebeu a versão correta.** Não divulgar como APK final de cliente até confirmar os itens manuais e o commit exato da `main`.
 
-## 20 verificações de release
+## 21 verificações de release
 
 | # | Requisito contratado | Validação automatizada | Evidência manual ainda necessária |
 |---|---|---|---|
@@ -27,6 +27,8 @@ Esta lista consolida os pedidos registrados para o APK comercial. **O build verd
 | 19 | Sem PRs esquecidos, CI completa e versão final da `main` | Gate de contratos + testes Android no CI | Conferir histórico de PRs e excluir explicitamente o que foi pausado |
 
 | 20 | Diagnóstico de Python/Git/Node/npm/Bash e dependências do ambiente Alpine PRoot | `altive-dev-check` + `AltivDevToolchainPolicy` + testes de pré-requisitos | Primeiro pedido de programação mostra status real, não instala sem consentimento, confirma comandos após instalar |
+
+| 21 | Supervisor autônomo com cinco papéis, memória de execução, revisão semântica, comando real e skills | `AltivAutonomousSupervisorPolicyTest` + `AltivAutonomousTaskJournal` + hook no ChatViewModel | Testar tarefas contínuas em dois projetos independentes; interromper/retomar; confirmar evidências reais de visão, comandos e preview sem aprovação fictícia |
 
 ## Critérios de bloqueio
 

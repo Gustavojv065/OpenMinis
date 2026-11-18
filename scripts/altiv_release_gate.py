@@ -70,6 +70,15 @@ SOURCE_CHECKS = {
         f"{ANDROID}/main/java/com/openminis/app/mcp/SupabaseMcpProjectScope.kt", None),
     "Supabase account scoping": (
         f"{ANDROID}/main/java/com/openminis/app/mcp/SupabaseMcpAccountScope.kt", None),
+    "Five-role supervisor": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivAutonomousSupervisorPolicy.kt",
+        "FIVE ROLES"),
+    "Durable task journal": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/AltivAutonomousTaskJournal.kt",
+        "ATTEMPTED_NOT_VERIFIED"),
+    "Agent loop stores actual tool results": (
+        f"{ANDROID}/main/java/com/openminis/app/ui/chat/ChatViewModel.kt",
+        "AltivAutonomousTaskJournal.noteTool"),
     "Skills routing": (
         f"{ANDROID}/main/java/com/openminis/app/data/repository/AltivProfessionalSkillRouting.kt", None),
     "Localhost address verification": (
@@ -81,6 +90,7 @@ SOURCE_CHECKS = {
 }
 TEST_NAMES = (
     "AltivToolBrandingTest", "AltivPrematureWorkContinuationTest", "AltivVisualBuilderTest", "AltivVisualAuditTest",
+    "AltivAutonomousSupervisorPolicyTest",
     "AltivProjectMemoryTest", "AltivMemoryToolContractTest",
     "AltivSubscriptionPolicyTest", "AltivLicenseActivationContractTest",
     "MCPQuickConnectCatalogTest", "SupabaseMcpProjectScopeTest",
