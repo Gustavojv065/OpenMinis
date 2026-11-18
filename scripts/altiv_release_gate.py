@@ -90,6 +90,7 @@ SOURCE_CHECKS = {
 }
 TEST_NAMES = (
     "AltivToolBrandingTest", "AltivPrematureWorkContinuationTest", "AltivVisualBuilderTest", "AltivVisualAuditTest",
+    "AltivAutonomousSupervisorPolicyTest",
     "AltivProjectMemoryTest", "AltivMemoryToolContractTest",
     "AltivSubscriptionPolicyTest", "AltivLicenseActivationContractTest",
     "MCPQuickConnectCatalogTest", "SupabaseMcpProjectScopeTest",
