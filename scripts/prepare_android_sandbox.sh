@@ -21,7 +21,7 @@ test -s "$PROOT_FILE" || { echo "::error::Build PRoot before preparing the sandb
 command -v docker >/dev/null || { echo "::error::Docker is required for reproducible ARM64 toolchain packaging" >&2; exit 1; }
 
 STAGING="$(mktemp -d)"
-trap 'rm -rf "$STAGING"' EXIT
+trap 'sudo rm -rf "$STAGING"' EXIT
 mkdir -p "$STAGING/rootfs"
 echo "Downloading Alpine ${ALPINE_RELEASE} aarch64 minirootfs..."
 curl --fail --location --retry 3 --output "$STAGING/base.tar.gz" "$ALPINE_URL"
@@ -48,6 +48,8 @@ docker run --rm --platform linux/arm64 \
       node -e \"console.log(12345)\" | grep -qx 12345
       python3 -c \"print(67890)\" | grep -qx 67890
     "
+    # Node may create root-only compiler caches during smoke tests. Never ship caches.
+    rm -rf /altiv-rootfs/tmp/node-compile-cache /altiv-rootfs/root/.cache/node
     rm -f /altiv-rootfs/etc/resolv.conf
   '
 
