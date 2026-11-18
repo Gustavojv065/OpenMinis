@@ -36,9 +36,14 @@ internal object AltivAutonomousTaskJournal {
     fun begin(context: Context, sessionId: String) {
         if (sessionId.isBlank()) return
         synchronized(lock) {
-            val state = JSONObject()
+            val prefs = context.getSharedPreferences(STORE, Context.MODE_PRIVATE)
+            val previous = prefs.getString(key(sessionId), null)
+                ?.let { runCatching { JSONObject(it) }.getOrNull() }
+            // A follow-up in the SAME session resumes its existing bounded
+            // milestones; only a new session creates a new journal. The user
+            // can say "continue" without losing the last verified tool attempt.
+            val state = previous ?: JSONObject()
                 .put("schema", 1)
-                .put("status", "ACTIVE")
                 .put("phase", "brief")
                 .put("role", "supervisor")
                 .put("started_at_ms", System.currentTimeMillis())
@@ -48,8 +53,8 @@ internal object AltivAutonomousTaskJournal {
                 .put("vision_evidence", "NOT_VERIFIED")
                 .put("build_evidence", "NOT_VERIFIED")
                 .put("browser_evidence", "NOT_VERIFIED")
-            context.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit()
-                .putString(key(sessionId), state.toString()).apply()
+            state.put("status", "ACTIVE")
+            prefs.edit().putString(key(sessionId), state.toString()).apply()
         }
     }
 
