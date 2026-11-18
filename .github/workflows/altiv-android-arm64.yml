@@ -82,6 +82,11 @@ jobs:
           echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
 
+      - name: Enable QEMU ARM64 for prebundled Alpine tools
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Build Android PRoot from its source; verify preserved Termux loaders
         shell: bash
         run: |
@@ -225,16 +230,23 @@ jobs:
           done
           if grep -Fxq 'assets/alpine-minirootfs.tar.gz' "$RUNNER_TEMP/apk-files.txt"; then
             ROOTFS_ENTRY='assets/alpine-minirootfs.tar.gz'
-            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tzf - > /dev/null
+            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tzf - > "$RUNNER_TEMP/altiv-rootfs-contents.txt"
           elif grep -Fxq 'assets/alpine-minirootfs.tar' "$RUNNER_TEMP/apk-files.txt"; then
             ROOTFS_ENTRY='assets/alpine-minirootfs.tar'
-            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tf - > /dev/null
+            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tf - > "$RUNNER_TEMP/altiv-rootfs-contents.txt"
           else
             echo '::error::Missing Alpine rootfs: expected .tar.gz or .tar APK asset'
             grep -E '^assets/.*(alpine|rootfs)' "$RUNNER_TEMP/apk-files.txt" || true
             exit 1
           fi
-          echo "Verified Alpine rootfs in APK: $ROOTFS_ENTRY"
+          # Green Android build without executable toolchain must fail.
+          for required_bin in node npm npx python3 git bash; do
+            if ! grep -Eq "(^|/)(usr/bin|bin)/${required_bin}$" "$RUNNER_TEMP/altiv-rootfs-contents.txt"; then
+              echo "::error::Toolchain executable missing in final APK: $required_bin"
+              exit 1
+            fi
+          done
+          echo "Verified Alpine rootfs and core programming tools in APK: $ROOTFS_ENTRY"
           sha256sum "$APK" > "$APK.sha256"
           ls -lh "$APK" "$APK.sha256"
 
