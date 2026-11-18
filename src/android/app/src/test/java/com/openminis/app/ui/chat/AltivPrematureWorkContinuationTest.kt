@@ -22,6 +22,28 @@ class AltivPrematureWorkContinuationTest {
         assertTrue(should("Em seguida vou testar o formulário."))
     }
 
+    @Test fun resumesWhenNemotronPromisesActionAfterStatusOnSameLine() {
+        // Regression from the Android screenshot (ALTIVE Build #156).
+        assertTrue(should(
+            "Servidor ativo (HTTP 200). Agora vou fazer a inspeção visual completa dos 5 problemas reportados."
+        ))
+        assertTrue(should(
+            "Build aprovado. Agora vou executar a auditoria de viewport e breakpoints via JavaScript no navegador."
+        ))
+        // Only the trailing sentence matters: never resume after a real conclusion.
+        assertFalse(should(
+            "Agora vou executar a auditoria. Auditoria concluída e relatório apresentado."
+        ))
+        assertFalse(should(
+            "Servidor ativo (HTTP 200). Agora vou fazer a inspeção visual completa dos 5 problemas reportados.",
+            retries = AltivPrematureWorkContinuation.MAX_RETRIES
+        ))
+        assertTrue(AltivPrematureWorkContinuation.needsUserVisibleInterruption(
+            "Servidor ativo (HTTP 200). Agora vou fazer a inspeção visual completa dos 5 problemas reportados.",
+            "stop", true, false, false, 2
+        ))
+    }
+
     @Test fun neverContinuesAnActualAnswerOrInformationalMessage() {
         assertFalse(should("Site corrigido. Typecheck e build aprovados."))
         assertFalse(should("O próximo passo seria validar o mobile."))
