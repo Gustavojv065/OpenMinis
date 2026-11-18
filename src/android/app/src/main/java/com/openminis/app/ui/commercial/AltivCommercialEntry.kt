@@ -66,6 +66,22 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var subscription by remember { mutableStateOf<AltivSubscription?>(null) }
+    var environmentStage by remember { mutableStateOf("Preparando ferramentas...") }
+
+    suspend fun prepareLicensedEnvironment() {
+        phase = "provisioning"
+        error = null
+        val result = AltivToolchainProvisioner.prepare(context.applicationContext) {
+            environmentStage = it
+        }
+        if (result.isSuccess) {
+            phase = "app"
+        } else {
+            error = result.exceptionOrNull()?.message
+                ?: "Não foi possível preparar as ferramentas de programação."
+            phase = "toolchain_error"
+        }
+    }
 
     suspend fun verify(tokens: AltivAuthTokens) {
         try {
@@ -73,8 +89,12 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
             subscription = current
             AltivCommercialAccountState.signedIn.value = true
             AltivCommercialAccountState.subscription.value = current
-            phase = if (AltivSubscriptionPolicy.allowsHostedServices(current)) "app" else "expired"
-            error = null
+            if (AltivSubscriptionPolicy.allowsHostedServices(current)) {
+                prepareLicensedEnvironment()
+            } else {
+                phase = "expired"
+                error = null
+            }
         } catch (exception: Exception) {
             phase = "offline"
             error = exception.message ?: "Não foi possível validar a assinatura"
@@ -92,8 +112,7 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                 subscription = active
                 AltivCommercialAccountState.signedIn.value = true
                 AltivCommercialAccountState.subscription.value = active
-                phase = "app"
-                error = null
+                prepareLicensedEnvironment()
                 return@LaunchedEffect
             } catch (_: Exception) {
                 // Never grant access based only on an encrypted local token.
@@ -170,6 +189,24 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                 "checking" -> {
                     CircularProgressIndicator()
                     Text("Verificando acesso com o servidor...")
+                }
+                "provisioning" -> {
+                    CircularProgressIndicator()
+                    Text("Preparando seu ambiente automaticamente", fontWeight = FontWeight.Bold)
+                    Text(environmentStage)
+                    Text("Node.js, NPM, Python e Git. Não é necessário digitar comandos.",
+                        style = MaterialTheme.typography.bodySmall)
+                    Text("A primeira preparação pode precisar de internet em instalações antigas.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                "toolchain_error" -> {
+                    Text("Sua licença está ativa, mas o ambiente ainda precisa de atenção.",
+                        fontWeight = FontWeight.Bold)
+                    Text("Seus projetos, tokens e configurações permanecem preservados.")
+                    Button(
+                        onClick = { scope.launch { prepareLicensedEnvironment() } },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Tentar preparar novamente") }
                 }
                 "setup" -> {
                     Text("O aplicativo está pronto para conexão comercial. O servidor de assinaturas ainda não foi configurado nesta compilação.")
@@ -258,7 +295,7 @@ internal fun AltivCommercialEntry(content: @Composable () -> Unit) {
                                     subscription = active
                                     AltivCommercialAccountState.signedIn.value = true
                                     AltivCommercialAccountState.subscription.value = active
-                                    phase = "app"
+                                    prepareLicensedEnvironment()
                                 } catch (e: Exception) {
                                     error = e.message ?: "Não foi possível validar a licença."
                                 } finally {
