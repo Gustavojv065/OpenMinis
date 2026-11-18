@@ -42,7 +42,7 @@ internal object AltivPrematureWorkContinuation {
         // Only the FINAL sentence may trigger a continuation. Earlier
         // announcements followed by an actual conclusion must not retry.
         val lastLine = text.lineSequence().map(String::trim).lastOrNull { it.isNotEmpty() } ?: return false
-        val lastSentence = lastLine.split(Regex("""(?<=[.!?])\\s+""")).last().trim()
+        val lastSentence = lastLine.split(Regex("""(?<=[.!?])\s+""")).last().trim()
         if (lastSentence.isEmpty() || lastSentence.length > 300) return false
         return impendingAction.containsMatchIn(lastSentence)
     }
