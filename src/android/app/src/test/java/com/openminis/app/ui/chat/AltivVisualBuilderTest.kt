@@ -131,8 +131,8 @@ class AltivVisualBuilderTest {
             )
             assertEquals(AltivVisualBuilder.Route.WEB_PROJECT, decision.route)
             assertTrue(decision.instructions.contains("sh /usr/local/bin/altive-dev-check"))
-            assertTrue(decision.instructions.contains("BEFORE calling apk add"))
-            assertTrue(decision.instructions.contains("READ-ONLY"))
+            assertTrue(decision.instructions.contains("automatically prepares"))
+            assertTrue(decision.instructions.contains("read-only inventory"))
             assertTrue(decision.instructions.contains("NOT_VERIFIED"))
         }
     }
