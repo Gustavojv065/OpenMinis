@@ -35,9 +35,9 @@ bash -c 'echo BASH_OK' | grep -qx BASH_OK
 node -e 'process.stdout.write("NODE_OK")' | grep -qx NODE_OK
 python3 -c 'print("PYTHON_OK")' | grep -qx PYTHON_OK
 tmp=$(mktemp -d)
-trap 'rm -rf "\${'$'}tmp"' EXIT
-git init -q "\${'$'}tmp/project"
-git -C "\${'$'}tmp/project" status --short >/dev/null
+trap 'rm -rf "${'$'}tmp"' EXIT
+git init -q "${'$'}tmp/project"
+git -C "${'$'}tmp/project" status --short >/dev/null
 echo ALTIV_TOOLCHAIN_READY
 """.trimIndent()
 
@@ -72,13 +72,13 @@ apk add --no-cache nodejs npm python3 py3-pip git bash curl wget unzip zip ca-ce
             onStage("Instalando ferramentas de programação automaticamente...")
             val install = ShellExecutor.execute(appContext, INSTALL, timeout = 600_000L)
             check(install.exitCode == 0) {
-                "Não foi possível concluir a instalação (código \${install.exitCode}). " +
+                "Não foi possível concluir a instalação (código ${install.exitCode}). " +
                     "Verifique a conexão e o espaço livre e tente novamente."
             }
             onStage("Testando as ferramentas instaladas...")
             val second = ShellExecutor.execute(appContext, VERIFY)
             check(second.exitCode == 0 && second.output.contains("ALTIV_TOOLCHAIN_READY")) {
-                "As ferramentas não passaram no teste real (código \${second.exitCode}). " +
+                "As ferramentas não passaram no teste real (código ${second.exitCode}). " +
                     "Tente novamente."
             }
             onStage("Ambiente pronto para criar projetos.")
