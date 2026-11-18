@@ -53,8 +53,8 @@ class AltivAutonomousSupervisorPolicyTest {
     @Test fun noExternalChangesOrFakePluginClaims() {
         val rules = AltivAutonomousSupervisorPolicy.instructions
         assertTrue(rules.contains("without approval"))
-        assertTrue(rules.contains("NOT proof"))
-        assertTrue(rules.contains("NEVER"))
+        assertTrue(rules.contains("not a passed QA check"))
+        assertTrue(rules.contains("Never pretend"))
         assertTrue(rules.contains("Figma"))
         assertTrue(rules.contains("Superpowers"))
         assertTrue(rules.contains("3D"))
