@@ -35,6 +35,32 @@ class PhotoSearchContract(unittest.TestCase):
         page["imageinfo"][0]["mime"] = "image/svg+xml"
         self.assertIsNone(MODULE["select_photo"](page))
 
+    def test_semantic_topic_prefilter_rejects_off_topic_photos(self):
+        match = MODULE["matches_subject_metadata"]
+        expected = ["espresso", "cafe", "coffee", "barista", "latte"]
+        self.assertFalse(match("File:New York City skyline.jpg",
+            "Aerial view of high rise buildings", expected))
+        self.assertFalse(match("File:Cruise ship.jpg",
+            "Ocean cruise vessel at sea", expected))
+        self.assertFalse(match("File:Bench in park.jpg",
+            "Empty park bench", expected))
+        self.assertTrue(match("File:Espresso cup.jpg",
+            "Coffee prepared by a barista", expected))
+        self.assertTrue(match("File:Coffee roasting.jpg",
+            "Specialty beans", expected))
+        self.assertTrue(match("File:Café interior.jpg", "", expected))
+        # No keywords is valid for generic requests and remains unscreened.
+        self.assertTrue(match("File:Random.jpg", "", []))
+
+    def test_slot_requires_specific_subject_not_just_business_keyword(self):
+        match = MODULE["matches_subject_metadata"]
+        self.assertFalse(match("File:Coffee shop interior.jpg",
+            "Coffee tables and chairs", ["espresso"]))
+        self.assertTrue(match("File:Espresso in a cup.jpg",
+            "Drink", ["espresso"]))
+        self.assertFalse(match("File:Boat.jpg", "Lake", ["cat", "kitten", "feline"]))
+        self.assertTrue(match("File:Cat portrait.jpg", "Domestic cat", ["cat", "kitten"]))
+
     def test_destination_cannot_escape_customer_project(self):
         for path in (Path("../other-project"), Path("/tmp/other-project")):
             with self.assertRaises(ValueError):

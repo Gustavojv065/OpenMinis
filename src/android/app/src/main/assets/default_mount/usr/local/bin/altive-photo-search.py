@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import unicodedata
 from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 
@@ -43,6 +44,27 @@ def usable_license(name):
     value = name.casefold().strip()
     return (value in ("cc0", "cc0 1.0", "public domain", "public domain mark 1.0")
         or re.fullmatch(r"cc by(?:-sa)?\s+(?:[1-4](?:\.\d)?)", value) is not None)
+
+def matches_subject_metadata(title, description, required_keywords):
+    """Conservative topic pre-filter, never a substitute for image vision.
+
+    If a specific subject is required, don't pick the first unrelated file
+    merely because Wikimedia's search API returned it. Use Unicode word
+    boundaries and normalised accent marks to match user-specified synonyms.
+    """
+    if not required_keywords:
+        return True
+    text = unicodedata.normalize("NFKD", f"{title} {description}").casefold()
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    words = set(re.findall(r"[a-z0-9]+", text))
+    for phrase in required_keywords:
+        term = unicodedata.normalize("NFKD", phrase).casefold()
+        term = "".join(ch for ch in term if not unicodedata.combining(ch))
+        required = re.findall(r"[a-z0-9]+", term)
+        if required and all(word in words for word in required):
+            return True
+    return False
+
 
 def trusted_photo_url(url):
     try:
@@ -99,7 +121,8 @@ def select_photo(page):
     if not title.startswith("File:"):
         return None
     return {
-        "title": title, "url": url, "artist": field(meta, "Artist") or
+        "title": title, "description": field(meta, "ImageDescription"),
+        "url": url, "artist": field(meta, "Artist") or
         field(meta, "Credit") or "Autor não identificado",
         "license": license_name, "license_url": field(meta, "LicenseUrl"),
         "source_page": "https://commons.wikimedia.org/wiki/" +
@@ -129,7 +152,7 @@ def download_photo(photo, dest, relative):
             handle.write(data)
     return str(relative / filename).replace("\\", "/")
 
-def run(queries, destination, per_query):
+def run(queries, destination, per_query, match_any=(), role=""):
     if destination.is_absolute() or ".." in destination.parts or not destination.parts:
         raise ValueError("Destination must remain inside the current project")
     cwd = Path.cwd().resolve()
@@ -138,6 +161,7 @@ def run(queries, destination, per_query):
         raise ValueError("Destination escapes project workspace")
     dest.mkdir(parents=True, exist_ok=True)
     assets, errors, seen = [], [], set()
+    rejected_off_topic = 0
     for query in queries:
         found = 0
         try:
@@ -149,9 +173,15 @@ def run(queries, destination, per_query):
             photo = select_photo(page)
             if not photo or photo["title"] in seen:
                 continue
+            if not matches_subject_metadata(
+                photo["title"], photo.get("description", ""), match_any
+            ):
+                rejected_off_topic += 1
+                continue
             try:
                 path = download_photo(photo, dest, destination)
-                assets.append({"query": query, "path": path, **{
+                assets.append({"query": query, "path": path,
+                    "visual_verdict": "NOT_VERIFIED", "role": role, **{
                     key: photo[key] for key in
                     ("title", "artist", "license", "license_url", "source_page")}})
                 seen.add(photo["title"])
@@ -177,6 +207,7 @@ def run(queries, destination, per_query):
         ensure_ascii=False) + "\n", encoding="utf-8")
     return {"status": "DOWNLOADED" if assets else "NO_LICENSED_PHOTOS",
         "images": assets, "errors": errors, "credits": manifest.name,
+        "rejected_off_topic": rejected_off_topic,
         "note": "Subject relevance and actual browser rendering still require verification."}
 
 def main():
@@ -185,11 +216,16 @@ def main():
         help="Subject in English; repeat for different topics")
     parser.add_argument("--dest", default="public/assets/real-photos", type=Path)
     parser.add_argument("--limit", type=int, default=3, help="Per-query images (1..8)")
+    parser.add_argument("--match-any", action="append", default=[],
+        help="A required visible subject keyword or synonym from metadata; repeat")
+    parser.add_argument("--role", default="",
+        help="Intended image slot: hero, espresso card, coffee gallery, etc.")
     args = parser.parse_args()
     if not 1 <= args.limit <= 8 or not 1 <= len(args.query) <= 8:
         parser.error("Use 1..8 queries and 1..8 photos per query")
     try:
-        result = run(args.query, args.dest, args.limit)
+        result = run(args.query, args.dest, args.limit,
+            match_any=args.match_any, role=args.role)
     except Exception as exc:
         result = {"status": "ERROR", "images": [], "errors": [str(exc)]}
     print(json.dumps(result, indent=2, ensure_ascii=False))
