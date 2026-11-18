@@ -96,6 +96,7 @@ internal object AltivVisualBuilder {
 ${AltivRootQualityMemory.instructions}
 ${AltivDevToolchainPolicy.instructions}
 ${AltivRealPhotoPolicy.instructions}
+${AltivSemanticDirectorPolicy.instructions}
 - Detect available enabled frontend/UI-UX/visual-QA skills; read their actual SKILL.md
   before using. Never invent loaded skills or results.
 - Inspect existing project files and all supplied assets before editing.
