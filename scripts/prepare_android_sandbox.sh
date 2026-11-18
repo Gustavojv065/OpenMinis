@@ -56,8 +56,10 @@ docker run --rm --platform linux/arm64 \
 tar --format=ustar --numeric-owner --owner=0 --group=0 \
   -czf "$ROOTFS_FILE" -C "$STAGING/rootfs" .
 test -s "$ROOTFS_FILE"
+# Avoid SIGPIPE under pipefail: grep must not terminate a streaming tar.
+tar -tzf "$ROOTFS_FILE" > "$STAGING/rootfs-content.list"
 for name in node npm npx python3 git bash apk; do
-  if ! tar -tzf "$ROOTFS_FILE" | grep -Eq "(^|/)(usr/bin|bin|sbin)/$name$"; then
+  if ! grep -Eq "(^|/)(usr/bin|bin|sbin)/$name$" "$STAGING/rootfs-content.list"; then
     echo "::error::Required ARM64 binary missing from rootfs: $name" >&2
     exit 1
   fi
