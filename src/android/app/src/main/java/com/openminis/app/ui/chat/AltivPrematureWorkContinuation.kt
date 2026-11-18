@@ -36,9 +36,15 @@ internal object AltivPrematureWorkContinuation {
     ): Boolean {
         if (!hasToolsAvailable || isHelper || userPromptWaiting || retryCount >= MAX_RETRIES) return false
         if (finishReason != "stop" && finishReason != "end_turn") return false
+        // Nemotron frequently combines an observation and the promised next
+        // action on one line:
+        // "Servidor ativo (HTTP 200). Agora vou fazer a inspeção visual."
+        // Only the FINAL sentence may trigger a continuation. Earlier
+        // announcements followed by an actual conclusion must not retry.
         val lastLine = text.lineSequence().map(String::trim).lastOrNull { it.isNotEmpty() } ?: return false
-        if (lastLine.length > 300) return false
-        return impendingAction.containsMatchIn(lastLine)
+        val lastSentence = lastLine.split(Regex("""(?<=[.!?])\s+""")).last().trim()
+        if (lastSentence.isEmpty() || lastSentence.length > 300) return false
+        return impendingAction.containsMatchIn(lastSentence)
     }
 
     fun needsUserVisibleInterruption(
