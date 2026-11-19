@@ -101,5 +101,117 @@ internal object AltivBundledSkills {
         - Formulários devem validar campos e acessibilidade; envio de sucesso simulado precisa ser explicitamente identificado.
         - Testes devem cobrir fluxo de compra com dois produtos e mudança de quantidades, WhatsApp preenchido, disponibilidade de horário, horário indisponível e layout mobile.
         """.trimIndent(),
+        """
+        ---
+        name: altive-design-system-handoff
+        version: 1.0.0
+        description: Transformar referências Figma e design systems autorizados em componentes, tokens CSS e interfaces responsivas.
+        ---
+
+        # ALTIVE Design System e Figma
+        
+        - Use links Figma apenas quando o MCP ou material enviado realmente permitir acesso; sem fingir uma conexão inexistente.
+        - Extraia paleta, tipografia, tokens, componentes e estados de interface com rastreabilidade à fonte.
+        - Crie componentes React reutilizáveis e preview; não copie layouts protegidos de terceiros sem autorização.
+        - Compare o resultado com a referência em mobile e desktop; confirme limitações de acesso antes de executar.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-github-safe-workflow
+        version: 1.0.0
+        description: Fluxo seguro GitHub para modificar repositórios com branch, commit, pull request, testes e autorização.
+        ---
+
+        # ALTIVE GitHub Seguro
+        
+        - Descubra o repositório e branch corretos antes de editar. Preserve código, segredos e configurações existentes.
+        - Faça alterações pequenas, com diffs claros, build e testes correspondentes.
+        - Prepare pull request e informe link e arquivos modificados; merge e deploy exigem autorização expressa.
+        - Nunca imprima tokens nem envie código privado a provedores sem permissão.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-supabase-saas-security
+        version: 1.0.0
+        description: Projetar SaaS Supabase com autenticação, RLS multiempresa, migrações reversíveis e testes de isolamento.
+        ---
+
+        # ALTIVE Supabase SaaS Seguro
+        
+        - Modele tenants, papéis, permissões e trilha de auditoria antes das tabelas; nunca exponha service_role no cliente.
+        - Cada tabela com dados de clientes deve ter RLS habilitada e políticas explícitas de isolamento entre empresas.
+        - Faça migrações versionadas e backups seguros; testes com duas organizações devem provar que A não acessa B.
+        - Só acesse projetos Supabase realmente conectados e autorizados; operações destrutivas pedem confirmação.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-vercel-release-checklist
+        version: 1.0.0
+        description: Publicação segura no Vercel com preview, ambiente, domínio e rollback sem alterar produção por engano.
+        ---
+
+        # ALTIVE Publicação Vercel
+        
+        - Verifique build local e logs antes do deploy; distinguia preview de produção.
+        - Confira variáveis de ambiente sem revelar segredos, domínio e proteção de rotas.
+        - Prepare deploy em preview e mostre URL real; solicite autorização para promover à produção.
+        - Se o Vercel não estiver conectado por MCP/API, entregue instruções e nunca invente deploy bem-sucedido.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-project-planner
+        version: 1.0.0
+        description: Planejamento autônomo de projetos web com supervisores, tarefas pequenas e critérios de aceite.
+        ---
+
+        # ALTIVE Planejamento e Supervisores
+        
+        - Transforme objetivo do cliente em requisitos, módulos, critérios de aceite e riscos, preservando orçamento de tokens.
+        - Divida trabalho em etapas pequenas; não repita diagnóstico completo a cada chamada.
+        - Use supervisores como papéis de verificação e não faça cinco chamadas caras quando uma execução bastar.
+        - Continue até concluir a tarefa possível com ferramentas disponíveis; registre bloqueios reais em vez de declarar 100% sem provas.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-template-creator
+        version: 1.0.0
+        description: Criar templates originais de lojas, igrejas, clínicas, cafeterias e barbearias adaptados ao cliente.
+        ---
+
+        # ALTIVE Template Creator
+        
+        - Crie componentes e variações originais, reutilizáveis, com design responsivo e dados de demonstração rotulados.
+        - Separe conteúdo, tema, páginas e configuração; valide mobile 360/390px e desktop.
+        - Não reutilize imagens, dados pessoais ou segredos de um cliente para outro.
+        - Inclua SEO básico, acessibilidade, estados vazios e botão de CTA testável; cite assets e licenças.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-licensed-media-research
+        version: 1.0.0
+        description: Pesquisa de imagens reais pertinentes ao negócio, fontes licenciadas, atribuição e revisão semântica.
+        ---
+
+        # ALTIVE Imagens Reais e Licenças
+        
+        - Antes de buscar, identifique o tema e a intenção de cada seção: barbearia exige corte/barba; cafeteria exige café/produtos.
+        - Pesquise apenas nas fontes realmente disponíveis; não presuma APIs conectadas ou acesso a fotos privadas.
+        - Cheque licença, origem, necessidade de atribuição, domínio e conteúdo visual. Prefira imagens reais adequadas em vez de SVG decorativo que não representa o serviço.
+        - Faça download permitido, guarde créditos e valide carregamento, recorte, responsividade e ausência de duplicatas.
+        """.trimIndent(),
+        """
+        ---
+        name: altive-notion-project-docs
+        version: 1.0.0
+        description: Documentação de projetos e especificações técnicas para Notion quando a conta estiver conectada.
+        ---
+
+        # ALTIVE Documentação e Notion
+        
+        - Gere requisitos, decisões, tarefas, changelog e instruções de teste em Markdown rastreável.
+        - Se Notion estiver conectado, confirme workspace e página autorizada antes de ler ou escrever.
+        - Nunca declare publicação no Notion sem resposta bem-sucedida da ferramenta.
+        - Respeite privacidade de clientes; não inclua tokens ou credenciais na documentação.
+        """.trimIndent(),
     )
 }
