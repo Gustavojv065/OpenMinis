@@ -1,4 +1,4 @@
-# ALTIVE DEV AI — Plano de integrações, skills e autenticação Google
+# ALTIVE DEV AI — Plano de integrações, skills e OAuth Google, Claude e Cloudflare
 Data: 2026-11-19
 Status: **proposta para a próxima versão**. Este documento não habilita integrações, não instala plugins, não altera produção e não comprova qualquer direito de uso de assinaturas pessoais.
 
@@ -77,3 +77,36 @@ O proprietário quer que o cliente instale o ALTIVE DEV AI Android ARM64, ative 
 - Google OAuth Android / Identity: https://developers.google.com/identity/protocols/oauth2/ and https://developers.google.com/identity/openid-connect/openid-connect
 - Figma MCP/REST: https://developers.figma.com/docs/figma-mcp-server/ and https://developers.figma.com/docs/rest-api/oauth-apps/
 - OpenAI plugin architecture: https://developers.openai.com/plugins/concepts/plugins
+
+
+## Adendo 2026-11-19 — Claude (Anthropic) E Cloudflare (não confundir)
+
+O pedido de uma terceira IA foi interpretado como **Claude, da Anthropic**, além do ChatGPT e Gemini; foi citada também **Cloudflare**, que é uma plataforma distinta para hospedagem e Workers AI. Registrar ambas como integrações distintas, sem prometer que assinaturas pessoais serão reutilizadas como API.
+
+### Claude (Anthropic)
+
+- A documentação oficial de **Claude Platform OAuth (beta)** permite que um app de terceiros ofereça **"Vincular organização Claude"** com consentimento para *linked billing*, sem receber a chave de API do cliente. Não é login da assinatura pessoal Claude: requer organização na Claude Console com faturamento API direto com Anthropic, administrador/Billing e app OAuth configurado. Pode ser cobrada a organização API do próprio cliente, inclusive com teto de gastos configurado. Integração exige backend/identidade federada e validação em ambiente de teste; API key continua alternativa.
+- **Não** oferecer login Claude.ai Free/Pro/Max/Ultra/Team/Enterprise como forma de gastar cota de assinatura dentro do ALTIVE. A Anthropic proíbe explicitamente que desenvolvedores de apps de terceiros encaminhem solicitações pelas credenciais de assinaturas Claude.ai. Não capturar cookies ou reaproveitar tokens do Claude Code nem contornar API/pagamento.
+- Separar na interface "Claude Platform — Vincular organização (API faturada)", "Claude — Chave API" e "Assinatura pessoal Claude — não aplicável a uso da API no ALTIVE".
+- Não afirmar que a conta vinculada protege dados com configurações da organização do cliente: chamadas seguem o ambiente/dados e termos da app, só faturamento é vinculado.
+
+### Cloudflare (infraestrutura e, separadamente, Workers AI)
+
+- Desde junho de 2026, Cloudflare oferece **clientes OAuth gerenciados pelo integrador** para apps terceiros. Para Android, usar **Authorization Code + PKCE S256** sem segredo embutido no APK; requer cadastro do app, escopos mínimos, consentimento no navegador, persistência segura, refresh/revogação e **verificação de domínio para publicar cliente OAuth** para todos os consumidores. Cliente privado serve somente à conta de origem.
+- Possíveis ferramentas: projetos/Workers, Pages, DNS, R2, e Workers AI conforme escopos autorizados. Não executar deploy/alteração de DNS automaticamente sem aprovação do cliente.
+- Um login Cloudflare **não concede modelos Claude, ChatGPT ou Gemini nem acesso ilimitado grátis**; Workers AI tem serviços, quotas e cobrança próprios. O uso de Workers AI depende de APIs/modelos elegíveis, limites e autorização por conta. Mostrar preço e suspender fallback pago sem consentimento.
+
+### Priorização e aceite novos
+
+1. P1 — estudo e protótipo OAuth **Claude Platform linked billing**. Verificar elegibilidade, aprovação, limite de gasto, uma chamada de inferência autorizada, desconexão e relatório do valor cobrado ao titular. Não comercializar como Claude Pro OAuth.
+2. P1 — **Cloudflare OAuth** como conector de infraestrutura. Implementar Auth Code + PKCE e escopos por tarefa. Provar listar um recurso sem alterar nada; escrita/deploy só por confirmação. Publicação depende da verificação de domínio exigida pela Cloudflare.
+3. P2 — **Workers AI** como provedor de modelos separado; selecionar endpoint/modelo com compatibilidade real com as ferramentas do agente, quotas e custo. Login OAuth de infraestrutura não é teste suficiente para declarar modelos utilizáveis.
+4. Expor status "Disponível para conexão", "Em desenvolvimento", "Não suportado" e "Conta de API com cobrança"; nunca mostrar "grátis" sem avaliação das cotas. Realizar testes de segurança e permissões multiusuário antes de integrar.
+
+**Fontes oficiais:**
+- https://platform.claude.com/docs/en/manage-claude/oauth-apps/overview
+- https://support.claude.com/en/articles/18467148-use-your-claude-platform-account-in-a-third-party-app
+- https://code.claude.com/docs/en/legal-and-compliance
+- https://developers.cloudflare.com/changelog/post/2026-06-03-public-oauth-clients/
+- https://developers.cloudflare.com/fundamentals/oauth/create-an-oauth-client/
+- https://developers.cloudflare.com/workers/authorization/
