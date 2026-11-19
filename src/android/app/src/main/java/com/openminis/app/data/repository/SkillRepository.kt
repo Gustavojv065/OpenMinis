@@ -236,6 +236,11 @@ class SkillRepository(private val context: Context) {
         runCatching { installBundledSkills() }.onFailure {
             Log.e(TAG, "installBundledSkills failed — continuing: ${it.message}", it)
         }
+        // ALTIVE-authored skills are local instructions, not third-party
+        // plugins or provider authorizations. Never overwrite user editions.
+        runCatching { installAltivBundledSkills() }.onFailure {
+            Log.e(TAG, "installAltivBundledSkills failed — continuing: ${it.message}", it)
+        }
         startReloadWorker()
     }
 
@@ -1348,6 +1353,27 @@ class SkillRepository(private val context: Context) {
                 source = ImportSource.BUNDLED,
             )
             Log.i(TAG, "Installed bundled skill: $bundledId (v$bundledVersion)")
+        }
+    }
+
+    /**
+     * Install original ALTIVE skills for the commercial flavor at first launch.
+     * Never replace a skill with the same id, even when user-edited: a reinstall
+     * or APK upgrade must not destroy the customer's local skill instructions.
+     */
+    private fun installAltivBundledSkills() {
+        if (BuildConfig.FLAVOR != "altiv") return
+        for (markdown in AltivBundledSkills.contents) {
+            val parsed = parseSkillMd(markdown) ?: continue
+            val id = slugify(parsed.name)
+            if (id.isBlank() || _skills.value.any { it.id == id }) continue
+            add(
+                name = parsed.name,
+                description = parsed.description,
+                body = parsed.body,
+                version = parsed.version,
+                source = ImportSource.BUNDLED,
+            )
         }
     }
 

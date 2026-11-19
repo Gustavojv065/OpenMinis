@@ -148,6 +148,7 @@ jobs:
             --tests 'com.openminis.app.provider.OpenAIProviderTest' \
             --tests 'com.openminis.app.provider.openai.OpenAIFamilyGatesTest' \
             --tests 'com.openminis.app.data.repository.AltivProfessionalSkillRoutingTest' \
+            --tests 'com.openminis.app.data.repository.AltivBundledSkillsTest' \
             --tests 'com.openminis.app.ui.settings.AltivBrandingConsistencyTest' \
             --tests 'com.openminis.app.ui.settings.AltivFullBrandingTest' \
             --tests 'com.openminis.app.ui.settings.AltivCustomerFacingBrandTest' \
