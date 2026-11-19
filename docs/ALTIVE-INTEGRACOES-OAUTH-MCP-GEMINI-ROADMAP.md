@@ -110,3 +110,20 @@ O pedido de uma terceira IA foi interpretado como **Claude, da Anthropic**, alé
 - https://developers.cloudflare.com/changelog/post/2026-06-03-public-oauth-clients/
 - https://developers.cloudflare.com/fundamentals/oauth/create-an-oauth-client/
 - https://developers.cloudflare.com/workers/authorization/
+
+
+## Ponto de execução 2026-11-19 — próximo APK integrado
+
+**PR #59:** adiciona no código cinco skills locais originais do ALTIVE (Prompt Studio, UX/frontend, 3D, auditoria visual, ecommerce/agendamento). Instalação automática na variante `altiv`, preservando skills do usuário. CI Android ARM64 #175 disparado. **Não** são plugins terceiros reais. Não lançar APK como "integrações completas" enquanto OAuth não for implementado e testado.
+
+**Bloqueios que exigem registros oficiais da empresa/proprietário:**
+
+- **Gemini/Google:** cadastrar um cliente OAuth Android do ALTIVE no Google Cloud, verificar pacote `online.altiv.devai` e SHA-1/SHA-256 da assinatura utilizada, configurar consentimento/permissões, projeto Cloud e faturamento/quota, selecionar endpoint autorizado (p.ex. Vertex AI). Separar login Google de autorização de inferência. Não reutilizar fluxo privado `cloudcode-pa.googleapis.com/v1internal` do `GeminiOAuthManager.kt` para aplicação comercial, nem client secret de aplicativo alheio.
+- **Claude Platform:** cadastrar app OAuth beta na Claude Console com proprietário Admin, identidade federada do backend e service account operacional. Para contas pessoais Claude Free/Pro/Max/Ultra, **não** implementar login Claude.ai OAuth no ALTIVE, nem reaproveitar tokens do Claude Code `ClaudeOAuthManager.kt` (usa cliente OAuth e headers de aplicativo terceiro). O uso da assinatura por cliente final só pode acontecer dentro do binário Claude Code oficial, não através de um proxy/cliente pessoal do ALTIVE.
+- **Figma MCP:** o endpoint remoto existe, mas somente clientes aprovados no catálogo têm acesso atualmente; ALTIVE precisa aprovação/waitlist ou fluxo REST API próprio autorizado.
+- **Vercel e Notion:** presets MCP já existem, precisam testes de OAuth, permissões, ferramentas efetivas e revogação.
+- **WhatsApp BARBEARIA IMPÉRIO:** demonstração abriu WhatsApp com telefone `+55 11 99999-9999` não cadastrado; precisa número real fornecido pelo dono, não obter de prints aleatórios, e teste de mensagem de agendamento antes de homologação.
+
+**Critério final:** em ambiente de teste, login oficial Google com token do *próprio* cliente registrado, validação de acesso à API com projeto/quotas próprios, Claude Platform vinculada por organização autorizada, login/logout/refresh, skills executadas, conectores reais e APK ARM64 assinado e instalado em aparelho. Caso qualquer dependência falhe, entregar status parcial com evidências, sem chamar de APK completo.
+
+Referências oficiais: https://code.claude.com/docs/en/legal-and-compliance ; https://platform.claude.com/docs/en/manage-claude/oauth-apps/overview ; https://developers.google.com/identity/protocols/oauth2/policies ; https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/
