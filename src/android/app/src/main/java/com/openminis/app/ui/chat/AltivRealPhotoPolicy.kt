@@ -22,6 +22,12 @@ internal object AltivRealPhotoPolicy {
   ALTIVE_PIXABAY_API_KEY and ALTIVE_UNSPLASH_ACCESS_KEY. Do NOT use the
   OpenAI/Gemini/ChatGPT credential as a photo provider key. Do not solicit
   customer keys in chat, save them in the project or print them in logs.
+  The customer can add the OPTIONAL key through ALTIVE Settings >
+  Environment Variables (encrypted at rest and enabled for the sandbox);
+  no Termux, shell instructions or key pasted into conversation are needed.
+  Enabled environment keys are available to sandbox subprocesses: use only
+  provider-specific credentials, and warn the customer to avoid untrusted
+  project scripts while they are enabled.
   No key? Continue with Wikimedia. Do not pretend Pexels or Unsplash ran.
 - Wikimedia, Pexels and Pixabay allow locally saved licensed images under
   their applicable terms; verify actual source, creator, license and any
