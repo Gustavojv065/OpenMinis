@@ -230,7 +230,13 @@ def download_candidate(candidate, folder, destination):
     filename = provider + "-" + hashlib.sha256(
         (url + candidate["title"]).encode()).hexdigest()[:16] + ext
     output = folder / filename
-    if not output.exists():
+    if output.is_symlink():
+        raise ValueError("Existing image path must not be a symlink")
+    if output.exists():
+        # A reused asset must still have valid content, not just a file name.
+        if image_format(output.read_bytes()[:16]) != ext:
+            raise ValueError("Existing image content does not match expected format")
+    else:
         with output.open("xb") as handle:
             handle.write(data)
     return str(destination / filename).replace("\\", "/")
@@ -260,6 +266,15 @@ def quality_filter(candidate, match_any, excluded):
                 ["commons.wikimedia.org", "www.flickr.com", "flickr.com",
                  "www.pexels.com", "pixabay.com", "unsplash.com"])):
             return False
+    trusted_pages = {
+        "pexels": {"www.pexels.com", "pexels.com"},
+        "pixabay": {"pixabay.com", "www.pixabay.com"},
+        "wikimedia": {"commons.wikimedia.org"},
+        "unsplash": {"unsplash.com", "www.unsplash.com"},
+    }
+    if provider in trusted_pages and not safe_https(
+            candidate.get("source_page") or "", trusted_pages[provider]):
+        return False
     if not commons["matches_subject_metadata"](
             candidate["title"], candidate.get("description", ""), match_any):
         return False
@@ -330,7 +345,7 @@ def run(queries, destination, limit=3, source="auto", role="", niche="",
                         "artist": c["artist"], "artist_url": c.get("artist_url", ""),
                         "license": c["license"], "license_url": c["license_url"],
                         "source_page": c["source_page"], "visual_verdict": "NOT_VERIFIED",
-                        "requires_attribution": provider in ("unsplash", "wikimedia", "openverse"),
+                        "requires_attribution": True,  # Always show source credits; required for Unsplash.
                         "delivery": c["mode"],
                     })
                     count += 1
