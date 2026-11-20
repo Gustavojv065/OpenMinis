@@ -195,8 +195,8 @@ internal object AltivBundledSkills {
         # ALTIVE Imagens Reais e Licenças
         
         - Antes de buscar, identifique o tema e a intenção de cada seção: barbearia exige corte/barba; cafeteria exige café/produtos.
-        - Pesquise apenas nas fontes realmente disponíveis; não presuma APIs conectadas ou acesso a fotos privadas.
-        - Cheque licença, origem, necessidade de atribuição, domínio e conteúdo visual. Prefira imagens reais adequadas em vez de SVG decorativo que não representa o serviço.
+        - Pesquise pelo altive-media-search.py em Wikimedia/Openverse sem chave e Pexels/Pixabay/Unsplash apenas com credencial própria autorizada. Não presuma APIs conectadas ou acesso a fotos privadas.
+        - Cheque licença, origem, necessidade de atribuição, domínio e conteúdo visual. Use arquivos locais só de fontes que permitam; fotos Unsplash API precisam de hotlink e atribuição. Prefira imagens reais adequadas em vez de SVG decorativo que não representa o serviço.
         - Faça download permitido, guarde créditos e valide carregamento, recorte, responsividade e ausência de duplicatas.
         """.trimIndent(),
         """
