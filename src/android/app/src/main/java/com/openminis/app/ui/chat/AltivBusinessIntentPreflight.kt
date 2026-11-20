@@ -81,7 +81,7 @@ internal object AltivBusinessIntentPreflight {
             appendLine("- Use the correct existing ALTIVE skills and verified business facts; do not")
             appendLine("  borrow brands, client data or media from other projects.")
             appendLine("- Search with narrow terms PER SLOT and pass explicit --role, --match-any,")
-            appendLine("  --niche when recognized and --exclude-any exclusions to altive-photo-search.py.")
+            appendLine("  --niche when recognized and --exclude-any exclusions to altive-media-search.py.")
             appendLine("- STOP and replace any candidate whose subject/scene does not match the exact slot.")
             appendLine("  A technically valid image is not semantic approval: use read_image when real")
             appendLine("  vision is available; otherwise report NOT_VERIFIED rather than guessing.")

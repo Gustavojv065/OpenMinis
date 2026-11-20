@@ -35,6 +35,24 @@ class AltivRealPhotoPolicyTest {
         assertFalse(t.contains("ignore copyright"))
     }
 
+    @Test fun newWebTaskHasSafeMultiSourceInstructions() {
+        val d = AltivVisualBuilder.decide(
+            "Crie uma landing page moderna para uma barbearia",
+            false, emptyList(), false, false
+        )
+        assertEquals(AltivVisualBuilder.Route.WEB_PROJECT, d.route)
+        for (term in listOf(
+            "altive-media-search.py", "Pexels", "Pixabay", "Unsplash",
+            "Wikimedia", "Openverse", "ALTIVE-PHOTO-CREDITS.json",
+            "ALTIVE_PEXELS_API_KEY", "ALTIVE_UNSPLASH_ACCESS_KEY",
+            "MUST hotlink", "NOT_VERIFIED", "read_image",
+            "no API key", "do not scrape Google"
+        )) {
+            assertTrue("Missing photo safety requirement: $term",
+                d.instructions.contains(term, ignoreCase = true))
+        }
+    }
+
     @Test fun ordinaryQuestionsDoNotAutomaticallyDownloadImages() {
         assertEquals(AltivVisualBuilder.Route.NONE,
             AltivVisualBuilder.decide("O que é SVG?", false, emptyList(), false, false).route)

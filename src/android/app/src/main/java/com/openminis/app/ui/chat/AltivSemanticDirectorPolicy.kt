@@ -34,11 +34,17 @@ STEP 1 — STRUCTURED BUSINESS BRIEF (before generating visual assets)
 - Automatically adapt this semantic plan to ANY business, not only cafes.
   Do not reuse photos, brand mood, or invented content from previous clients.
 
-STEP 2 — RESEARCH AND DOWNLOAD, NEVER SILENTLY FILL WITH RANDOM IMAGES
-- Search each image slot separately using a concrete subject query and the
-  bundled Wikimedia Commons licensed-photo helper (or approved user assets).
-- Supply --match-any keyword filters with concrete subject synonyms to reject
-  unrelated titles/descriptions before download. This is PRE-FILTER ONLY.
+STEP 2 — SEARCH MULTIPLE LICENSED SOURCES, NEVER FILL WITH RANDOM IMAGES
+- Search each image slot separately with concrete subject queries and the
+  bundled altive-media-search.py --source auto (or approved user assets).
+  Wikimedia Commons needs no key. Pexels, Pixabay, Unsplash require their
+  respective authorized environment credentials; Openverse is discovery-only
+  for potentially untrusted hosts. Do not fabricate connected providers.
+- Supply --match-any synonyms plus --niche and --exclude-any for forbidden
+  scenes before selecting a photo. This is a PRE-FILTER ONLY, not pixel QA.
+- Respect source-specific delivery: downloaded local photo for Wikimedia,
+  Pexels or Pixabay; Unsplash API MUST use official hotlinks, credit the
+  photographer and trigger its download_location when selected.
   Example for a coffee product: --match-any espresso --match-any coffee.
   Example for a dog service: --match-any dog --match-any canine.
 - Keep source, author, license URL and attribution. Local files must decode.
@@ -48,8 +54,10 @@ STEP 2 — RESEARCH AND DOWNLOAD, NEVER SILENTLY FILL WITH RANDOM IMAGES
   terms rather than broadening to unrelated photos. Report any missing slots.
 
 STEP 3 — ACTUAL VISUAL UNDERSTANDING, NOT FILENAME GUESSING
-- For each downloaded photo that will be used in a hero, product card, gallery,
-  or service card, call read_image on the actual local image file with a prompt:
+- For each downloaded photo used in a hero, product card, gallery or service,
+  call read_image on the actual local file. For Unsplash hotlinks, inspect
+  the REAL rendered screenshot or an authorized image-capable view; do not
+  substitute URL/metadata descriptions for actual pixels. Use a prompt:
   "Does this image actually show [subjectRequired] suitable for [visualRole] in
    [businessNiche]? Describe visible objects and context. Identify any
    unrelated subject. Return APPROVE or REJECT with concrete evidence."

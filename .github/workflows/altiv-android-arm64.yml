@@ -58,7 +58,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile src/android/app/src/main/assets/default_mount/usr/local/bin/altive-photo-search.py
+          python3 -m py_compile src/android/app/src/main/assets/default_mount/usr/local/bin/altive-media-search.py
           python3 -m unittest discover -s scripts/tests -p 'test_altive_photo_search.py' -v
+          python3 -m unittest discover -s scripts/tests -p 'test_altive_media_search.py' -v
 
       - name: Configure Java 17
         uses: actions/setup-java@v4
