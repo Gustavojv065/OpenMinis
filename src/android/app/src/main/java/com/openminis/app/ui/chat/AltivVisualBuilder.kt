@@ -63,7 +63,7 @@ internal object AltivVisualBuilder {
         if (!hasImage && !hasProjectZip) {
             return when {
                 isWebProjectTask(message) ->
-                    Decision(Route.WEB_PROJECT, instructionsFor(Route.WEB_PROJECT))
+                    Decision(Route.WEB_PROJECT, instructionsFor(Route.WEB_PROJECT, message))
                 isProgrammingTask(message) ->
                     Decision(Route.DEV_ENVIRONMENT, AltivDevToolchainPolicy.instructions + "\n" +
                         AltivAutonomousSupervisorPolicy.instructions)
@@ -82,7 +82,7 @@ internal object AltivVisualBuilder {
             visionGroupConfigured -> Route.VISION_GROUP
             else -> Route.NEEDS_VISION
         }
-        return Decision(route, if (route == Route.NONE) "" else instructionsFor(route))
+        return Decision(route, if (route == Route.NONE) "" else instructionsFor(route, message))
     }
 
     fun blockedNotice(): String =
@@ -92,7 +92,8 @@ internal object AltivVisualBuilder {
         "ou anexe um ZIP com o projeto e os recursos visuais reais. " +
         "Seu texto e anexos foram preservados; nenhuma API paga foi acionada."
 
-    private fun instructionsFor(route: Route): String = """
+    private fun instructionsFor(route: Route, message: String): String = """
+${AltivBusinessIntentPreflight.forRequest(message)}
 [ALTIVE VISUAL BUILDER — premium web creation, reference and preview workflow]
 ${AltivRootQualityMemory.instructions}
 ${AltivDevToolchainPolicy.instructions}

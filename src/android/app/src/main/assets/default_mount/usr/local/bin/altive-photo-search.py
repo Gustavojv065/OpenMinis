@@ -66,6 +66,36 @@ def matches_subject_metadata(title, description, required_keywords):
     return False
 
 
+# Hard exclusions prevent predictable cross-niche errors BEFORE downloading.
+# They are metadata-only prefilters. Pixel-level semantic review is still required.
+NICHE_EXCLUSIONS = {
+    "automotive-detailing": ("gas station", "fuel station", "gasoline station",
+        "petrol station", "filling station", "gas pump", "petrol pump", "fuel pump"),
+    "coffee-shop": ("cruise ship", "city skyline", "park bench"),
+    "pet-shop": ("gas station", "city skyline", "cruise ship"),
+    "barbershop": ("pet grooming", "dog grooming", "gas station"),
+    "fashion-store": ("gas station", "cruise ship"),
+}
+
+
+def matches_excluded_metadata(title, description, excluded_keywords):
+    """Reject explicitly forbidden scenes using complete words/phrases.
+
+    Matching only a substring (e.g. 'gas' in 'gastronomy') is unsafe.
+    All exclusions are conservative metadata prefilters, NOT image recognition.
+    """
+    text = unicodedata.normalize("NFKD", f"{title} {description}").casefold()
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    words = " " + " ".join(re.findall(r"[a-z0-9]+", text)) + " "
+    for phrase in excluded_keywords:
+        term = unicodedata.normalize("NFKD", str(phrase)).casefold()
+        term = "".join(ch for ch in term if not unicodedata.combining(ch))
+        token_phrase = " ".join(re.findall(r"[a-z0-9]+", term))
+        if token_phrase and f" {token_phrase} " in words:
+            return True
+    return False
+
+
 def trusted_photo_url(url):
     try:
         u = urlparse(url)
@@ -152,7 +182,7 @@ def download_photo(photo, dest, relative):
             handle.write(data)
     return str(relative / filename).replace("\\", "/")
 
-def run(queries, destination, per_query, match_any=(), role=""):
+def run(queries, destination, per_query, match_any=(), role="", exclude_any=(), niche=""):
     if destination.is_absolute() or ".." in destination.parts or not destination.parts:
         raise ValueError("Destination must remain inside the current project")
     cwd = Path.cwd().resolve()
@@ -162,6 +192,8 @@ def run(queries, destination, per_query, match_any=(), role=""):
     dest.mkdir(parents=True, exist_ok=True)
     assets, errors, seen = [], [], set()
     rejected_off_topic = 0
+    rejected_forbidden = 0
+    forbidden = tuple(exclude_any) + NICHE_EXCLUSIONS.get(niche, ())
     for query in queries:
         found = 0
         try:
@@ -177,6 +209,11 @@ def run(queries, destination, per_query, match_any=(), role=""):
                 photo["title"], photo.get("description", ""), match_any
             ):
                 rejected_off_topic += 1
+                continue
+            if matches_excluded_metadata(
+                photo["title"], photo.get("description", ""), forbidden
+            ):
+                rejected_forbidden += 1
                 continue
             try:
                 path = download_photo(photo, dest, destination)
@@ -208,6 +245,8 @@ def run(queries, destination, per_query, match_any=(), role=""):
     return {"status": "DOWNLOADED" if assets else "NO_LICENSED_PHOTOS",
         "images": assets, "errors": errors, "credits": manifest.name,
         "rejected_off_topic": rejected_off_topic,
+        "rejected_forbidden": rejected_forbidden,
+        "niche": niche or "unspecified",
         "note": "Subject relevance and actual browser rendering still require verification."}
 
 def main():
@@ -220,12 +259,17 @@ def main():
         help="A required visible subject keyword or synonym from metadata; repeat")
     parser.add_argument("--role", default="",
         help="Intended image slot: hero, espresso card, coffee gallery, etc.")
+    parser.add_argument("--niche", choices=sorted(NICHE_EXCLUSIONS), default="",
+        help="Optional business niche with safe exclusions for clearly unrelated scenes")
+    parser.add_argument("--exclude-any", action="append", default=[],
+        help="Reject metadata that mentions this forbidden subject/phrase; repeatable")
     args = parser.parse_args()
     if not 1 <= args.limit <= 8 or not 1 <= len(args.query) <= 8:
         parser.error("Use 1..8 queries and 1..8 photos per query")
     try:
         result = run(args.query, args.dest, args.limit,
-            match_any=args.match_any, role=args.role)
+            match_any=args.match_any, role=args.role,
+            exclude_any=args.exclude_any, niche=args.niche)
     except Exception as exc:
         result = {"status": "ERROR", "images": [], "errors": [str(exc)]}
     print(json.dumps(result, indent=2, ensure_ascii=False))

@@ -166,6 +166,7 @@ jobs:
             --tests 'com.openminis.app.ui.chat.AltivVisualBuilderTest' \
             --tests 'com.openminis.app.ui.chat.AltivRealPhotoPolicyTest' \
             --tests 'com.openminis.app.ui.chat.AltivSemanticDirectorPolicyTest' \
+            --tests 'com.openminis.app.ui.chat.AltivBusinessIntentPreflightTest' \
             --tests 'com.openminis.app.ui.chat.AltivAutonomousSupervisorPolicyTest' \
             --tests 'com.openminis.app.browser.AltivVisualAuditTest' \
             --tests 'com.openminis.app.commercial.AltivLicenseActivationContractTest' \
