@@ -61,6 +61,40 @@ class PhotoSearchContract(unittest.TestCase):
         self.assertFalse(match("File:Boat.jpg", "Lake", ["cat", "kitten", "feline"]))
         self.assertTrue(match("File:Cat portrait.jpg", "Domestic cat", ["cat", "kitten"]))
 
+    def test_automotive_detailer_rejects_gas_station_metadata(self):
+        forbidden = MODULE["NICHE_EXCLUSIONS"]["automotive-detailing"]
+        reject = MODULE["matches_excluded_metadata"]
+        self.assertTrue(reject("File:Gas station.jpg",
+            "Cars at a fuel pump", forbidden))
+        self.assertTrue(reject("File:Petrol-station parking.jpg",
+            "Car parked at petrol station", forbidden))
+        self.assertTrue(reject("File:Car polishing at gas station.jpg",
+            "Detailing beside gasoline station", forbidden))
+        self.assertFalse(reject("File:Car polishing.jpg",
+            "A worker uses a polisher on black paint", forbidden))
+        self.assertFalse(reject("File:Auto detailing.jpg",
+            "Ceramic coating application", forbidden))
+
+    def test_negative_filter_uses_whole_words_not_substrings(self):
+        reject = MODULE["matches_excluded_metadata"]
+        self.assertFalse(reject("File:Fuel.jpg", "Gastronomy",
+            ["gas"]))
+        self.assertTrue(reject("File:Gas station.jpg", "",
+            ["gas station"]))
+        self.assertTrue(reject("File:Fuel pump.jpg", "",
+            ["fuel pump"]))
+        self.assertFalse(reject("File:Coffee cup.jpg", "",
+            ["gas station"]))
+
+    def test_other_niche_filters_are_available(self):
+        niches = MODULE["NICHE_EXCLUSIONS"]
+        for item in ("barbershop", "pet-shop", "coffee-shop", "fashion-store"):
+            self.assertIn(item, niches)
+            self.assertTrue(niches[item])
+        self.assertFalse(MODULE["matches_excluded_metadata"](
+            "File:Car ceramic coating.jpg", "",
+            niches["automotive-detailing"]))
+
     def test_destination_cannot_escape_customer_project(self):
         for path in (Path("../other-project"), Path("/tmp/other-project")):
             with self.assertRaises(ValueError):
