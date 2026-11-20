@@ -20,6 +20,16 @@ internal object AltivRealPhotoPolicy {
   Translate/adapt English search terms to the requested subject and niche
   (pet shop, cars, houses, food, barbering, etc). Use multiple SPECIFIC queries
   for distinct sections. Never apply pet photos to another business type.
+- FIRST determine business niche and each photo slot's meaning. For recognized
+  niches pass --niche (e.g. --niche automotive-detailing) and use repeatable
+  --exclude-any forbidden scene filters; the helper rejects off-topic metadata
+  BEFORE downloading. Never search just "car" when the job is car detailing.
+  Example:
+    python3 /usr/local/bin/altive-photo-search.py --niche automotive-detailing --role hero --query "car detailing polish" --match-any polishing --match-any detailing --exclude-any "gas station" --limit 3
+  For auto-detailing, fuel pumps and gas station architecture are WRONG even
+  when a vehicle is visible. Photos must show relevant cleaning, polishing,
+  coating or interior detailing. Metadata filtering is preliminary; call
+  read_image where actual vision is available, not just HTTP 200.
 - Tool must actually return DOWNLOADED and nonempty images. Read its JSON
   output; check every local file exists, has a recognizable image format and
   points to the correct subject. The project includes
