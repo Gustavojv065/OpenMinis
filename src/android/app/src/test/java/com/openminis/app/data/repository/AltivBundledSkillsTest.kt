@@ -8,7 +8,7 @@ import org.junit.Test
 
 class AltivBundledSkillsTest {
     @Test fun allOriginalAltivSkillsHaveValidDistinctMetadata() {
-        assertEquals(5, AltivBundledSkills.contents.size)
+        assertEquals(13, AltivBundledSkills.contents.size)
         val names = AltivBundledSkills.contents.map { raw ->
             val parsed = SkillRepository.parseSkillMd(raw)
             assertNotNull("Bundled skill must have SKILL.md frontmatter", parsed)
@@ -19,6 +19,11 @@ class AltivBundledSkillsTest {
             parsed.name
         }
         assertEquals(names.size, names.distinct().size)
+        assertTrue(names.contains("altive-prompt-studio"))
+        assertTrue(names.contains("altive-github-safe-workflow"))
+        assertTrue(names.contains("altive-supabase-saas-security"))
+        assertTrue(names.contains("altive-licensed-media-research"))
+        assertTrue(names.contains("altive-template-creator"))
     }
 
     @Test fun skillsDoNotClaimThirdPartyPluginAccessOrSimulatedSuccess() {

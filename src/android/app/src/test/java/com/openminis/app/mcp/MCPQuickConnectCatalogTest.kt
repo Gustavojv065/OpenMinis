@@ -9,7 +9,7 @@ class MCPQuickConnectCatalogTest {
     @Test
     fun `remote presets use unique, expected IDs`() {
         val ids = MCPQuickConnectCatalog.presets.map { it.id }
-        assertEquals(listOf("github", "notion", "vercel"), ids)
+        assertEquals(listOf("github", "notion", "vercel", "magicpath", "magnific"), ids)
         assertEquals(ids.size, ids.distinct().size)
     }
 
@@ -30,5 +30,7 @@ class MCPQuickConnectCatalogTest {
         assertEquals("https://api.githubcopilot.com/mcp/", endpoints["github"])
         assertEquals("https://mcp.notion.com/mcp", endpoints["notion"])
         assertEquals("https://mcp.vercel.com", endpoints["vercel"])
+        assertEquals("https://api.magicpath.ai/mcp", endpoints["magicpath"])
+        assertEquals("https://api.mcp.ai/p_magnific", endpoints["magnific"])
     }
 }

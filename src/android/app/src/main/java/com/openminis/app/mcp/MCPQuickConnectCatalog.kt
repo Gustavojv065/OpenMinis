@@ -4,9 +4,11 @@ package com.openminis.app.mcp
  * Verified, public remote MCP endpoints. These templates only prefill the
  * existing form; selecting one must never save credentials or start OAuth.
  *
- * Figma is deliberately excluded: its remote MCP currently limits new clients.
- * Supabase is deliberately excluded until a project-scoped read-only flow is
- * available, to prevent unintentional access to every project.
+ * Figma is deliberately excluded: its remote MCP accepts only approved clients.
+ * Supabase uses its dedicated scoped flow; do not add a second broad preset.
+ * MagicPath/Magnific are OPTIONAL user-authorized integrations, not installed
+ * ChatGPT plugins or automatically authenticated accounts. Magnific operations
+ * may spend the customer's credits and must require clear approval.
  */
 internal data class MCPQuickConnectPreset(
     val id: String,
@@ -30,6 +32,16 @@ internal object MCPQuickConnectCatalog {
             id = "vercel",
             label = "Vercel",
             url = "https://mcp.vercel.com",
+        ),
+        MCPQuickConnectPreset(
+            id = "magicpath",
+            label = "MagicPath",
+            url = "https://api.magicpath.ai/mcp",
+        ),
+        MCPQuickConnectPreset(
+            id = "magnific",
+            label = "Magnific (usa créditos da conta)",
+            url = "https://api.mcp.ai/p_magnific",
         ),
     )
 }
