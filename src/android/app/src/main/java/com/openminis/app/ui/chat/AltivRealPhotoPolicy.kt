@@ -16,7 +16,7 @@ internal object AltivRealPhotoPolicy {
 - Prefer photos supplied and authorized by the customer. Otherwise use
   the bundled ALTIVE MULTI-SOURCE SEARCH (from the current project directory):
     python3 /usr/local/bin/altive-media-search.py --source auto --query "dog grooming bath" --niche pet-shop --role hero --match-any dog --match-any grooming --dest public/assets/real-photos --limit 3
-  SOURCES: Wikimedia Commons and Openverse work without provider keys.
+  SOURCES: Wikimedia Commons and Openverse work with no API key.
   Pexels, Pixabay and Unsplash are OPTIONAL only when their OWN API keys
   are securely available in environment variables ALTIVE_PEXELS_API_KEY,
   ALTIVE_PIXABAY_API_KEY and ALTIVE_UNSPLASH_ACCESS_KEY. Do NOT use the
