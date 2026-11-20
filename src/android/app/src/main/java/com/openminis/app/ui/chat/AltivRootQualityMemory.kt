@@ -18,6 +18,13 @@ ASSETS / SEMANTIC CORRECTNESS
   meaning (e.g. luxury car vs a house), source URL or local file, rights and
   real render state. For an automotive catalog, each vehicle must show a vehicle;
   a photo of a house is a CONTENT ERROR even when naturalWidth is nonzero.
+- FIRST-PASS LESSON from ALTIVE AUTO PREMIUM: "automotive" alone is
+  ambiguous. An auto-detailing hero must show polishing, ceramic coating,
+  washing or interior cleaning, NEVER fuel stations, pumps or generic buildings.
+  Review the ACTION of the business, not merely an object such as a car.
+  Apply this principle to EVERY other niche with a slot-specific semantic brief
+  BEFORE generating the first page; avoid a second paid iteration just to
+  replace obvious off-topic media.
 - Never use an unrelated photo to make a card appear complete. Do not invent
   sources, photo licenses, customer reviews or model specifications.
 - Explicitly inspect broken/unloaded images (complete, naturalWidth,
