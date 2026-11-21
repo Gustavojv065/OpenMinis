@@ -120,7 +120,14 @@ object AgentTools {
         description = "Execute a command in an isolated Linux process (Alpine Linux via PRoot). " +
             "The command runs via /bin/sh -c with stdout and stderr merged. " +
             "Each invocation spawns a fresh process — there is no shared terminal session. " +
-            "Default timeout is 15 minutes.",
+            "Default timeout is 15 minutes. " +
+            "For authorized GitHub binary uploads (WebP, PNG, JPG, PDF), use the bundled " +
+            "/usr/local/bin/altiv-github-upload.py with --repo owner/name --branch main " +
+            "--file LOCAL REMOTE (repeat --file for multiple files). " +
+            "It uses ALTIV_GITHUB_MCP_TOKEN from the enabled encrypted environment variables; " +
+            "never put a token or Base64 file contents in the command or chat. " +
+            "First check command -v python3 and test -f /usr/local/bin/altiv-github-upload.py. " +
+            "Never claim GitHub upload succeeded until remote verification passes.",
         parameters = mapOf(
             "tool_title" to AgentToolParam("string", "A concise 5-10 word summary of what this tool call does, shown to the user (e.g. 'Install Python data analysis packages', 'List files in home directory'). Use the same language as the user."),
             "command" to AgentToolParam("string", "The shell command to execute. Supports multi-line commands directly — no special escaping needed. Keep under 1000 chars; for longer scripts, write to a file with file_write first, then run it."),
