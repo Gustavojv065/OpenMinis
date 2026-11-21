@@ -3114,11 +3114,20 @@ fun ChatScreen(
                                     // [T-quota-low-dot] green / yellow (the current
                                     // model's quota or balance is low) / orange
                                     // (signed out).
-                                    com.openminis.app.ui.quota.ModelQuotaStatusDot(
-                                        isAuthed = modelName.isNotEmpty(),
-                                        activeEntryId = viewModel.activeEntryId,
-                                        providerRepository = providerRepository,
-                                    )
+                                    if (offlineModelId != null) {
+                                        Text(
+                                            "LOCAL",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ChatColors.secondaryText,
+                                        )
+                                    } else {
+                                        com.openminis.app.ui.quota.ModelQuotaStatusDot(
+                                            isAuthed = modelName.isNotEmpty(),
+                                            activeEntryId = viewModel.activeEntryId,
+                                            providerRepository = providerRepository,
+                                        )
+                                    }
                                     // T-android-topbar-group-name-fallback:
                                     // _selectedGroupName is empty during the
                                     // brief window before loadSession's group
@@ -3262,13 +3271,17 @@ fun ChatScreen(
                                         // displayedSpeedTier is already STANDARD for
                                         // an ineligible model, and FAST where
                                         // Ultrafast falls back.
-                                        val navSpeedTier by viewModel.displayedSpeedTier.collectAsState()
-                                        SpeedTierNavBadge(navSpeedTier)
+                                        if (offlineModelId == null) {
+                                            val navSpeedTier by viewModel.displayedSpeedTier.collectAsState()
+                                            SpeedTierNavBadge(navSpeedTier)
+                                        }
                                         Text(
-                                            text = if (providerName.isNotEmpty() && modelName.isNotEmpty()) {
-                                                "$providerName · $modelName"
-                                            } else {
-                                                modelName.ifEmpty { providerName }
+                                            text = when {
+                                                offlineModelId != null ->
+                                                    "OFFLINE · " + modelName.removeSuffix(" · Offline")
+                                                providerName.isNotEmpty() && modelName.isNotEmpty() ->
+                                                    "$providerName · $modelName"
+                                                else -> modelName.ifEmpty { providerName }
                                             },
                                             fontSize = 11.sp,
                                             lineHeight = 13.sp,
@@ -3292,7 +3305,8 @@ fun ChatScreen(
                                         // toggle; an enabled level still shows
                                         // unconditionally (user may have opted in
                                         // on an unknown-capability model).
-                                        if (viewModel.availableThinkingLevels.isNotEmpty() &&
+                                        if (offlineModelId == null &&
+                                            viewModel.availableThinkingLevels.isNotEmpty() &&
                                             (
                                                 thinkingLevelBadgeState.isEnabled ||
                                                     viewModel.currentModelSupportsReasoning
