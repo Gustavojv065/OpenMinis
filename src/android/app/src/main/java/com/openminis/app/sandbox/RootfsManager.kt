@@ -376,6 +376,9 @@ class RootfsManager private constructor(private val context: Context) {
             return@withContext
         }
 
+        // Verify runtime installation, not just presence inside APK.
+        ensureGitHubPublisherInstalled()
+
         // Mirror iOS removeExternallyManagedMarker() — drop PEP 668 marker so
         // `pip install` Just Works inside this embedded Alpine rootfs even
         // when the shipped pip.conf isn't being read (e.g. pip invoked with
@@ -406,6 +409,30 @@ class RootfsManager private constructor(private val context: Context) {
      * dir is absent. Idempotent — the pre-copy unlock in copyAssetDir keeps the
      * upgrade path working across boots.
      */
+    /** Verify the GitHub binary publisher exists in the active guest rootfs. */
+    private fun ensureGitHubPublisherInstalled() {
+        val relative = "usr/local/bin/altiv-github-upload.py"
+        val target = File(rootfsDir, relative)
+        if (!target.isFile || target.length() == 0L) {
+            val asset = "$DEFAULT_MOUNT_ASSET/$relative"
+            target.parentFile?.mkdirs()
+            try {
+                context.assets.open(asset).use { input ->
+                    target.outputStream().use { output -> input.copyTo(output) }
+                }
+            } catch (t: Throwable) {
+                throw IllegalStateException("ALTIV GitHub publisher missing from Android assets", t)
+            }
+        }
+        check(target.isFile && target.length() > 0L) {
+            "ALTIV GitHub publisher not installed in Linux rootfs"
+        }
+        check(target.setReadable(true, false) && target.setExecutable(true, false)) {
+            "ALTIV GitHub publisher permissions could not be set"
+        }
+        Log.i(TAG, "[ALTIV GitHub] publisher verified in Linux rootfs")
+    }
+
     private fun lockMcpCliLibReadOnly(): Int {
         val libDir = File(rootfsDir, "usr/local/lib/minis-mcp-cli")
         if (!libDir.isDirectory) return 0
