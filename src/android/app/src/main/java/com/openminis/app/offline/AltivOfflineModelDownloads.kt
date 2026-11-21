@@ -134,6 +134,20 @@ internal class AltivOfflineModelDownloads(context: Context) {
     }
 
     /**
+     * Retry a failed Android DownloadManager job in one tap. A failed job
+     * cannot be resumed through enqueue(); remove its stale id/partial file
+     * first, then start a new job with the current Wi-Fi preference.
+     * Never delete a ready model or an active download here.
+     */
+    fun retryFailed(model: AltivOfflineModel, wifiOnly: Boolean): Result<Long> = runCatching {
+        check(state(model).phase == Phase.FAILED) {
+            "Somente downloads com falha podem ser reiniciados."
+        }
+        remove(model)
+        start(model, wifiOnly).getOrThrow()
+    }
+
+    /**
      * Import a GGUF chosen via the Android file picker, without executing any code.
      * Stream to a .part file so a failed import never looks like an installed model.
      * Limit disk usage and verify the GGUF magic/expected size before final rename.

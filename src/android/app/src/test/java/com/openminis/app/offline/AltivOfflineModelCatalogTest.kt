@@ -37,6 +37,39 @@ class AltivOfflineModelCatalogTest {
         assertEquals(1, models.count { it.minimumDeviceRamGb >= 10 })
     }
 
+    @Test fun qwen06bDownloadUsesVerifiedGGUFName() {
+        val model = requireNotNull(AltivOfflineModelCatalog.byId("qwen3-06b-q4km"))
+        assertEquals("Qwen_Qwen3-0.6B-Q4_K_M.gguf", model.fileName)
+        assertTrue(model.downloadUrl.contains("/bartowski/Qwen_Qwen3-0.6B-GGUF/resolve/main/"))
+        assertTrue(model.downloadUrl.endsWith("/" + model.fileName))
+        assertTrue(model.hasTrustedSource())
+    }
+
+    @Test fun allCategoriesAllowExternalDiscoveryWithoutClaimingRuntimeSupport() {
+        val screen = File(
+            "src/main/java/com/openminis/app/ui/settings/AltivOfflineModelsScreen.kt"
+        ).readText()
+        val downloads = File(
+            "src/main/java/com/openminis/app/offline/AltivOfflineModelDownloads.kt"
+        ).readText()
+        val inference = File(
+            "src/main/java/com/openminis/app/offline/AltivOfflineInference.kt"
+        ).readText()
+        val chat = File(
+            "src/main/java/com/openminis/app/ui/chat/ChatViewModel.kt"
+        ).readText()
+        assertTrue(screen.contains("Explorar todos os modelos Qwen no navegador"))
+        assertTrue(screen.contains("Procurar e baixar pelo navegador"))
+        assertTrue(screen.contains("Execução no APK ainda indisponível"))
+        assertTrue(screen.contains("Tentar novamente"))
+        assertTrue(screen.contains("no 4G/5G os downloads ficarão aguardando Wi-Fi"))
+        assertFalse(screen.contains("OutlinedButton(enabled = false, onClick = {})"))
+        assertTrue(downloads.contains("fun retryFailed(model: AltivOfflineModel"))
+        assertTrue(inference.contains("info.availMem > required"))
+        assertFalse(inference.contains("check(totalRamGb(app) >= model.minimumDeviceRamGb)"))
+        assertFalse(chat.contains("totalRamGb(context) < model.minimumDeviceRamGb"))
+    }
+
     @Test fun untrustedHostsPathsAndFileExtensionsAreRejected() {
         val model = AltivOfflineModelCatalog.models.first()
         assertFalse(model.copy(downloadUrl =
@@ -84,7 +117,7 @@ class AltivOfflineModelCatalogTest {
         assertTrue(downloader.contains("appContext.getExternalFilesDir"))
         assertTrue(screen.contains("confirmDownload"))
         assertTrue(screen.contains("Confirmar download"))
-        assertTrue(screen.contains("A conversa padrão do ALTIV continua usando provedores online."))
+        assertTrue(screen.contains("alternar para APIs online"))
         assertTrue(screen.contains("Conversar offline"))
         assertTrue(screen.contains("Testar offline"))
         assertTrue(settings.contains("onOfflineModelsClick"))
