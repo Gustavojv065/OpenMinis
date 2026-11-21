@@ -62,6 +62,13 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_altive_photo_search.py' -v
           python3 -m unittest discover -s scripts/tests -p 'test_altive_media_search.py' -v
 
+      - name: Validate GitHub binary upload helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile src/android/app/src/main/assets/default_mount/usr/local/bin/altiv-github-upload.py
+          python3 -m unittest discover -s scripts/tests -p 'test_altiv_github_binary_upload.py' -v
+
       - name: Configure Java 17
         uses: actions/setup-java@v4
         with:
@@ -231,6 +238,12 @@ jobs:
           # Certificate SHA-256 is public identity; never upload a private keystore.
           cp "$RUNNER_TEMP/altiv-signature.txt" "$APK.signature.txt"
           unzip -Z1 "$APK" > "$RUNNER_TEMP/apk-files.txt"
+          # The publisher must be packaged into the actual installable APK,
+          # not merely present in the source tree during compilation.
+          unzip -Z1 "$APK" | grep -Fxq 'assets/default_mount/usr/local/bin/altiv-github-upload.py' || {
+            echo '::error::GitHub binary publisher missing from APK assets'
+            exit 1
+          }
           # Android asset packaging can auto-decompress a .tar.gz file to .tar.
           # RootfsManager.kt supports both formats at runtime; verify both
           # acceptable names and the actual archive contents.
