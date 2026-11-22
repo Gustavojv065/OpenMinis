@@ -40,6 +40,27 @@ def workspace(repo):
     return target
 
 
+def resolve_workspace(repo, explicit_path=""):
+    """Use an existing checkout only when its Git origin matches the requested repo."""
+    if not explicit_path:
+        return workspace(repo)
+    target = Path(explicit_path).expanduser().resolve()
+    if not target.is_dir() or not (target / ".git").exists():
+        raise WorkspaceError("Diretório informado não é um checkout Git válido")
+    origin = run("git", "remote", "get-url", "origin", cwd=target)
+    expected = repo.lower()
+    parsed = origin.removesuffix(".git").rstrip("/")
+    if parsed.startswith("https://github.com/"):
+        actual = parsed[len("https://github.com/"):].lower()
+    elif parsed.startswith("git@github.com:"):
+        actual = parsed[len("git@github.com:"):].lower()
+    else:
+        raise WorkspaceError("Origem Git não é github.com; workspace recusado")
+    if actual != expected:
+        raise WorkspaceError("Origem Git não corresponde ao repositório solicitado")
+    return target
+
+
 def git_auth():
     token = os.environ.get("ALTIV_GITHUB_MCP_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
@@ -92,12 +113,15 @@ def main():
     p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync"])
     p.add_argument("--repo", required=True)
     p.add_argument("--branch", default="")
+    p.add_argument("--path", default="", help="Checkout local existente (origem Git validada)")
     p.add_argument("--file", action="append", default=[], help="Arquivo aprovado para publicação (repetível)")
     p.add_argument("--approve", action="store_true", help="Confirma envio ao GitHub")
     p.add_argument("--message", default="feat: alterações revisadas no ALTIV DEV AI")
     p.add_argument("--port", type=int, default=8765)
     a = p.parse_args()
-    target = workspace(a.repo)
+    target = resolve_workspace(a.repo, a.path)
+    if a.action == "clone" and a.path:
+        raise WorkspaceError("Clone não aceita --path; use --path somente com checkout existente")
     if a.action == "clone":
         if target.exists():
             raise WorkspaceError("Projeto já existe; não sobrescrevi arquivos locais")
