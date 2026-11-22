@@ -160,7 +160,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon :app:testAltivDebugUnitTest \
+          for attempt in 1 2 3; do
+            if ./gradlew --no-daemon :app:testAltivDebugUnitTest \
             --tests 'com.openminis.app.mcp.MCPQuickConnectCatalogTest' \
             --tests 'com.openminis.app.mcp.SupabaseMcpProjectScopeTest' \
             --tests 'com.openminis.app.ui.terminal.LocalPreviewAddressTest' \
@@ -195,7 +196,16 @@ jobs:
             --tests 'com.openminis.app.ui.chat.AltivAutonomousSupervisorPolicyTest' \
             --tests 'com.openminis.app.browser.AltivVisualAuditTest' \
             --tests 'com.openminis.app.commercial.AltivLicenseActivationContractTest' \
-            --tests 'com.openminis.app.mcp.SupabaseMcpAccountScopeTest'
+            --tests 'com.openminis.app.mcp.SupabaseMcpAccountScopeTest'; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo 'ALTIV: Android unit tests failed after 3 attempts.' >&2
+              exit 1
+            fi
+            echo "ALTIV: transient Gradle/Maven failure; retry $attempt/3 after backoff." >&2
+            sleep $((attempt * 45))
+          done
 
       - name: Version APK independently of ephemeral CI checkouts
         shell: bash
