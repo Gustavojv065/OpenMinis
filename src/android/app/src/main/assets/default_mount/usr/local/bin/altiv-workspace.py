@@ -54,6 +54,17 @@ def git_auth():
     return tmp, env
 
 
+def remote_fetch(target, branch):
+    """Refresh remote refs with ephemeral askpass; never persist the token."""
+    if not branch or not NAME_RE.fullmatch(branch.replace("/", "")):
+        raise WorkspaceError("Branch inválida")
+    tmp, env = git_auth()
+    try:
+        run("git", "fetch", "--no-tags", "origin", "refs/heads/" + branch + ":refs/remotes/origin/" + branch, cwd=target, env=env)
+    finally:
+        tmp.cleanup()
+
+
 def inspect(target):
     if not (target / ".git").exists():
         raise WorkspaceError("Projeto não foi clonado")
@@ -78,9 +89,10 @@ def inspect(target):
 
 def main():
     p = argparse.ArgumentParser(description="ALTIV: projetos GitHub locais")
-    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish"])
+    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync"])
     p.add_argument("--repo", required=True)
     p.add_argument("--branch", default="")
+    p.add_argument("--file", action="append", default=[], help="Arquivo aprovado para publicação (repetível)")
     p.add_argument("--approve", action="store_true", help="Confirma envio ao GitHub")
     p.add_argument("--message", default="feat: alterações revisadas no ALTIV DEV AI")
     p.add_argument("--port", type=int, default=8765)
@@ -113,7 +125,11 @@ def main():
     info = inspect(target)
     if a.branch and a.branch != info["branch"]:
         raise WorkspaceError("Branch atual difere da solicitada; interrompido")
-    if a.action == "status":
+    if a.action == "sync":
+        remote_fetch(target, info["branch"])
+        ahead = run("git", "rev-list", "--left-right", "--count", "HEAD...origin/" + info["branch"], cwd=target)
+        print(json.dumps({"status": "synced", "ahead_behind": ahead, **inspect(target)}, ensure_ascii=False))
+    elif a.action == "status":
         print(json.dumps(info, ensure_ascii=False))
     elif a.action == "diff":
         changes = run("git", "diff", "--", ".", cwd=target)
@@ -136,14 +152,25 @@ def main():
             raise WorkspaceError("Publicação na branch principal bloqueada; use branch de teste")
         if not info["dirty"]:
             raise WorkspaceError("Nenhuma alteração local para enviar")
-        # Prevent accidental secrets and oversized/binary commits.
-        candidates = run("git", "ls-files", "--modified", "--others", "--exclude-standard", cwd=target).splitlines()
-        for f in candidates:
-            if (Path(f).name.startswith(".env") or
-                    Path(f).name in ("id_rsa", "id_ed25519") or
-                    (target / f).is_symlink()):
+        if not a.file:
+            raise WorkspaceError("Informe --file para cada arquivo aprovado; stage geral bloqueado")
+        approved = []
+        for f in a.file:
+            rel = Path(f)
+            if rel.is_absolute() or ".." in rel.parts or not (target / rel).is_file():
+                raise WorkspaceError("Arquivo aprovado inválido: " + f)
+            if rel.name.startswith(".env") or rel.name in ("id_rsa", "id_ed25519") or (target / rel).is_symlink():
                 raise WorkspaceError("Arquivo sensível ou link simbólico bloqueado: " + f)
-        run("git", "add", "--", ".", cwd=target)
+            approved.append(str(rel))
+        remote_fetch(target, info["branch"])
+        if run("git", "rev-parse", "HEAD", cwd=target) != run("git", "rev-parse", "origin/" + info["branch"], cwd=target):
+            raise WorkspaceError("Branch remota divergiu; publicação bloqueada antes do stage")
+        if run("git", "diff", "--cached", "--name-only", cwd=target):
+            raise WorkspaceError("Stage preexistente detectado; revise antes de publicar")
+        run("git", "add", "--", *approved, cwd=target)
+        staged = run("git", "diff", "--cached", "--name-only", cwd=target).splitlines()
+        if not staged or set(staged) != set(approved):
+            raise WorkspaceError("Stage não corresponde aos arquivos aprovados")
         run("git", "diff", "--cached", "--check", cwd=target)
         run("git", "-c", "user.name=ALTIV DEV AI", "-c", "user.email=altiv-dev-ai@users.noreply.github.com",
             "commit", "-m", a.message, cwd=target)
