@@ -411,7 +411,7 @@ class RootfsManager private constructor(private val context: Context) {
      */
     /** Verify GitHub publishing and safe text-edit tools in the guest rootfs. */
     private fun ensureGitHubPublisherInstalled() {
-        for (script in listOf("altiv-github-upload.py", "altiv-github-edit.py")) {
+        for (script in listOf("altiv-github-upload.py", "altiv-github-edit.py", "altiv-workspace.py")) {
             val relative = "usr/local/bin/$script"
             val target = File(rootfsDir, relative)
             if (!target.isFile || target.length() == 0L) {
