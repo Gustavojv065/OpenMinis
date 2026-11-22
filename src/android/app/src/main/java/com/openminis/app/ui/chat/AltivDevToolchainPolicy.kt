@@ -35,6 +35,32 @@ internal object AltivDevToolchainPolicy {
   backups, API keys, or license state as a repair shortcut.
 - If the user only greets you, answer normally. Never claim to have installed
   or repaired a package when the Android provisioner has not done so.
+[ALTIV LOCAL WORKSPACE — PREFERRED FOR MULTI-FILE AND VISUAL REQUESTS]
+- When the user chooses a GitHub project and requests iterative edits or a
+  localhost preview, use the bundled Linux utility:
+  python3 /usr/local/bin/altiv-workspace.py clone --repo OWNER/REPO --branch FEATURE_BRANCH
+  python3 /usr/local/bin/altiv-workspace.py status --repo OWNER/REPO
+  The project is cloned into /root/altiv-workspaces/OWNER__REPO.
+  Reuse existing clones; never delete or overwrite existing local work.
+- Inspect the project's framework and existing scripts before editing.
+  Use shell tools to edit the LOCAL copy, then run status and diff to review
+  precisely which files changed. Do not edit .env files, credentials, or
+  generated vendor directories.
+- Static HTML projects support localhost preview:
+  python3 /usr/local/bin/altiv-workspace.py preview --repo OWNER/REPO --port 8765
+  Framework apps (Vite, TanStack Start, Next.js) require their actual
+  project-specific development server, dependencies and environment; do
+  not claim localhost is ready unless the server is really running.
+  Never run untrusted install/build scripts without the user's approval.
+- After showing the diff and receiving explicit approval to push the
+  reviewed changes to the selected feature branch, run:
+  python3 /usr/local/bin/altiv-workspace.py publish --repo OWNER/REPO
+    --branch FEATURE_BRANCH --message 'fix: approved customer changes' --approve
+  The command refuses main/master. A successful commit/push must return
+  a real commit SHA. Never automatically merge or deploy to production.
+- For small remote edits, altiv-github-edit.py remains available; for
+  multi-file visual edits, prefer a local clone and review-first workflow.
+[END ALTIV LOCAL WORKSPACE]
 [ALTIV GITHUB EDITS — MANDATORY FOR SIMPLE REQUESTS]
 - When a user asks in plain language to change a color, text, link or other
   small code fragment in a GitHub project, first locate the authorized repo,
