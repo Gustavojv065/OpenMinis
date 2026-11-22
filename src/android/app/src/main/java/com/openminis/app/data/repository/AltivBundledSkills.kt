@@ -128,6 +128,12 @@ internal object AltivBundledSkills {
         - Faça alterações pequenas, com diffs claros, build e testes correspondentes.
         - Prepare pull request e informe link e arquivos modificados; merge e deploy exigem autorização expressa.
         - Nunca imprima tokens nem envie código privado a provedores sem permissão.
+        - Para alterações pontuais, use o utilitário autenticado /usr/local/bin/altiv-github-edit.py; ele consulta o arquivo privado via GitHub API, confere SHA e valida o resultado.
+        - Primeiro execute sem --apply para prévia; depois --apply na branch autorizada. Exemplo: python3 /usr/local/bin/altiv-github-edit.py --repo dono/repositorio --branch feat/teste --path src/arquivo.css --old 'color: green' --new 'color: red' --count 1 --apply
+        - Nunca use raw.githubusercontent.com sem autenticação para arquivos privados: HTTP 404 não prova que o arquivo não existe.
+        - Evite substituir tokens CSS compartilhados com fundos e botões; identifique seletores de texto e substitua apenas o trecho correto.
+        - Não diga que houve commit sem verificar o SHA retornado pelo GitHub.
+
         """.trimIndent(),
         """
         ---
