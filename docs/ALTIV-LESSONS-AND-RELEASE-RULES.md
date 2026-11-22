@@ -24,3 +24,10 @@ Identificar repo/branch → clone autenticado → inspecionar scripts/ambiente �
 Verificar presença do utilitário no APK, --help, sync autenticado, publish sem aprovação bloqueado, stage seletivo, segredos bloqueados, branch divergente bloqueada, GitHub Actions verde e artefato ARM64 gerado.
 
 Este documento é um contrato de engenharia e não substitui testes de execução no dispositivo.
+15. APK #197: workspace existente em /var/minis/workspace/kakaacessorios não era encontrado pelo utilitário que usava /root/altiv-workspaces. A partir do próximo build, informar --path para checkout existente; verificar origin Git e branch antes de sincronizar. Não apagar nem clonar sobre a cópia existente.
+
+## Teste de regressão para --path
+
+`python3 /usr/local/bin/altiv-workspace.py sync --repo Gustavojv065/kakaacessorios --branch feat/ft-contabil-abertura-digital --path /var/minis/workspace/kakaacessorios`
+
+Confirmar que as referências remotas foram atualizadas, os arquivos locais continuam intactos e nenhum commit ou push ocorreu. O parâmetro --path é exclusivo para checkout já existente; não usar em clone.
