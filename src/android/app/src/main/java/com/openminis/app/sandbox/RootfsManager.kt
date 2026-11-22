@@ -409,28 +409,30 @@ class RootfsManager private constructor(private val context: Context) {
      * dir is absent. Idempotent — the pre-copy unlock in copyAssetDir keeps the
      * upgrade path working across boots.
      */
-    /** Verify the GitHub binary publisher exists in the active guest rootfs. */
+    /** Verify GitHub publishing and safe text-edit tools in the guest rootfs. */
     private fun ensureGitHubPublisherInstalled() {
-        val relative = "usr/local/bin/altiv-github-upload.py"
-        val target = File(rootfsDir, relative)
-        if (!target.isFile || target.length() == 0L) {
-            val asset = "$DEFAULT_MOUNT_ASSET/$relative"
-            target.parentFile?.mkdirs()
-            try {
-                context.assets.open(asset).use { input ->
-                    target.outputStream().use { output -> input.copyTo(output) }
+        for (script in listOf("altiv-github-upload.py", "altiv-github-edit.py")) {
+            val relative = "usr/local/bin/$script"
+            val target = File(rootfsDir, relative)
+            if (!target.isFile || target.length() == 0L) {
+                val asset = "$DEFAULT_MOUNT_ASSET/$relative"
+                target.parentFile?.mkdirs()
+                try {
+                    context.assets.open(asset).use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                    }
+                } catch (t: Throwable) {
+                    throw IllegalStateException("ALTIV GitHub tool missing from Android assets: $script", t)
                 }
-            } catch (t: Throwable) {
-                throw IllegalStateException("ALTIV GitHub publisher missing from Android assets", t)
             }
+            check(target.isFile && target.length() > 0L) {
+                "ALTIV GitHub tool not installed in Linux rootfs: $script"
+            }
+            check(target.setReadable(true, false) && target.setExecutable(true, false)) {
+                "ALTIV GitHub tool permissions could not be set: $script"
+            }
+            Log.i(TAG, "[ALTIV GitHub] verified $script in Linux rootfs")
         }
-        check(target.isFile && target.length() > 0L) {
-            "ALTIV GitHub publisher not installed in Linux rootfs"
-        }
-        check(target.setReadable(true, false) && target.setExecutable(true, false)) {
-            "ALTIV GitHub publisher permissions could not be set"
-        }
-        Log.i(TAG, "[ALTIV GitHub] publisher verified in Linux rootfs")
     }
 
     private fun lockMcpCliLibReadOnly(): Int {

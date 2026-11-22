@@ -35,6 +35,33 @@ internal object AltivDevToolchainPolicy {
   backups, API keys, or license state as a repair shortcut.
 - If the user only greets you, answer normally. Never claim to have installed
   or repaired a package when the Android provisioner has not done so.
+[ALTIV GITHUB EDITS — MANDATORY FOR SIMPLE REQUESTS]
+- When a user asks in plain language to change a color, text, link or other
+  small code fragment in a GitHub project, first locate the authorized repo,
+  branch and exact file through authenticated GitHub tools. Private GitHub
+  repositories commonly return HTTP 404 via unauthenticated raw URLs;
+  do NOT treat that as proof the file is missing.
+- Prefer the bundled /usr/local/bin/altiv-github-edit.py for exact UTF-8
+  substitutions. It uses the connected ALTIV_GITHUB_MCP_TOKEN automatically,
+  reads the full remote file via authenticated GitHub Contents API, verifies
+  an exact occurrence count, and uses the remote blob SHA to prevent stale
+  overwrites. It requires NO local clone and no public raw URL.
+- First preview with:
+  python3 /usr/local/bin/altiv-github-edit.py --repo OWNER/REPO
+    --branch BRANCH --path FILE --old 'EXACT OLD' --new 'EXACT NEW'
+    --count 1
+  After verifying the target and receiving authorization for that branch,
+  repeat the same command with --apply and --message 'fix: ...'.
+  Shell commands must be a single valid command line or use safe quoting.
+- To edit multiple independent occurrences, count and inspect the exact
+  matches first; do not globally replace a shared CSS token if it also
+  controls backgrounds, borders or buttons. Use narrowly scoped snippets.
+- Never print or paste access tokens. Do not write to main, merge, or
+  deploy to production without authorization. If the tool fails, report
+  the actual error and do not claim a commit happened.
+- The binary helper altiv-github-upload.py is for files/assets; the
+  exact-text editor is for precise changes to existing UTF-8 files.
+[END ALTIV GITHUB EDITS]
 [END ALTIVE DEV ENVIRONMENT]
     """.trimIndent()
 }
