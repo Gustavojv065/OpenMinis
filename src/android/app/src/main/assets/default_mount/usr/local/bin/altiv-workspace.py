@@ -5,6 +5,7 @@ Static localhost preview is supported for plain HTML projects. Framework apps
 require their own build/dev server and are never executed automatically.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -162,9 +163,56 @@ def diagnose(target, branch):
     return result
 
 
+def publication_plan(target, repo, branch, approved):
+    """Read-only publication handoff for Git or authenticated MCP tools.
+
+    No credentials or file contents are exposed. MCP agents must read the exact
+    local bytes, verify the remote head, obtain approval and verify remote blobs.
+    """
+    if branch in ("main", "master", ""):
+        raise WorkspaceError("Use uma branch isolada; publicação na principal bloqueada")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", branch) or ".." in branch:
+        raise WorkspaceError("Branch inválida")
+    if not approved:
+        raise WorkspaceError("Selecione os arquivos aprovados")
+    if run("git", "diff", "--cached", "--name-only", cwd=target):
+        raise WorkspaceError("Stage preexistente; revise antes de continuar")
+    changed = set(run("git", "diff", "--name-only", cwd=target).splitlines())
+    untracked = set(run("git", "ls-files", "--others", "--exclude-standard", cwd=target).splitlines())
+    selected = set(approved)
+    if changed | untracked != selected:
+        raise WorkspaceError("Arquivos modificados não correspondem à seleção aprovada")
+    files = []
+    for name in sorted(selected):
+        rel = Path(name)
+        path = target / rel
+        if rel.is_absolute() or ".." in rel.parts or not path.is_file() or path.is_symlink():
+            raise WorkspaceError("Arquivo inválido: " + name)
+        if rel.name.startswith(".env") or rel.name in ("id_rsa", "id_ed25519"):
+            raise WorkspaceError("Arquivo sensível bloqueado: " + name)
+        verify_approved_content(target, [name])
+        data = path.read_bytes()
+        files.append({"path": name, "size_bytes": len(data),
+                      "sha256": hashlib.sha256(data).hexdigest(),
+                      "git_blob_sha": hashlib.sha1(b"blob " + str(len(data)).encode() + b"\\0" + data).hexdigest()})
+    run("git", "diff", "--check", cwd=target)
+    return {"status": "approval_required", "repository": repo, "target_branch": branch,
+            "local_base_commit": run("git", "rev-parse", "HEAD", cwd=target),
+            "files": files, "approved": False,
+            "methods": {"git": bool(os.environ.get("ALTIV_GITHUB_MCP_TOKEN") or os.environ.get("GITHUB_TOKEN")),
+                        "mcp": "requires authenticated write tool and permission verification"},
+            "next_steps": [
+                "Consultar SHA da main remota com conector autenticado; nunca confiar somente em origin/main local",
+                "Confirmar permissão real de escrita do conector antes de qualquer alteração",
+                "Criar branch remota isolada a partir do SHA remoto aprovado",
+                "Solicitar aprovação explícita do usuário para os arquivos e o destino",
+                "Publicar bytes exatos dos arquivos aprovados, sem comandos no lugar do conteúdo",
+                "Conferir SHA dos blobs remotos e abrir Pull Request sem merge automático"]}
+
+
 def main():
     p = argparse.ArgumentParser(description="ALTIV: projetos GitHub locais")
-    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync", "diagnose"])
+    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync", "diagnose", "publish-plan"])
     p.add_argument("--repo", required=True)
     p.add_argument("--branch", default="")
     p.add_argument("--path", default="", help="Checkout local existente (origem Git validada)")
@@ -203,7 +251,9 @@ def main():
     info = inspect(target)
     if a.branch and a.branch != info["branch"]:
         raise WorkspaceError("Branch atual difere da solicitada; interrompido")
-    if a.action == "diagnose":
+    if a.action == "publish-plan":
+        print(json.dumps(publication_plan(target, a.repo, info["branch"], a.file), ensure_ascii=False))
+    elif a.action == "diagnose":
         print(json.dumps(diagnose(target, info["branch"]), ensure_ascii=False))
     elif a.action == "sync":
         remote_fetch(target, info["branch"])
