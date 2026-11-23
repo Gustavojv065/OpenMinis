@@ -77,7 +77,7 @@ def git_auth():
 
 def remote_fetch(target, branch):
     """Refresh remote refs with ephemeral askpass; never persist the token."""
-    if not branch or not NAME_RE.fullmatch(branch.replace("/", "")):
+    if not branch or not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", branch) or ".." in branch:
         raise WorkspaceError("Branch inválida")
     tmp, env = git_auth()
     try:
@@ -196,6 +196,10 @@ def main():
         if not staged or set(staged) != set(approved):
             raise WorkspaceError("Stage não corresponde aos arquivos aprovados")
         run("git", "diff", "--cached", "--check", cwd=target)
+        # Verify the exact approved patch before creating a commit; never stage other files.
+        staged_patch = run("git", "diff", "--cached", "--binary", "--", *approved, cwd=target)
+        if not staged_patch:
+            raise WorkspaceError("Diff aprovado vazio; commit bloqueado")
         run("git", "-c", "user.name=ALTIV DEV AI", "-c", "user.email=altiv-dev-ai@users.noreply.github.com",
             "commit", "-m", a.message, cwd=target)
         tmp, env = git_auth()
@@ -204,6 +208,11 @@ def main():
         finally:
             tmp.cleanup()
         sha = run("git", "rev-parse", "HEAD", cwd=target)
+        # A successful command is not enough: confirm the remote ref points to our SHA.
+        remote_fetch(target, info["branch"])
+        remote_sha = run("git", "rev-parse", "origin/" + info["branch"], cwd=target)
+        if remote_sha != sha:
+            raise WorkspaceError("Push não confirmado: SHA remoto diferente do commit local")
         print(json.dumps({"status": "pushed", "commit": sha, "branch": info["branch"],
                           "repository": a.repo}))
 
