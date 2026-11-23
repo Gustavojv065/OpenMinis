@@ -78,6 +78,29 @@ class WorkspaceTests(unittest.TestCase):
             self.assertFalse(report["checks"][0]["ok"])
             self.assertIn("Reconectar GitHub", report["checks"][0]["suggested_fix"])
 
+    def test_publication_plan_is_read_only_and_hashes_exact_bytes(self):
+        import subprocess
+        import hashlib
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d)
+            subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+            source = target / "index.tsx"
+            source.write_text("export const title = 'old';\\n" * 30)
+            subprocess.run(["git", "add", "index.tsx"], cwd=target, check=True)
+            subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                            "commit", "-qm", "initial"], cwd=target, check=True)
+            source.write_text("export const title = 'new';\\n" * 30)
+            before = subprocess.check_output(["git", "status", "--porcelain"], cwd=target)
+            report = m.publication_plan(target, "owner/repo", "fix/accessibility", ["index.tsx"])
+            after = subprocess.check_output(["git", "status", "--porcelain"], cwd=target)
+            self.assertEqual(before, after)
+            self.assertFalse(report["approved"])
+            self.assertEqual(report["files"][0]["sha256"], hashlib.sha256(source.read_bytes()).hexdigest())
+            with self.assertRaises(m.WorkspaceError):
+                m.publication_plan(target, "owner/repo", "main", ["index.tsx"])
+            with self.assertRaises(m.WorkspaceError):
+                m.publication_plan(target, "owner/repo", "fix/accessibility", ["README.md"])
+
     def test_framework_detection_and_dirty_status(self):
         with tempfile.TemporaryDirectory() as d:
             target = Path(d)
