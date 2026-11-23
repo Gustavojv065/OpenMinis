@@ -91,6 +91,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Cache Gradle dependencies and diagnostics
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Check KSP plugin repositories before expensive Android build
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://plugins.gradle.org/m2/com/google/devtools/ksp/com.google.devtools.ksp.gradle.plugin/2.1.0-1.0.29/com.google.devtools.ksp.gradle.plugin-2.1.0-1.0.29.pom'
+          for attempt in 1 2 3 4; do
+            if curl --location --fail --silent --show-error --retry 2 --retry-all-errors --connect-timeout 15 --max-time 90 --output /dev/null "$URL"; then
+              echo 'ALTIV: KSP plugin marker reachable.'
+              break
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo '::error::KSP plugin marker unreachable from this runner; dependency network unavailable.' >&2
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
+
       - name: Configure Go 1.25 for gomobile / rclone
         uses: actions/setup-go@v5
         with:
