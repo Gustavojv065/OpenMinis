@@ -177,6 +177,41 @@ jobs:
             echo 'org.gradle.parallel=false'
           } >> src/android/gradle.properties
 
+      - name: Prefetch Robolectric native runtime with Maven Central fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GitHub-hosted runners sometimes receive HTTP 429 from Maven Central.
+          # Download only the pinned dependency; never skip Android unit tests.
+          REL='org/robolectric/nativeruntime-dist-compat/1.0.19'
+          DEST="$HOME/.m2/repository/$REL"
+          mkdir -p "$DEST"
+          for extension in pom jar; do
+            file="nativeruntime-dist-compat-1.0.19.$extension"
+            success=false
+            for attempt in 1 2 3 4; do
+              for base in 'https://repo.maven.apache.org/maven2' 'https://repo1.maven.org/maven2'; do
+                if curl --fail --location --silent --show-error \
+                    --connect-timeout 15 --max-time 120 \
+                    --output "$DEST/$file.tmp" "$base/$REL/$file"; then
+                  test -s "$DEST/$file.tmp"
+                  mv "$DEST/$file.tmp" "$DEST/$file"
+                  success=true
+                  break
+                fi
+                rm -f "$DEST/$file.tmp"
+              done
+              if [ "$success" = true ]; then break; fi
+              echo "::warning::Maven download failed for $file (attempt $attempt/4); backing off"
+              sleep $((attempt * 30))
+            done
+            if [ "$success" != true ]; then
+              echo "::error::Robolectric dependency unavailable after retries; Android tests remain required"
+              exit 1
+            fi
+          done
+          echo 'ALTIV: pinned Robolectric native runtime cached locally.'
+
       - name: Run ALTIV MCP, Supabase scope and localhost unit tests
         working-directory: src/android
         shell: bash
