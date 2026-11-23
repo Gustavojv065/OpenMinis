@@ -128,9 +128,43 @@ def verify_approved_content(target, approved):
                     raise WorkspaceError("Exclusão massiva bloqueada: " + name)
 
 
+def diagnose(target, branch):
+    """User-facing, secret-free diagnostics; never modifies the remote."""
+    result = {"status": "diagnostic", "branch": branch, "checks": []}
+    def check(code, ok, message, correction):
+        result["checks"].append({"code": code, "ok": ok,
+                                 "message": message, "suggested_fix": correction})
+    token_present = bool(os.environ.get("ALTIV_GITHUB_MCP_TOKEN") or os.environ.get("GITHUB_TOKEN"))
+    check("github_git_credentials", token_present,
+          "Credencial Git disponível para o workspace" if token_present else
+          "O Git do workspace não recebeu uma credencial do GitHub",
+          "Reconectar GitHub nas configurações do ALTIV ou usar o conector GitHub autenticado; nunca pedir o token no chat")
+    check("workspace", (target / ".git").exists(), "Workspace Git identificado",
+          "Clonar novamente o projeto sem apagar alterações locais")
+    if (target / ".git").exists():
+        local_sha = run("git", "rev-parse", "HEAD", cwd=target)
+        result["local_commit"] = local_sha
+        if token_present and branch:
+            try:
+                remote_fetch(target, branch)
+                remote_sha = run("git", "rev-parse", "origin/" + branch, cwd=target)
+                result["remote_commit"] = remote_sha
+                check("remote_sync", remote_sha == local_sha,
+                      "Referências locais e remotas " + ("coincidem" if remote_sha == local_sha else "divergem"),
+                      "Revisar divergência antes de publicar; nunca sobrescrever a branch remota")
+            except (WorkspaceError, subprocess.TimeoutExpired) :
+                check("remote_sync", False, "Não foi possível consultar a branch remota",
+                      "Verificar conexão, permissão de leitura e credencial GitHub; tentar novamente sem publicar")
+        else:
+            check("remote_sync", False, "Consulta remota não executada sem credencial Git",
+                  "Conectar o GitHub para permitir verificação remota segura")
+    result["ready_for_publish"] = all(c["ok"] for c in result["checks"])
+    return result
+
+
 def main():
     p = argparse.ArgumentParser(description="ALTIV: projetos GitHub locais")
-    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync"])
+    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync", "diagnose"])
     p.add_argument("--repo", required=True)
     p.add_argument("--branch", default="")
     p.add_argument("--path", default="", help="Checkout local existente (origem Git validada)")
@@ -169,7 +203,9 @@ def main():
     info = inspect(target)
     if a.branch and a.branch != info["branch"]:
         raise WorkspaceError("Branch atual difere da solicitada; interrompido")
-    if a.action == "sync":
+    if a.action == "diagnose":
+        print(json.dumps(diagnose(target, info["branch"]), ensure_ascii=False))
+    elif a.action == "sync":
         remote_fetch(target, info["branch"])
         ahead = run("git", "rev-list", "--left-right", "--count", "HEAD...origin/" + info["branch"], cwd=target)
         print(json.dumps({"status": "synced", "ahead_behind": ahead, **inspect(target)}, ensure_ascii=False))
