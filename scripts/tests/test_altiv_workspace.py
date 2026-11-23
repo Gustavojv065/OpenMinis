@@ -62,6 +62,22 @@ class WorkspaceTests(unittest.TestCase):
             source.write_text("export const example = 'world';\\n" * 100)
             m.verify_approved_content(target, ["index.tsx"])
 
+    def test_diagnostic_explains_missing_credentials_without_leaking_secrets(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d)
+            subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+            (target / "README.md").write_text("test")
+            subprocess.run(["git", "add", "README.md"], cwd=target, check=True)
+            subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                            "commit", "-qm", "initial"], cwd=target, check=True)
+            with patch.dict(os.environ, {"ALTIV_GITHUB_MCP_TOKEN": "", "GITHUB_TOKEN": ""}):
+                report = m.diagnose(target, "main")
+            self.assertFalse(report["ready_for_publish"])
+            self.assertEqual(report["checks"][0]["code"], "github_git_credentials")
+            self.assertFalse(report["checks"][0]["ok"])
+            self.assertIn("Reconectar GitHub", report["checks"][0]["suggested_fix"])
+
     def test_framework_detection_and_dirty_status(self):
         with tempfile.TemporaryDirectory() as d:
             target = Path(d)
