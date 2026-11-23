@@ -9,6 +9,9 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // Prefer verified artifacts pre-fetched into the CI Maven local cache.
+        // Gradle still resolves all other dependencies from their normal sources.
+        mavenLocal()
         google()
         mavenCentral()
         // [T-android-vad] RealTimeCutVADLibraryForAndroid ships via JitPack
