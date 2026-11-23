@@ -28,6 +28,40 @@ class WorkspaceTests(unittest.TestCase):
             with self.assertRaises(m.WorkspaceError):
                 m.git_auth()
 
+    def test_reject_shell_command_replacing_source(self):
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d)
+            (target / "index.tsx").write_text("git push origin main\\n")
+            with self.assertRaises(m.WorkspaceError):
+                m.verify_approved_content(target, ["index.tsx"])
+
+    def test_reject_massive_source_deletion(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d)
+            subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+            source = target / "index.tsx"
+            source.write_text("export const example = 'hello';\\n" * 100)
+            subprocess.run(["git", "add", "index.tsx"], cwd=target, check=True)
+            subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                            "commit", "-qm", "initial"], cwd=target, check=True)
+            source.write_text("export const example = 'short';\\n")
+            with self.assertRaises(m.WorkspaceError):
+                m.verify_approved_content(target, ["index.tsx"])
+
+    def test_accept_small_safe_edit(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d)
+            subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+            source = target / "index.tsx"
+            source.write_text("export const example = 'hello';\\n" * 100)
+            subprocess.run(["git", "add", "index.tsx"], cwd=target, check=True)
+            subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                            "commit", "-qm", "initial"], cwd=target, check=True)
+            source.write_text("export const example = 'world';\\n" * 100)
+            m.verify_approved_content(target, ["index.tsx"])
+
     def test_framework_detection_and_dirty_status(self):
         with tempfile.TemporaryDirectory() as d:
             target = Path(d)
