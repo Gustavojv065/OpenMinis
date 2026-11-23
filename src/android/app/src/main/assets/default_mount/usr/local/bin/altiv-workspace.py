@@ -108,6 +108,26 @@ def inspect(target):
             "dirty": bool(porcelain), "changes": porcelain.splitlines()[:60]}
 
 
+def verify_approved_content(target, approved):
+    """Reject accidental shell-command replacement and destructive shrinkage."""
+    for name in approved:
+        path = target / name
+        data = path.read_bytes()
+        if not data:
+            raise WorkspaceError("Arquivo vazio bloqueado: " + name)
+        if path.suffix in (".tsx", ".ts", ".jsx", ".js", ".py", ".html"):
+            stripped = data.strip()
+            if len(stripped) < 160 and (stripped.startswith((b"git ", b"cat ", b"sed ", b"python ", b"curl ", b"bash ", b"sh ")) or b"git push" in stripped):
+                raise WorkspaceError("Comando suspeito substituindo código: " + name)
+            exists = subprocess.run(["git", "cat-file", "-e", "HEAD:" + name],
+                                    cwd=target, capture_output=True, timeout=30).returncode == 0
+            if exists:
+                previous_size = len(subprocess.run(["git", "show", "HEAD:" + name],
+                                    cwd=target, capture_output=True, timeout=30, check=True).stdout)
+                if previous_size > 2000 and len(data) < previous_size // 3:
+                    raise WorkspaceError("Exclusão massiva bloqueada: " + name)
+
+
 def main():
     p = argparse.ArgumentParser(description="ALTIV: projetos GitHub locais")
     p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync"])
@@ -186,6 +206,7 @@ def main():
             if rel.name.startswith(".env") or rel.name in ("id_rsa", "id_ed25519") or (target / rel).is_symlink():
                 raise WorkspaceError("Arquivo sensível ou link simbólico bloqueado: " + f)
             approved.append(str(rel))
+        verify_approved_content(target, approved)
         remote_fetch(target, info["branch"])
         if run("git", "rev-parse", "HEAD", cwd=target) != run("git", "rev-parse", "origin/" + info["branch"], cwd=target):
             raise WorkspaceError("Branch remota divergiu; publicação bloqueada antes do stage")
@@ -213,6 +234,11 @@ def main():
         remote_sha = run("git", "rev-parse", "origin/" + info["branch"], cwd=target)
         if remote_sha != sha:
             raise WorkspaceError("Push não confirmado: SHA remoto diferente do commit local")
+        for name in approved:
+            local_blob = run("git", "rev-parse", "HEAD:" + name, cwd=target)
+            remote_blob = run("git", "rev-parse", "origin/" + info["branch"] + ":" + name, cwd=target)
+            if local_blob != remote_blob:
+                raise WorkspaceError("Arquivo remoto diferente do aprovado: " + name)
         print(json.dumps({"status": "pushed", "commit": sha, "branch": info["branch"],
                           "repository": a.repo}))
 
