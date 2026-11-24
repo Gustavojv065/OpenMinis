@@ -45,9 +45,9 @@ def workspace(repo):
 
 def resolve_workspace(repo, explicit_path=""):
     """Use an existing checkout only when its Git origin matches the requested repo."""
-    if not explicit_path:
-        return workspace(repo)
-    target = Path(explicit_path).expanduser().resolve()
+    target = Path(explicit_path).expanduser().resolve() if explicit_path else workspace(repo)
+    if not explicit_path and not target.exists():
+        return target
     if not target.is_dir() or not (target / ".git").exists():
         raise WorkspaceError("Diretório informado não é um checkout Git válido")
     origin = run("git", "remote", "get-url", "origin", cwd=target)
@@ -252,12 +252,15 @@ def main():
     if a.action == "list":
         print(json.dumps(list_repositories(), ensure_ascii=False))
         return
+    if not REPO_RE.fullmatch(a.repo) or ".." in a.repo:
+        raise WorkspaceError("Informe o repositório exato dono/nome")
     target = resolve_workspace(a.repo, a.path)
     if a.action == "clone" and a.path:
         raise WorkspaceError("Clone não aceita --path; use --path somente com checkout existente")
     if a.action == "clone":
         if target.exists():
-            raise WorkspaceError("Projeto já existe; não sobrescrevi arquivos locais")
+            print(json.dumps({"status": "reused", "repository": a.repo, **inspect(target)}, ensure_ascii=False))
+            return
         ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
         tmp, env = git_auth()
         try:
@@ -324,6 +327,7 @@ def main():
                 raise WorkspaceError("Arquivo sensível ou link simbólico bloqueado: " + f)
             approved.append(str(rel))
         verify_approved_content(target, approved)
+        publication_plan(target, a.repo, info["branch"], approved)
         remote_fetch(target, info["branch"])
         if run("git", "rev-parse", "HEAD", cwd=target) != run("git", "rev-parse", "origin/" + info["branch"], cwd=target):
             raise WorkspaceError("Branch remota divergiu; publicação bloqueada antes do stage")
