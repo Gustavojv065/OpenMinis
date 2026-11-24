@@ -14,6 +14,8 @@ import subprocess
 import sys
 import tempfile
 import urllib.parse
+import urllib.request
+import urllib.error
 
 REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -74,6 +76,32 @@ def git_auth():
     env.update({"GIT_ASKPASS": str(askpass), "GIT_TERMINAL_PROMPT": "0",
                 "ALTIV_GIT_SECRET": token, "GIT_CONFIG_NOSYSTEM": "1"})
     return tmp, env
+
+
+def list_repositories():
+    """List only repositories accessible to the configured GitHub credential."""
+    token = os.environ.get("ALTIV_GITHUB_MCP_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        raise WorkspaceError("GitHub não conectado; autentique a conta no aplicativo")
+    repositories = []
+    try:
+        for page in range(1, 11):
+            url = "https://api.github.com/user/repos?per_page=100&type=all&sort=full_name&page=" + str(page)
+            req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token,
+                "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"})
+            with urllib.request.urlopen(req, timeout=20) as response:
+                entries = json.load(response)
+            if not isinstance(entries, list):
+                raise WorkspaceError("Resposta inesperada do GitHub")
+            repositories.extend({"full_name": x["full_name"], "private": bool(x.get("private"))}
+                                for x in entries if isinstance(x, dict) and x.get("full_name"))
+            if len(entries) < 100:
+                return {"status": "listed", "complete": True, "repositories": repositories}
+        return {"status": "listed", "complete": False, "repositories": repositories}
+    except urllib.error.HTTPError as e:
+        raise WorkspaceError("GitHub recusou a consulta (HTTP %d); confira permissões" % e.code) from None
+    except (urllib.error.URLError, TimeoutError):
+        raise WorkspaceError("API GitHub inacessível; verifique DNS ou use MCP autenticado") from None
 
 
 def remote_fetch(target, branch):
@@ -212,8 +240,8 @@ def publication_plan(target, repo, branch, approved):
 
 def main():
     p = argparse.ArgumentParser(description="ALTIV: projetos GitHub locais")
-    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync", "diagnose", "publish-plan"])
-    p.add_argument("--repo", required=True)
+    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync", "diagnose", "publish-plan", "list"])
+    p.add_argument("--repo", default="")
     p.add_argument("--branch", default="")
     p.add_argument("--path", default="", help="Checkout local existente (origem Git validada)")
     p.add_argument("--file", action="append", default=[], help="Arquivo aprovado para publicação (repetível)")
@@ -221,6 +249,9 @@ def main():
     p.add_argument("--message", default="feat: alterações revisadas no ALTIV DEV AI")
     p.add_argument("--port", type=int, default=8765)
     a = p.parse_args()
+    if a.action == "list":
+        print(json.dumps(list_repositories(), ensure_ascii=False))
+        return
     target = resolve_workspace(a.repo, a.path)
     if a.action == "clone" and a.path:
         raise WorkspaceError("Clone não aceita --path; use --path somente com checkout existente")
@@ -236,7 +267,7 @@ def main():
             if a.branch:
                 run("git", "checkout", a.branch, cwd=target, env=env)
             else:
-                run("git", "checkout", "HEAD", cwd=target, env=env)
+                run("git", "reset", "--hard", "HEAD", cwd=target, env=env)
             # Never persist credentials in the remote URL.
             run("git", "remote", "set-url", "origin", url, cwd=target)
         except Exception:
