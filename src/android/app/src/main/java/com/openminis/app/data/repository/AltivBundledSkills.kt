@@ -118,12 +118,16 @@ internal object AltivBundledSkills {
         """
         ---
         name: altive-github-safe-workflow
-        version: 1.0.0
+        version: 1.1.0
         description: Fluxo seguro GitHub para modificar repositórios com branch, commit, pull request, testes e autorização.
         ---
 
         # ALTIVE GitHub Seguro
         
+        - Para listar repositórios, execute primeiro python3 /usr/local/bin/altiv-workspace.py list. Se não houver credencial local, use MCP autenticado e informe se a lista é parcial.
+        - Para clonar, use python3 /usr/local/bin/altiv-workspace.py clone --repo dono/repositorio. Não tente git clone HTTPS sem o helper: ele usa a credencial configurada via askpass temporário.
+        - Para publicar, use o helper publish-plan com --repo e --file para cada arquivo aprovado; confira o SHA remoto e obtenha aprovação explícita. Use publish --approve somente após aprovação, em branch isolada. Nunca force push.
+        - Se o helper informar ausência de credencial, não repita clone anônimo nem solicite token no chat; oriente a conexão GitHub PAT nas configurações protegidas. MCP autenticado pode continuar a leitura, mas não comprova autenticação Git local.
         - Descubra o repositório e branch corretos antes de editar. Preserve código, segredos e configurações existentes.
         - Faça alterações pequenas, com diffs claros, build e testes correspondentes.
         - Prepare pull request e informe link e arquivos modificados; merge e deploy exigem autorização expressa.
