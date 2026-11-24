@@ -85,6 +85,11 @@ def list_repositories():
         raise WorkspaceError("GitHub não conectado; autentique a conta no aplicativo")
     repositories = []
     try:
+        req = urllib.request.Request("https://api.github.com/user", headers={"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json"})
+        with urllib.request.urlopen(req, timeout=20) as response:
+            account = json.load(response).get("login")
+        if not account:
+            raise WorkspaceError("Identidade GitHub não confirmada")
         for page in range(1, 11):
             url = "https://api.github.com/user/repos?per_page=100&type=all&sort=full_name&page=" + str(page)
             req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token,
@@ -96,8 +101,8 @@ def list_repositories():
             repositories.extend({"full_name": x["full_name"], "private": bool(x.get("private"))}
                                 for x in entries if isinstance(x, dict) and x.get("full_name"))
             if len(entries) < 100:
-                return {"status": "listed", "complete": True, "repositories": repositories}
-        return {"status": "listed", "complete": False, "repositories": repositories}
+                return {"status": "listed", "account": account, "complete": True, "repositories": repositories}
+        return {"status": "listed", "account": account, "complete": False, "repositories": repositories}
     except urllib.error.HTTPError as e:
         raise WorkspaceError("GitHub recusou a consulta (HTTP %d); confira permissões" % e.code) from None
     except (urllib.error.URLError, TimeoutError):
@@ -328,8 +333,17 @@ def main():
             approved.append(str(rel))
         verify_approved_content(target, approved)
         publication_plan(target, a.repo, info["branch"], approved)
-        remote_fetch(target, info["branch"])
-        if run("git", "rev-parse", "HEAD", cwd=target) != run("git", "rev-parse", "origin/" + info["branch"], cwd=target):
+        tmp, env = git_auth()
+        try:
+            refs = run("git", "ls-remote", "--heads", "origin", "refs/heads/" + info["branch"], cwd=target, env=env)
+        finally:
+            tmp.cleanup()
+        if refs:
+            remote_fetch(target, info["branch"])
+        else:
+            remote_fetch(target, "main")
+        base_ref = "origin/" + (info["branch"] if refs else "main")
+        if run("git", "rev-parse", "HEAD", cwd=target) != run("git", "rev-parse", base_ref, cwd=target):
             raise WorkspaceError("Branch remota divergiu; publicação bloqueada antes do stage")
         if run("git", "diff", "--cached", "--name-only", cwd=target):
             raise WorkspaceError("Stage preexistente detectado; revise antes de publicar")
