@@ -123,6 +123,12 @@ internal object AltivBundledSkills {
         ---
 
         # ALTIVE GitHub Seguro
+
+        - Mantenha o repositório exato, branch, caminho local e porta do preview como contexto ativo da conversa. Nunca escolha outro projeto por semelhança de nome comercial. Só troque mediante pedido explícito do usuário.
+        - Antes de editar, valide a origem com o helper status --repo dono/nome; reutilize o checkout existente. Não descarte alterações locais nem reinstale dependências se o lockfile e a instalação ainda forem válidos.
+        - Para preview de framework, use o mecanismo persistente de processos em segundo plano disponível no ambiente, não um comando bloqueante. Confirme HTTP 200 em chamada separada e identidade do projeto na porta antes de entregar o link.
+        - Registre no contexto os erros e soluções comprovadas (DNS, credencial, dependências, timeout, porta). Evite repetir comandos que falharam sem mudar a estratégia. Agrupe verificações independentes quando seguro.
+        - Antes de publicar, confira o diff exato, branch isolada e arquivos aprovados; após publicar compare SHA e blobs remotos. Não declare sucesso apenas pelo retorno do comando. Se a branch remota ainda não existir, use publicação autenticada com base remota verificada e sem force push.
         
         - Para listar repositórios, execute primeiro python3 /usr/local/bin/altiv-workspace.py list. Se não houver credencial local, use MCP autenticado e informe se a lista é parcial.
         - Para clonar, use python3 /usr/local/bin/altiv-workspace.py clone --repo dono/repositorio. Não tente git clone HTTPS sem o helper: ele usa a credencial configurada via askpass temporário.
