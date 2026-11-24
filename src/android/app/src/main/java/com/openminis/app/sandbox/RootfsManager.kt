@@ -302,6 +302,10 @@ class RootfsManager private constructor(private val context: Context) {
                 if (dnsServers.isNotEmpty()) {
                     for (server in dnsServers) {
                         val addr = server.hostAddress ?: continue
+                        // Android may return a scoped IPv6 address whose interface
+                        // is not visible to the Alpine resolver. Do not install
+                        // unusable link-local addresses as the only DNS servers.
+                        if (server.isLinkLocalAddress || !ContainerDns.isValidServer(addr)) continue
                         resolvConf.append("nameserver $addr\n")
                         Log.i(TAG, "[DNS] system server: $addr")
                     }
