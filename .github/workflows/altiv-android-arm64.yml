@@ -354,21 +354,7 @@ jobs:
               exit 1
             fi
           done
-          grep -Eq '(^|/)usr/local/bin/altiv-dev-check and core programming tools in APK: $ROOTFS_ENTRY"
-          sha256sum "$APK" > "$APK.sha256"
-          ls -lh "$APK" "$APK.sha256"
-
-      - name: Publish downloadable debug APK and checksum
-        uses: actions/upload-artifact@v4
-        with:
-          name: altiv-dev-ai-independent-arm64-${{ github.run_number }}
-          path: |
-            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk
-            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.sha256
-            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.signature.txt
-          if-no-files-found: error
-          retention-days: 14
- "$RUNNER_TEMP/altiv-rootfs-contents.txt" || {
+          grep -Eq '(^|/)usr/local/bin/altiv-dev-check$' "$RUNNER_TEMP/altiv-rootfs-contents.txt" || {
             echo '::error::ALTIV environment checker missing from final APK'
             exit 1
           }
