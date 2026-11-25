@@ -84,23 +84,29 @@ def list_repositories():
     if not token:
         raise WorkspaceError("GitHub não conectado; autentique a conta no aplicativo")
     repositories = []
+    seen = set()
     try:
         req = urllib.request.Request("https://api.github.com/user", headers={"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json"})
         with urllib.request.urlopen(req, timeout=20) as response:
             account = json.load(response).get("login")
         if not account:
             raise WorkspaceError("Identidade GitHub não confirmada")
-        for page in range(1, 11):
-            url = "https://api.github.com/user/repos?per_page=100&type=all&sort=full_name&page=" + str(page)
+        for page in range(1, 101):
+            url = "https://api.github.com/user/repos?per_page=30&type=all&sort=full_name&page=" + str(page)
             req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token,
                 "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"})
             with urllib.request.urlopen(req, timeout=20) as response:
                 entries = json.load(response)
             if not isinstance(entries, list):
                 raise WorkspaceError("Resposta inesperada do GitHub")
-            repositories.extend({"full_name": x["full_name"], "private": bool(x.get("private"))}
-                                for x in entries if isinstance(x, dict) and x.get("full_name"))
-            if len(entries) < 100:
+            for x in entries:
+                if not isinstance(x, dict) or not x.get("full_name") or not isinstance(x.get("private"), bool):
+                    raise WorkspaceError("Metadados de repositório incompletos")
+                key = x.get("id") or x["full_name"].lower()
+                if key not in seen:
+                    seen.add(key)
+                    repositories.append({"full_name": x["full_name"], "private": x["private"]})
+            if len(entries) < 30:
                 return {"status": "listed", "account": account, "complete": True, "repositories": repositories}
         return {"status": "listed", "account": account, "complete": False, "repositories": repositories}
     except urllib.error.HTTPError as e:

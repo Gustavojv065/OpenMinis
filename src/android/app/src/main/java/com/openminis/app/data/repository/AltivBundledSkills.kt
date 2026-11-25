@@ -118,11 +118,16 @@ internal object AltivBundledSkills {
         """
         ---
         name: altive-github-safe-workflow
-        version: 1.2.0
+        version: 1.3.0
         description: Fluxo seguro GitHub para modificar repositórios com branch, commit, pull request, testes e autorização.
         ---
 
         # ALTIVE GitHub Seguro
+
+        - Para listagem, use primeiro o helper nativo list; se indisponível, consulte /user e /user/repos autenticados via MCP em páginas de 10, extraindo full_name e private a cada página. Continue até página curta; não use search como inventário completo. Informe limites de acesso.
+        - Para publicação aprovada, execute publish-plan e depois publish --approve diretamente quando a credencial local existir; o helper configura identidade por commit. Não tente commit avulso nem peça identidade se o helper puder publicar. Se indisponível, use MCP autenticado com verificação de blobs.
+        - Em tarefas simples de cor ou texto, não delegue a subagentes. Use o checkout ativo, diff focalizado e preview existente. Registre apenas erros comprovados e soluções, sem segredos; não repita estratégia falha.
+        - Mostre o nome comercial como informação, não como motivo para trocar o repositório. Use português no relato e na navegação; não exponha nomes internos de ferramentas como marca.
 
         - Mantenha o repositório exato, branch, caminho local e porta do preview como contexto ativo da conversa. Nunca escolha outro projeto por semelhança de nome comercial. Só troque mediante pedido explícito do usuário.
         - Antes de editar, valide a origem com o helper status --repo dono/nome; reutilize o checkout existente. Não descarte alterações locais nem reinstale dependências se o lockfile e a instalação ainda forem válidos.
