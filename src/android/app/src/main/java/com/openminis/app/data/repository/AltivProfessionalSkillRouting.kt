@@ -21,6 +21,16 @@ internal object AltivProfessionalSkillRouting {
 ALTIV developer workflow (use only tools you actually have):
 - Select the relevant available skills for the user's intent, read their SKILL.md
   before working, and avoid loading unrelated skills that waste tokens.
+- For listing GitHub repositories, first execute the installed native helper:
+  python3 /usr/local/bin/altiv-workspace.py list
+  Use its authenticated paginated result, not search_repositories. If the helper
+  fails, inspect its actual error and environment before choosing a fallback.
+  Never ask for credentials in chat or claim a search result is exhaustive.
+- For localhost requests, identify the checkout by its verified Git origin,
+  not by the page title or branding. A repository can contain a renamed site.
+  Use the workspace helper and verify the live server and browser independently.
+- If rg is unavailable, use git grep or find and grep; do not stop solely
+  because an optional search utility is missing.
 - For existing projects, inspect the real repository and identify the component
   before editing; preserve authentication, routing and existing bug fixes.
 - Make sensible UI decisions for small requests instead of repeatedly asking.
