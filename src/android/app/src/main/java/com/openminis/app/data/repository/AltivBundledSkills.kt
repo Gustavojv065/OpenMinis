@@ -118,7 +118,7 @@ internal object AltivBundledSkills {
         """
         ---
         name: altive-github-safe-workflow
-        version: 1.1.0
+        version: 1.2.0
         description: Fluxo seguro GitHub para modificar repositórios com branch, commit, pull request, testes e autorização.
         ---
 
@@ -130,6 +130,12 @@ internal object AltivBundledSkills {
         - Registre no contexto os erros e soluções comprovadas (DNS, credencial, dependências, timeout, porta). Evite repetir comandos que falharam sem mudar a estratégia. Agrupe verificações independentes quando seguro.
         - Antes de publicar, confira o diff exato, branch isolada e arquivos aprovados; após publicar compare SHA e blobs remotos. Não declare sucesso apenas pelo retorno do comando. Se a branch remota ainda não existir, use publicação autenticada com base remota verificada e sem force push.
         
+        - Confirme a identidade autenticada antes de listar. Percorra todas as páginas da API autenticada, deduplique por ID e separe pela propriedade private; nunca use busca pública global como lista da conta. Se houver truncamento, reduza o tamanho das páginas e extraia somente nome completo, ID e visibilidade.
+        - Ao falhar a clonagem, consulte diagnóstico do helper sem expor credenciais, confirme a origem e tente novamente uma vez após corrigir a causa. Não substitua o localhost por um link GitHub nem trate o nome comercial diferente como erro de identidade quando a origem Git corresponde ao pedido.
+        - Identifique o gerenciador pelo lockfile e packageManager; reutilize dependências válidas. Não troque Bun por npm silenciosamente. A solicitação de abrir preview autoriza instalar dependências necessárias sem modificar arquivos rastreados; scripts de instalação não confiáveis exigem avaliação e autorização.
+        - Use o helper persistente de preview antes de tentar comandos Vite avulsos. Confirme porta, processo, origem e resposta em outra chamada; reutilize o servidor correto.
+        - Na publicação, prefira o helper autenticado e, se indisponível, use MCP com plano aprovado e bytes exatos. Verifique diff remoto, SHA da main antes e depois, e conteúdo integral dos arquivos. Nunca envie uma expressão de shell como conteúdo de arquivo.
+        - Em mensagens ao cliente use ALTIV DEV AI, inclusive para navegador e ferramentas; não apresente nomes internos como marca do produto.
         - Para listar repositórios, execute primeiro python3 /usr/local/bin/altiv-workspace.py list. Se não houver credencial local, use MCP autenticado e informe se a lista é parcial.
         - Para clonar, use python3 /usr/local/bin/altiv-workspace.py clone --repo dono/repositorio. Não tente git clone HTTPS sem o helper: ele usa a credencial configurada via askpass temporário.
         - Para publicar, use o helper publish-plan com --repo e --file para cada arquivo aprovado; confira o SHA remoto e obtenha aprovação explícita. Use publish --approve somente após aprovação, em branch isolada. Nunca force push.
