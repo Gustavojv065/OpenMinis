@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """ALTIV local GitHub workspace: clone, inspect, preview, review and approved push.
 
-Static localhost preview is supported for plain HTML projects. Framework apps
-require their own build/dev server and are never executed automatically.
+Local preview supports static HTML and installed Vite/TanStack projects.\nDependencies must be prepared separately.
 """
 import argparse
 import hashlib
@@ -12,6 +11,8 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
+import socket
 import tempfile
 import urllib.parse
 import urllib.request
@@ -105,7 +106,7 @@ def list_repositories():
                 key = x.get("id") or x["full_name"].lower()
                 if key not in seen:
                     seen.add(key)
-                    repositories.append({"full_name": x["full_name"], "private": x["private"]})
+                    repositories.append({"id": x.get("id"), "full_name": x["full_name"], "private": x["private"]})
             if len(entries) < 30:
                 return {"status": "listed", "account": account, "complete": True, "repositories": repositories}
         return {"status": "listed", "account": account, "complete": False, "repositories": repositories}
@@ -312,14 +313,44 @@ def main():
         print(json.dumps({"status": "review", "diff": (changes + "\n" + staged)[:60000],
                           **info}, ensure_ascii=False))
     elif a.action == "preview":
-        if info["framework"] != "html-static":
-            raise WorkspaceError("Preview automático não disponível para " + info["framework"] +
-                                 "; é necessário servidor de desenvolvimento compatível")
         if not 1024 <= a.port <= 65535:
             raise WorkspaceError("Porta inválida")
-        print("Preview local http://127.0.0.1:%d/ (Ctrl+C para parar)" % a.port, flush=True)
-        subprocess.run([sys.executable, "-m", "http.server", str(a.port),
-                        "--bind", "127.0.0.1", "--directory", str(target)], check=True)
+        if info["framework"] == "html-static":
+            command = [sys.executable, "-m", "http.server", str(a.port),
+                       "--bind", "127.0.0.1", "--directory", str(target)]
+        elif info["framework"] in ("tanstack-start", "vite"):
+            if not (target / "node_modules" / ".bin" / "vite").is_file():
+                raise WorkspaceError("Dependências ausentes; instale com o lockfile aprovado antes do preview")
+            command = [str(target / "node_modules" / ".bin" / "vite"),
+                       "--host", "127.0.0.1", "--port", str(a.port), "--strictPort"]
+        else:
+            raise WorkspaceError("Framework requer servidor compatível: " + info["framework"])
+        with socket.socket() as probe:
+            if probe.connect_ex(("127.0.0.1", a.port)) == 0:
+                raise WorkspaceError("Porta ocupada; escolha outra porta para evitar abrir projeto incorreto")
+        logdir = ROOT / ".preview-logs"
+        logdir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        logpath = logdir / (a.repo.replace("/", "__") + "-" + str(a.port) + ".log")
+        env = {k: v for k, v in os.environ.items() if not any(
+            word in k.upper() for word in ("TOKEN", "SECRET", "PASSWORD", "API_KEY", "PAT"))}
+        with logpath.open("ab") as log:
+            process = subprocess.Popen(command, cwd=target, env=env, stdin=subprocess.DEVNULL,
+                                       stdout=log, stderr=log, start_new_session=True)
+        url = "http://127.0.0.1:%d/" % a.port
+        for _ in range(60):
+            if process.poll() is not None:
+                raise WorkspaceError("Servidor encerrou; consulte log local do preview")
+            try:
+                with urllib.request.urlopen(url, timeout=1) as response:
+                    if response.status == 200 and process.poll() is None:
+                        print(json.dumps({"status": "preview", "repository": a.repo,
+                                          "url": url, "pid": process.pid, **info}, ensure_ascii=False))
+                        return
+            except (urllib.error.URLError, TimeoutError):
+                pass
+            time.sleep(0.5)
+        process.terminate()
+        raise WorkspaceError("Preview não respondeu HTTP 200; consulte log local")
     elif a.action == "publish":
         if not a.approve:
             raise WorkspaceError("Envio bloqueado: aprovação explícita (--approve) necessária")
