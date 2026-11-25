@@ -13,7 +13,7 @@ class AltivBundledSkillsTest {
             val parsed = SkillRepository.parseSkillMd(raw)
             assertNotNull("Bundled skill must have SKILL.md frontmatter", parsed)
             assertTrue(parsed!!.name.startsWith("altive-"))
-            assertEquals(if (parsed.name == "altive-github-safe-workflow") "1.1.0" else "1.0.0", parsed.version)
+            assertEquals(if (parsed.name == "altive-github-safe-workflow") "1.2.0" else "1.0.0", parsed.version)
             assertFalse(parsed.description.isBlank())
             assertFalse(parsed.body.isBlank())
             parsed.name
