@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 import socket
+import shutil
 import tempfile
 import urllib.parse
 import urllib.request
@@ -108,7 +109,7 @@ def list_repositories():
                     seen.add(key)
                     repositories.append({"id": x.get("id"), "full_name": x["full_name"], "private": x["private"]})
             if len(entries) < 30:
-                return {"status": "listed", "account": account, "complete": True, "repositories": repositories}
+                return {"status": "listed", "account": account, "complete": True, "total": len(repositories), "private": sum(x["private"] for x in repositories), "public": sum(not x["private"] for x in repositories), "repositories": repositories}
         return {"status": "listed", "account": account, "complete": False, "repositories": repositories}
     except urllib.error.HTTPError as e:
         raise WorkspaceError("GitHub recusou a consulta (HTTP %d); confira permissões" % e.code) from None
@@ -250,9 +251,31 @@ def publication_plan(target, repo, branch, approved):
                 "Conferir SHA dos blobs remotos e abrir Pull Request sem merge automático"]}
 
 
+def prepare_dependencies(target):
+    """Prepare npm projects without exposing GitHub credentials or running lifecycle scripts."""
+    if not shutil.which("npm"):
+        raise WorkspaceError("npm ausente no ambiente; execute reparo do runtime ALTIV")
+    if any((target / name).exists() for name in ("pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb")):
+        raise WorkspaceError("Projeto requer seu gerenciador de pacotes original")
+    env = {k: v for k, v in os.environ.items() if not any(
+        word in k.upper() for word in ("TOKEN", "SECRET", "PASSWORD", "API_KEY", "PAT"))}
+    flags = ["--ignore-scripts", "--no-audit", "--no-fund"]
+    if (target / "package-lock.json").exists():
+        result = subprocess.run(["npm", "ci", *flags], cwd=target, env=env,
+                                capture_output=True, text=True, timeout=600)
+        if result.returncode == 0:
+            return
+        if "EUSAGE" not in result.stderr:
+            raise WorkspaceError("npm ci falhou; instalação alternativa não autorizada para este erro")
+    result = subprocess.run(["npm", "install", *flags, "--package-lock=false"],
+                            cwd=target, env=env, capture_output=True, text=True, timeout=600)
+    if result.returncode:
+        raise WorkspaceError("npm install alternativo falhou; verifique dependências e conectividade")
+
+
 def main():
     p = argparse.ArgumentParser(description="ALTIV: projetos GitHub locais")
-    p.add_argument("action", choices=["clone", "status", "diff", "preview", "publish", "sync", "diagnose", "publish-plan", "list"])
+    p.add_argument("action", choices=["setup", "clone", "status", "diff", "preview", "publish", "sync", "diagnose", "publish-plan", "list"])
     p.add_argument("--repo", default="")
     p.add_argument("--branch", default="")
     p.add_argument("--path", default="", help="Checkout local existente (origem Git validada)")
@@ -261,6 +284,11 @@ def main():
     p.add_argument("--message", default="feat: alterações revisadas no ALTIV DEV AI")
     p.add_argument("--port", type=int, default=8765)
     a = p.parse_args()
+    if a.action == "setup":
+        required = ["git", "node", "npm", "python3", "rg", "curl"]
+        missing = [name for name in required if not shutil.which(name)]
+        print(json.dumps({"status": "not_verified" if missing else "ready", "missing": missing}))
+        return
     if a.action == "list":
         print(json.dumps(list_repositories(), ensure_ascii=False))
         return
@@ -277,12 +305,11 @@ def main():
         tmp, env = git_auth()
         try:
             url = "https://github.com/" + a.repo + ".git"
-            args = ["git", "clone", "--no-checkout", "--", url, str(target)]
-            run(*args, env=env)
+            args = ["git", "clone"]
             if a.branch:
-                run("git", "checkout", a.branch, cwd=target, env=env)
-            else:
-                run("git", "reset", "--hard", "HEAD", cwd=target, env=env)
+                args.extend(["--branch", a.branch])
+            args.extend(["--", url, str(target)])
+            run(*args, env=env)
             # Never persist credentials in the remote URL.
             run("git", "remote", "set-url", "origin", url, cwd=target)
         except Exception:
@@ -320,7 +347,7 @@ def main():
                        "--bind", "127.0.0.1", "--directory", str(target)]
         elif info["framework"] in ("tanstack-start", "vite"):
             if not (target / "node_modules" / ".bin" / "vite").is_file():
-                raise WorkspaceError("Dependências ausentes; instale com o lockfile aprovado antes do preview")
+                prepare_dependencies(target)
             command = [str(target / "node_modules" / ".bin" / "vite"),
                        "--host", "127.0.0.1", "--port", str(a.port), "--strictPort"]
         else:
