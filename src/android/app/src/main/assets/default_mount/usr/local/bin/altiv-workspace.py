@@ -360,8 +360,28 @@ def main():
         logpath = logdir / (a.repo.replace("/", "__") + "-" + str(a.port) + ".log")
         env = {k: v for k, v in os.environ.items() if not any(
             word in k.upper() for word in ("TOKEN", "SECRET", "PASSWORD", "API_KEY", "PAT"))}
+        # Keep the preview alive across shell invocations; bounded restart loop.
+        supervisor = """import subprocess, sys, time, signal
+command = sys.argv[1:]
+child = None
+def stop(signum, frame):
+    if child is not None and child.poll() is None:
+        child.terminate()
+    sys.exit(0)
+signal.signal(signal.SIGTERM, stop)
+attempt = 0
+while attempt < 6:
+    started = time.monotonic()
+    child = subprocess.Popen(command)
+    child.wait()
+    if time.monotonic() - started > 60:
+        attempt = 0
+    time.sleep(min(2 ** attempt, 15))
+    attempt += 1
+"""
         with logpath.open("ab") as log:
-            process = subprocess.Popen(command, cwd=target, env=env, stdin=subprocess.DEVNULL,
+            process = subprocess.Popen([sys.executable, "-c", supervisor, *command],
+                                       cwd=target, env=env, stdin=subprocess.DEVNULL,
                                        stdout=log, stderr=log, start_new_session=True)
         url = "http://127.0.0.1:%d/" % a.port
         for _ in range(60):
