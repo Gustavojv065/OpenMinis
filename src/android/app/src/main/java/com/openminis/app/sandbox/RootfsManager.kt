@@ -367,7 +367,8 @@ class RootfsManager private constructor(private val context: Context) {
             null
         }
         if (rootEntries.isNullOrEmpty()) {
-            Log.d(TAG, "[DefaultMount] no default_mount assets found, skipping overlay")
+            Log.d(TAG, "[DefaultMount] no default_mount assets found, checking GitHub tools")
+            ensureGitHubPublisherInstalled()
             return@withContext
         }
 
@@ -377,6 +378,8 @@ class RootfsManager private constructor(private val context: Context) {
             fileCount = copyAssetDir(DEFAULT_MOUNT_ASSET, rootfsDir)
         } catch (t: Throwable) {
             Log.w(TAG, "[DefaultMount] overlay failed: ${t.message}", t)
+            // Recover critical tools even when an unrelated overlay file fails.
+            ensureGitHubPublisherInstalled()
             return@withContext
         }
 
