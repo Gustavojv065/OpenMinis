@@ -35,6 +35,59 @@ internal object AltivDevToolchainPolicy {
   backups, API keys, or license state as a repair shortcut.
 - If the user only greets you, answer normally. Never claim to have installed
   or repaired a package when the Android provisioner has not done so.
+[ALTIV LOCAL WORKSPACE — PREFERRED FOR MULTI-FILE AND VISUAL REQUESTS]
+- When the user chooses a GitHub project and requests iterative edits or a
+  localhost preview, use the bundled Linux utility:
+  python3 /usr/local/bin/altiv-workspace.py clone --repo OWNER/REPO --branch FEATURE_BRANCH
+  python3 /usr/local/bin/altiv-workspace.py status --repo OWNER/REPO
+  The project is cloned into /root/altiv-workspaces/OWNER__REPO.
+  Reuse existing clones; never delete or overwrite existing local work.
+- Inspect the project's framework and existing scripts before editing.
+  Use shell tools to edit the LOCAL copy, then run status and diff to review
+  precisely which files changed. Do not edit .env files, credentials, or
+  generated vendor directories.
+- Static HTML projects support localhost preview:
+  python3 /usr/local/bin/altiv-workspace.py preview --repo OWNER/REPO --port 8765
+  Framework apps (Vite, TanStack Start, Next.js) require their actual
+  project-specific development server, dependencies and environment; do
+  not claim localhost is ready unless the server is really running.
+  Never run untrusted install/build scripts without the user's approval.
+- After showing the diff and receiving explicit approval to push the
+  reviewed changes to the selected feature branch, run:
+  python3 /usr/local/bin/altiv-workspace.py publish --repo OWNER/REPO
+    --branch FEATURE_BRANCH --message 'fix: approved customer changes' --approve
+  The command refuses main/master. A successful commit/push must return
+  a real commit SHA. Never automatically merge or deploy to production.
+- For small remote edits, altiv-github-edit.py remains available; for
+  multi-file visual edits, prefer a local clone and review-first workflow.
+[END ALTIV LOCAL WORKSPACE]
+[ALTIV GITHUB EDITS — MANDATORY FOR SIMPLE REQUESTS]
+- When a user asks in plain language to change a color, text, link or other
+  small code fragment in a GitHub project, first locate the authorized repo,
+  branch and exact file through authenticated GitHub tools. Private GitHub
+  repositories commonly return HTTP 404 via unauthenticated raw URLs;
+  do NOT treat that as proof the file is missing.
+- Prefer the bundled /usr/local/bin/altiv-github-edit.py for exact UTF-8
+  substitutions. It uses the connected ALTIV_GITHUB_MCP_TOKEN automatically,
+  reads the full remote file via authenticated GitHub Contents API, verifies
+  an exact occurrence count, and uses the remote blob SHA to prevent stale
+  overwrites. It requires NO local clone and no public raw URL.
+- First preview with:
+  python3 /usr/local/bin/altiv-github-edit.py --repo OWNER/REPO
+    --branch BRANCH --path FILE --old 'EXACT OLD' --new 'EXACT NEW'
+    --count 1
+  After verifying the target and receiving authorization for that branch,
+  repeat the same command with --apply and --message 'fix: ...'.
+  Shell commands must be a single valid command line or use safe quoting.
+- To edit multiple independent occurrences, count and inspect the exact
+  matches first; do not globally replace a shared CSS token if it also
+  controls backgrounds, borders or buttons. Use narrowly scoped snippets.
+- Never print or paste access tokens. Do not write to main, merge, or
+  deploy to production without authorization. If the tool fails, report
+  the actual error and do not claim a commit happened.
+- The binary helper altiv-github-upload.py is for files/assets; the
+  exact-text editor is for precise changes to existing UTF-8 files.
+[END ALTIV GITHUB EDITS]
 [END ALTIVE DEV ENVIRONMENT]
     """.trimIndent()
 }

@@ -114,10 +114,23 @@ internal fun AltivGitHubPatSheet(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            val tokenEnabledForShell = savedEntry?.enabled == true && hasToken
             Text(
-                "Esta lista mostra repositórios remotos. Ela não clona arquivos na pasta local. " +
-                    "Para editar no terminal, autentique o Git separadamente (por exemplo, GitHub CLI). " +
-                    "Abra uma nova conversa para carregar o MCP no agente.",
+                if (tokenEnabledForShell)
+                    "Token GitHub protegido e habilitado para injeção no ambiente Linux. " +
+                        "O agente deve verificar ALTIV_GITHUB_MCP_TOKEN sem exibir seu valor. " +
+                        "Reabra uma conversa para atualizar o ambiente do agente."
+                else
+                    "Atenção: o token GitHub não está disponível para o shell. " +
+                        "Salve e habilite a conexão GitHub nesta tela antes de publicar arquivos.",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (tokenEnabledForShell) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error,
+            )
+            Text(
+                "Esta lista mostra repositórios remotos, não clones locais. " +
+                    "Para comandos Git tradicionais, configure a autenticação Git separadamente. " +
+                    "O publicador binário ALTIV usa o token protegido já habilitado.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

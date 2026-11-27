@@ -14,6 +14,8 @@ on:
       - 'scripts/prepare_android_sandbox.sh'
       - 'scripts/altiv_release_gate.py'
       - 'scripts/tests/test_altive_photo_search.py'
+      - 'scripts/tests/test_altiv_github_edit.py'
+      - 'scripts/tests/test_altiv_workspace.py'
   pull_request:
     paths:
       - '.github/workflows/altiv-android-arm64.yml'
@@ -62,11 +64,50 @@ jobs:
           python3 -m unittest discover -s scripts/tests -p 'test_altive_photo_search.py' -v
           python3 -m unittest discover -s scripts/tests -p 'test_altive_media_search.py' -v
 
+      - name: Validate GitHub binary upload helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile src/android/app/src/main/assets/default_mount/usr/local/bin/altiv-github-upload.py
+          python3 -m unittest discover -s scripts/tests -p 'test_altiv_github_binary_upload.py' -v
+
+      - name: Validate GitHub exact-text editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile src/android/app/src/main/assets/default_mount/usr/local/bin/altiv-github-edit.py
+          python3 -m unittest discover -s scripts/tests -p 'test_altiv_github_edit.py' -v
+
+      - name: Validate local GitHub workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile src/android/app/src/main/assets/default_mount/usr/local/bin/altiv-workspace.py
+          python3 -m unittest discover -s scripts/tests -p 'test_altiv_workspace.py' -v
+
       - name: Configure Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: Cache Gradle dependencies and diagnostics
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Check KSP plugin repositories (diagnostic only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          REL='com/google/devtools/ksp/com.google.devtools.ksp.gradle.plugin/2.1.0-1.0.29/com.google.devtools.ksp.gradle.plugin-2.1.0-1.0.29.pom'
+          for base in 'https://repo.maven.apache.org/maven2' 'https://plugins.gradle.org/m2'; do
+            if curl --location --fail --silent --show-error --connect-timeout 10 --max-time 20 --output /dev/null "$base/$REL"; then
+              echo 'ALTIV: KSP plugin marker reachable.'
+              exit 0
+            fi
+          done
+          echo '::warning::KSP probe unavailable; Gradle will resolve using configured repositories and cache. Android tests remain mandatory.'
 
       - name: Configure Go 1.25 for gomobile / rclone
         uses: actions/setup-go@v5
@@ -132,12 +173,48 @@ jobs:
             echo 'org.gradle.parallel=false'
           } >> src/android/gradle.properties
 
+      - name: Prefetch Robolectric native runtime with Maven Central fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GitHub-hosted runners sometimes receive HTTP 429 from Maven Central.
+          # Download only the pinned dependency; never skip Android unit tests.
+          REL='org/robolectric/nativeruntime-dist-compat/1.0.19'
+          DEST="$HOME/.m2/repository/$REL"
+          mkdir -p "$DEST"
+          for extension in pom jar; do
+            file="nativeruntime-dist-compat-1.0.19.$extension"
+            success=false
+            for attempt in 1 2 3 4; do
+              for base in 'https://repo.maven.apache.org/maven2' 'https://repo1.maven.org/maven2'; do
+                if curl --fail --location --silent --show-error \
+                    --connect-timeout 15 --max-time 120 \
+                    --output "$DEST/$file.tmp" "$base/$REL/$file"; then
+                  test -s "$DEST/$file.tmp"
+                  mv "$DEST/$file.tmp" "$DEST/$file"
+                  success=true
+                  break
+                fi
+                rm -f "$DEST/$file.tmp"
+              done
+              if [ "$success" = true ]; then break; fi
+              echo "::warning::Maven download failed for $file (attempt $attempt/4); backing off"
+              sleep $((attempt * 30))
+            done
+            if [ "$success" != true ]; then
+              echo "::error::Robolectric dependency unavailable after retries; Android tests remain required"
+              exit 1
+            fi
+          done
+          echo 'ALTIV: pinned Robolectric native runtime cached locally.'
+
       - name: Run ALTIV MCP, Supabase scope and localhost unit tests
         working-directory: src/android
         shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon :app:testAltivDebugUnitTest \
+          for attempt in 1 2 3; do
+            if ./gradlew --no-daemon :app:testAltivDebugUnitTest \
             --tests 'com.openminis.app.mcp.MCPQuickConnectCatalogTest' \
             --tests 'com.openminis.app.mcp.SupabaseMcpProjectScopeTest' \
             --tests 'com.openminis.app.ui.terminal.LocalPreviewAddressTest' \
@@ -172,7 +249,16 @@ jobs:
             --tests 'com.openminis.app.ui.chat.AltivAutonomousSupervisorPolicyTest' \
             --tests 'com.openminis.app.browser.AltivVisualAuditTest' \
             --tests 'com.openminis.app.commercial.AltivLicenseActivationContractTest' \
-            --tests 'com.openminis.app.mcp.SupabaseMcpAccountScopeTest'
+            --tests 'com.openminis.app.mcp.SupabaseMcpAccountScopeTest'; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo 'ALTIV: Android unit tests failed after 3 attempts.' >&2
+              exit 1
+            fi
+            echo "ALTIV: transient Gradle/Maven failure; retry $attempt/3 after backoff." >&2
+            sleep $((attempt * 45))
+          done
 
       - name: Version APK independently of ephemeral CI checkouts
         shell: bash
@@ -231,6 +317,12 @@ jobs:
           # Certificate SHA-256 is public identity; never upload a private keystore.
           cp "$RUNNER_TEMP/altiv-signature.txt" "$APK.signature.txt"
           unzip -Z1 "$APK" > "$RUNNER_TEMP/apk-files.txt"
+          # The publisher must be packaged into the actual installable APK,
+          # not merely present in the source tree during compilation.
+          unzip -Z1 "$APK" | grep -Fxq 'assets/default_mount/usr/local/bin/altiv-github-upload.py' || {
+            echo '::error::GitHub binary publisher missing from APK assets'
+            exit 1
+          }
           # Android asset packaging can auto-decompress a .tar.gz file to .tar.
           # RootfsManager.kt supports both formats at runtime; verify both
           # acceptable names and the actual archive contents.
@@ -256,12 +348,20 @@ jobs:
             exit 1
           fi
           # Green Android build without executable toolchain must fail.
-          for required_bin in node npm npx python3 git bash; do
+          for required_bin in node npm npx python3 git bash rg; do
             if ! grep -Eq "(^|/)(usr/bin|bin)/${required_bin}$" "$RUNNER_TEMP/altiv-rootfs-contents.txt"; then
               echo "::error::Toolchain executable missing in final APK: $required_bin"
               exit 1
             fi
           done
+          grep -Eq '(^|/)usr/local/bin/altiv-dev-check$' "$RUNNER_TEMP/altiv-rootfs-contents.txt" || {
+            echo '::error::ALTIV environment checker missing from final APK'
+            exit 1
+          }
+          grep -Fxq 'assets/default_mount/usr/local/bin/altiv-workspace.py' "$RUNNER_TEMP/apk-files.txt" || {
+            echo '::error::ALTIV workspace helper missing from final APK'
+            exit 1
+          }
           echo "Verified Alpine rootfs and core programming tools in APK: $ROOTFS_ENTRY"
           sha256sum "$APK" > "$APK.sha256"
           ls -lh "$APK" "$APK.sha256"

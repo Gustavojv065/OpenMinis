@@ -14,7 +14,7 @@ ALPINE_RELEASE="3.21.3"
 ALPINE_URL="https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/aarch64/alpine-minirootfs-${ALPINE_RELEASE}-aarch64.tar.gz"
 ROOTFS_FILE="$ASSETS_DIR/alpine-minirootfs.tar.gz"
 PROOT_FILE="$ASSETS_DIR/proot-aarch64"
-PACKAGES=(nodejs npm python3 py3-pip git bash curl wget unzip zip ca-certificates)
+PACKAGES=(nodejs npm python3 py3-pip git bash curl wget unzip zip ca-certificates ripgrep)
 
 mkdir -p "$ASSETS_DIR"
 test -s "$PROOT_FILE" || { echo "::error::Build PRoot before preparing the sandbox" >&2; exit 1; }
@@ -36,7 +36,7 @@ docker run --rm --platform linux/arm64 \
   alpine:3.21 /bin/sh -euc '
     cp /etc/resolv.conf /altiv-rootfs/etc/resolv.conf
     chroot /altiv-rootfs /sbin/apk add --no-cache \
-      nodejs npm python3 py3-pip git bash curl wget unzip zip ca-certificates
+      nodejs npm python3 py3-pip git bash curl wget unzip zip ca-certificates ripgrep
     chroot /altiv-rootfs /bin/sh -ec "
       node --version
       npm --version
@@ -44,6 +44,7 @@ docker run --rm --platform linux/arm64 \
       python3 --version
       python3 -m pip --version
       git --version
+      rg --version
       bash --version | head -n 1
       node -e \"console.log(12345)\" | grep -qx 12345
       python3 -c \"print(67890)\" | grep -qx 67890
@@ -53,6 +54,27 @@ docker run --rm --platform linux/arm64 \
     rm -f /altiv-rootfs/etc/resolv.conf
   '
 
+# Ship the environment checker in the rootfs itself, independent of asset overlays.
+mkdir -p "$STAGING/rootfs/usr/local/bin"
+cat > "$STAGING/rootfs/usr/local/bin/altiv-dev-check" <<'ALTIV_CHECK'
+#!/bin/sh
+missing=""
+for tool in python3 git node npm npx bash rg; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    missing="$missing $tool"
+  fi
+done
+if [ -n "$missing" ]; then
+  printf 'NOT_VERIFIED: missing tools:%s\n' "$missing"
+  exit 1
+fi
+printf '%s\n' 'VERIFIED: core development tools available'
+ALTIV_CHECK
+chmod 755 "$STAGING/rootfs/usr/local/bin/altiv-dev-check"
+docker run --rm --platform linux/arm64 \
+  --mount "type=bind,source=$STAGING/rootfs,target=/altiv-rootfs" \
+  alpine:3.21 chroot /altiv-rootfs /usr/local/bin/altiv-dev-check
+
 # RootfsManager.extractTar understands POSIX ustar + gzip; PAX/GNU longname
 # extension entries would be ignored and silently lose executable names.
 tar --format=ustar --numeric-owner --owner=0 --group=0 \
@@ -60,11 +82,12 @@ tar --format=ustar --numeric-owner --owner=0 --group=0 \
 test -s "$ROOTFS_FILE"
 # Avoid SIGPIPE under pipefail: grep must not terminate a streaming tar.
 tar -tzf "$ROOTFS_FILE" > "$STAGING/rootfs-content.list"
-for name in node npm npx python3 git bash apk; do
+for name in node npm npx python3 git bash apk rg; do
   if ! grep -Eq "(^|/)(usr/bin|bin|sbin)/$name$" "$STAGING/rootfs-content.list"; then
     echo "::error::Required ARM64 binary missing from rootfs: $name" >&2
     exit 1
   fi
 done
+grep -Eq "(^|/)usr/local/bin/altiv-dev-check$" "$STAGING/rootfs-content.list"
 echo "✓ Offline-ready Alpine ARM64 sandbox: $(du -h "$ROOTFS_FILE" | cut -f1)"
 echo "✓ PRoot binary: $PROOT_FILE"

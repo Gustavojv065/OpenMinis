@@ -118,16 +118,43 @@ internal object AltivBundledSkills {
         """
         ---
         name: altive-github-safe-workflow
-        version: 1.0.0
+        version: 1.3.0
         description: Fluxo seguro GitHub para modificar repositórios com branch, commit, pull request, testes e autorização.
         ---
 
         # ALTIVE GitHub Seguro
+
+        - Para listagem, use primeiro o helper nativo list; se indisponível, consulte /user e /user/repos autenticados via MCP em páginas de 10, extraindo full_name e private a cada página. Continue até página curta; não use search como inventário completo. Informe limites de acesso.
+        - Para publicação aprovada, execute publish-plan e depois publish --approve diretamente quando a credencial local existir; o helper configura identidade por commit. Não tente commit avulso nem peça identidade se o helper puder publicar. Se indisponível, use MCP autenticado com verificação de blobs.
+        - Em tarefas simples de cor ou texto, não delegue a subagentes. Use o checkout ativo, diff focalizado e preview existente. Registre apenas erros comprovados e soluções, sem segredos; não repita estratégia falha.
+        - Mostre o nome comercial como informação, não como motivo para trocar o repositório. Use português no relato e na navegação; não exponha nomes internos de ferramentas como marca.
+
+        - Mantenha o repositório exato, branch, caminho local e porta do preview como contexto ativo da conversa. Nunca escolha outro projeto por semelhança de nome comercial. Só troque mediante pedido explícito do usuário.
+        - Antes de editar, valide a origem com o helper status --repo dono/nome; reutilize o checkout existente. Não descarte alterações locais nem reinstale dependências se o lockfile e a instalação ainda forem válidos.
+        - Para preview de framework, use o mecanismo persistente de processos em segundo plano disponível no ambiente, não um comando bloqueante. Confirme HTTP 200 em chamada separada e identidade do projeto na porta antes de entregar o link.
+        - Registre no contexto os erros e soluções comprovadas (DNS, credencial, dependências, timeout, porta). Evite repetir comandos que falharam sem mudar a estratégia. Agrupe verificações independentes quando seguro.
+        - Antes de publicar, confira o diff exato, branch isolada e arquivos aprovados; após publicar compare SHA e blobs remotos. Não declare sucesso apenas pelo retorno do comando. Se a branch remota ainda não existir, use publicação autenticada com base remota verificada e sem force push.
         
+        - Confirme a identidade autenticada antes de listar. Percorra todas as páginas da API autenticada, deduplique por ID e separe pela propriedade private; nunca use busca pública global como lista da conta. Se houver truncamento, reduza o tamanho das páginas e extraia somente nome completo, ID e visibilidade.
+        - Ao falhar a clonagem, consulte diagnóstico do helper sem expor credenciais, confirme a origem e tente novamente uma vez após corrigir a causa. Não substitua o localhost por um link GitHub nem trate o nome comercial diferente como erro de identidade quando a origem Git corresponde ao pedido.
+        - Identifique o gerenciador pelo lockfile e packageManager; reutilize dependências válidas. Não troque Bun por npm silenciosamente. A solicitação de abrir preview autoriza instalar dependências necessárias sem modificar arquivos rastreados; scripts de instalação não confiáveis exigem avaliação e autorização.
+        - Use o helper persistente de preview antes de tentar comandos Vite avulsos. Confirme porta, processo, origem e resposta em outra chamada; reutilize o servidor correto.
+        - Na publicação, prefira o helper autenticado e, se indisponível, use MCP com plano aprovado e bytes exatos. Verifique diff remoto, SHA da main antes e depois, e conteúdo integral dos arquivos. Nunca envie uma expressão de shell como conteúdo de arquivo.
+        - Em mensagens ao cliente use ALTIV DEV AI, inclusive para navegador e ferramentas; não apresente nomes internos como marca do produto.
+        - Para listar repositórios, execute primeiro python3 /usr/local/bin/altiv-workspace.py list. Se não houver credencial local, use MCP autenticado e informe se a lista é parcial.
+        - Para clonar, use python3 /usr/local/bin/altiv-workspace.py clone --repo dono/repositorio. Não tente git clone HTTPS sem o helper: ele usa a credencial configurada via askpass temporário.
+        - Para publicar, use o helper publish-plan com --repo e --file para cada arquivo aprovado; confira o SHA remoto e obtenha aprovação explícita. Use publish --approve somente após aprovação, em branch isolada. Nunca force push.
+        - Se o helper informar ausência de credencial, não repita clone anônimo nem solicite token no chat; oriente a conexão GitHub PAT nas configurações protegidas. MCP autenticado pode continuar a leitura, mas não comprova autenticação Git local.
         - Descubra o repositório e branch corretos antes de editar. Preserve código, segredos e configurações existentes.
         - Faça alterações pequenas, com diffs claros, build e testes correspondentes.
         - Prepare pull request e informe link e arquivos modificados; merge e deploy exigem autorização expressa.
         - Nunca imprima tokens nem envie código privado a provedores sem permissão.
+        - Para alterações pontuais, use o utilitário autenticado /usr/local/bin/altiv-github-edit.py; ele consulta o arquivo privado via GitHub API, confere SHA e valida o resultado.
+        - Primeiro execute sem --apply para prévia; depois --apply na branch autorizada. Exemplo: python3 /usr/local/bin/altiv-github-edit.py --repo dono/repositorio --branch feat/teste --path src/arquivo.css --old 'color: green' --new 'color: red' --count 1 --apply
+        - Nunca use raw.githubusercontent.com sem autenticação para arquivos privados: HTTP 404 não prova que o arquivo não existe.
+        - Evite substituir tokens CSS compartilhados com fundos e botões; identifique seletores de texto e substitua apenas o trecho correto.
+        - Não diga que houve commit sem verificar o SHA retornado pelo GitHub.
+
         """.trimIndent(),
         """
         ---

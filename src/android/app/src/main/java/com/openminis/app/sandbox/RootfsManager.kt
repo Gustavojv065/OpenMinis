@@ -302,6 +302,10 @@ class RootfsManager private constructor(private val context: Context) {
                 if (dnsServers.isNotEmpty()) {
                     for (server in dnsServers) {
                         val addr = server.hostAddress ?: continue
+                        // Android may return a scoped IPv6 address whose interface
+                        // is not visible to the Alpine resolver. Do not install
+                        // unusable link-local addresses as the only DNS servers.
+                        if (server.isLinkLocalAddress || !ContainerDns.isValidServer(addr)) continue
                         resolvConf.append("nameserver $addr\n")
                         Log.i(TAG, "[DNS] system server: $addr")
                     }
@@ -376,6 +380,9 @@ class RootfsManager private constructor(private val context: Context) {
             return@withContext
         }
 
+        // Verify runtime installation, not just presence inside APK.
+        ensureGitHubPublisherInstalled()
+
         // Mirror iOS removeExternallyManagedMarker() — drop PEP 668 marker so
         // `pip install` Just Works inside this embedded Alpine rootfs even
         // when the shipped pip.conf isn't being read (e.g. pip invoked with
@@ -406,6 +413,32 @@ class RootfsManager private constructor(private val context: Context) {
      * dir is absent. Idempotent — the pre-copy unlock in copyAssetDir keeps the
      * upgrade path working across boots.
      */
+    /** Verify GitHub publishing and safe text-edit tools in the guest rootfs. */
+    private fun ensureGitHubPublisherInstalled() {
+        for (script in listOf("altiv-github-upload.py", "altiv-github-edit.py", "altiv-workspace.py")) {
+            val relative = "usr/local/bin/$script"
+            val target = File(rootfsDir, relative)
+            if (!target.isFile || target.length() == 0L) {
+                val asset = "$DEFAULT_MOUNT_ASSET/$relative"
+                target.parentFile?.mkdirs()
+                try {
+                    context.assets.open(asset).use { input ->
+                        target.outputStream().use { output -> input.copyTo(output) }
+                    }
+                } catch (t: Throwable) {
+                    throw IllegalStateException("ALTIV GitHub tool missing from Android assets: $script", t)
+                }
+            }
+            check(target.isFile && target.length() > 0L) {
+                "ALTIV GitHub tool not installed in Linux rootfs: $script"
+            }
+            check(target.setReadable(true, false) && target.setExecutable(true, false)) {
+                "ALTIV GitHub tool permissions could not be set: $script"
+            }
+            Log.i(TAG, "[ALTIV GitHub] verified $script in Linux rootfs")
+        }
+    }
+
     private fun lockMcpCliLibReadOnly(): Int {
         val libDir = File(rootfsDir, "usr/local/lib/minis-mcp-cli")
         if (!libDir.isDirectory) return 0
