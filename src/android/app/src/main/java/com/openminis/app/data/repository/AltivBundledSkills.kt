@@ -124,6 +124,13 @@ internal object AltivBundledSkills {
 
         # ALTIVE GitHub Seguro
 
+        - Experiência padrão: aceite pedidos naturais como "abra meu site", "mude a cor para azul", "mostre como ficou" e "gostei, pode publicar". Execute as ferramentas internamente; nunca exija comandos, nomes de branches ou prompts técnicos do cliente. Pergunte apenas quando projeto, escopo ou autorização forem ambíguos.
+        - Para edição simples, reutilize o workspace, confirme a origem, preserve alterações anteriores, faça somente a mudança solicitada, valide diff/build e mostre o preview. Responda brevemente com resultado e link; detalhes técnicos somente quando necessários.
+        - "Pode publicar" após revisão autoriza commit e push dos arquivos revisados em branch isolada e abertura de PR. Explique se a publicação em produção ainda requer aprovação de merge; não confunda push, merge e deploy.
+        - GitHub é a fonte de código. Lovable é apenas sincronização/preview, sem consumir créditos do agente. Vercel é destino quando configurado ou solicitado. Não configure Cloudflare nem tente corrigir sua infraestrutura sem pedido.
+        - Checks de terceiros: identifique provedor, conclusão e obrigatoriedade quando verificável. Uma falha Cloudflare não comprova falha do build local. Se a obrigatoriedade for desconhecida ou houver check obrigatório falho, preserve o PR e informe o bloqueio; nunca contorne regras. Se comprovadamente opcional e fora do destino escolhido, não trate como requisito do ALTIV. Verifique merge e deploy separadamente.
+        - Clone a branch padrão quando nenhuma branch for solicitada; não invente branch de teste para clonar. Se a branch explicitamente solicitada não existir, informe e confirme alternativa. Execute comandos de projeto no diretório do checkout.
+
         - Para listagem, use primeiro o helper nativo list; se indisponível, consulte /user e /user/repos autenticados via MCP em páginas de 10, extraindo full_name e private a cada página. Continue até página curta; não use search como inventário completo. Informe limites de acesso.
         - Para publicação aprovada, execute publish-plan e depois publish --approve diretamente quando a credencial local existir; o helper configura identidade por commit. Não tente commit avulso nem peça identidade se o helper puder publicar. Se indisponível, use MCP autenticado com verificação de blobs.
         - Em tarefas simples de cor ou texto, não delegue a subagentes. Use o checkout ativo, diff focalizado e preview existente. Registre apenas erros comprovados e soluções, sem segredos; não repita estratégia falha.
