@@ -185,6 +185,12 @@ jobs:
             echo 'org.gradle.parallel=false'
           } >> src/android/gradle.properties
 
+      - name: Restore pinned Robolectric runtime cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric/nativeruntime-dist-compat/1.0.19
+          key: robolectric-native-runtime-1.0.19-v1
+
       - name: Prefetch Robolectric native runtime with Maven Central fallback
         shell: bash
         run: |
@@ -196,9 +202,10 @@ jobs:
           mkdir -p "$DEST"
           for extension in pom jar; do
             file="nativeruntime-dist-compat-1.0.19.$extension"
+            if [ -s "$DEST/$file" ]; then continue; fi
             success=false
             for attempt in 1 2 3 4; do
-              for base in 'https://repo.maven.apache.org/maven2' 'https://repo1.maven.org/maven2'; do
+              for base in 'https://repo.maven.apache.org/maven2' 'https://repo1.maven.org/maven2' 'https://maven-central.storage-download.googleapis.com/maven2'; do
                 if curl --fail --location --silent --show-error \
                     --connect-timeout 15 --max-time 120 \
                     --output "$DEST/$file.tmp" "$base/$REL/$file"; then
