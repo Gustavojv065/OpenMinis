@@ -46,6 +46,18 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      - name: Bundle pinned Superpowers skills and resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout https://github.com/Gustavojv065/superpowers.git "$RUNNER_TEMP/superpowers"
+          git -C "$RUNNER_TEMP/superpowers" checkout --detach 22f0b463e7a5e579904dd6211a520321035526f7
+          DEST=src/android/app/src/main/assets/superpowers
+          mkdir -p "$DEST"
+          cp -R "$RUNNER_TEMP/superpowers/skills" "$DEST/"
+          cp "$RUNNER_TEMP/superpowers/LICENSE" "$DEST/"
+          test "$(find "$DEST/skills" -name SKILL.md | wc -l)" -eq 15
+
       - name: ALTIVE global quality and integrated release contract preflight
         shell: bash
         run: |
@@ -317,6 +329,67 @@ jobs:
           # Certificate SHA-256 is public identity; never upload a private keystore.
           cp "$RUNNER_TEMP/altiv-signature.txt" "$APK.signature.txt"
           unzip -Z1 "$APK" > "$RUNNER_TEMP/apk-files.txt"
+          test "$(grep -Ec '^assets/superpowers/skills/[^/]+/SKILL.md into the actual installable APK,
+          # not merely present in the source tree during compilation.
+          unzip -Z1 "$APK" | grep -Fxq 'assets/default_mount/usr/local/bin/altiv-github-upload.py' || {
+            echo '::error::GitHub binary publisher missing from APK assets'
+            exit 1
+          }
+          # Android asset packaging can auto-decompress a .tar.gz file to .tar.
+          # RootfsManager.kt supports both formats at runtime; verify both
+          # acceptable names and the actual archive contents.
+          for required in \
+            'assets/proot-aarch64' \
+            'lib/arm64-v8a/libproot.so' \
+            'lib/arm64-v8a/libproot-loader.so' \
+            'lib/arm64-v8a/libproot-loader32.so'; do
+            if ! grep -Fxq "$required" "$RUNNER_TEMP/apk-files.txt"; then
+              echo "::error::Missing sandbox APK entry: $required"
+              exit 1
+            fi
+          done
+          if grep -Fxq 'assets/alpine-minirootfs.tar.gz' "$RUNNER_TEMP/apk-files.txt"; then
+            ROOTFS_ENTRY='assets/alpine-minirootfs.tar.gz'
+            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tzf - > "$RUNNER_TEMP/altiv-rootfs-contents.txt"
+          elif grep -Fxq 'assets/alpine-minirootfs.tar' "$RUNNER_TEMP/apk-files.txt"; then
+            ROOTFS_ENTRY='assets/alpine-minirootfs.tar'
+            unzip -p "$APK" "$ROOTFS_ENTRY" | tar -tf - > "$RUNNER_TEMP/altiv-rootfs-contents.txt"
+          else
+            echo '::error::Missing Alpine rootfs: expected .tar.gz or .tar APK asset'
+            grep -E '^assets/.*(alpine|rootfs)' "$RUNNER_TEMP/apk-files.txt" || true
+            exit 1
+          fi
+          # Green Android build without executable toolchain must fail.
+          for required_bin in node npm npx python3 git bash rg; do
+            if ! grep -Eq "(^|/)(usr/bin|bin)/${required_bin}$" "$RUNNER_TEMP/altiv-rootfs-contents.txt"; then
+              echo "::error::Toolchain executable missing in final APK: $required_bin"
+              exit 1
+            fi
+          done
+          grep -Eq '(^|/)usr/local/bin/altiv-dev-check$' "$RUNNER_TEMP/altiv-rootfs-contents.txt" || {
+            echo '::error::ALTIV environment checker missing from final APK'
+            exit 1
+          }
+          grep -Fxq 'assets/default_mount/usr/local/bin/altiv-workspace.py' "$RUNNER_TEMP/apk-files.txt" || {
+            echo '::error::ALTIV workspace helper missing from final APK'
+            exit 1
+          }
+          echo "Verified Alpine rootfs and core programming tools in APK: $ROOTFS_ENTRY"
+          sha256sum "$APK" > "$APK.sha256"
+          ls -lh "$APK" "$APK.sha256"
+
+      - name: Publish downloadable debug APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: altiv-dev-ai-independent-arm64-${{ github.run_number }}
+          path: |
+            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk
+            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.sha256
+            src/android/app/build/outputs/apk/altiv/debug/app-altiv-debug.apk.signature.txt
+          if-no-files-found: error
+          retention-days: 14
+ "$RUNNER_TEMP/apk-files.txt")" -eq 15
+          grep -Fxq 'assets/superpowers/LICENSE' "$RUNNER_TEMP/apk-files.txt"
           # The publisher must be packaged into the actual installable APK,
           # not merely present in the source tree during compilation.
           unzip -Z1 "$APK" | grep -Fxq 'assets/default_mount/usr/local/bin/altiv-github-upload.py' || {

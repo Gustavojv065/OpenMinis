@@ -241,6 +241,9 @@ class SkillRepository(private val context: Context) {
         runCatching { installAltivBundledSkills() }.onFailure {
             Log.e(TAG, "installAltivBundledSkills failed — continuing: ${it.message}", it)
         }
+        runCatching { installSuperpowersSkills() }.onFailure {
+            Log.e(TAG, "Superpowers installation failed", it)
+        }
         startReloadWorker()
     }
 
@@ -1374,6 +1377,39 @@ class SkillRepository(private val context: Context) {
                 version = parsed.version,
                 source = ImportSource.BUNDLED,
             )
+        }
+    }
+
+    private fun installSuperpowersSkills() {
+        if (BuildConfig.FLAVOR != "altiv") return
+        val root = "superpowers/skills"
+        fun copyResources(assetPath: String, destination: File) {
+            val children = context.assets.list(assetPath).orEmpty()
+            if (children.isNotEmpty()) {
+                destination.mkdirs()
+                for (child in children) copyResources("$assetPath/$child", File(destination, child))
+            } else if (!destination.exists()) {
+                destination.parentFile?.mkdirs()
+                context.assets.open(assetPath).use { input ->
+                    destination.outputStream().use { output -> input.copyTo(output) }
+                }
+                if (destination.parentFile?.name == "scripts") destination.setExecutable(true)
+            }
+        }
+        for (folder in context.assets.list(root).orEmpty()) {
+            runCatching {
+                val assetPath = "$root/$folder"
+                val markdown = context.assets.open("$assetPath/SKILL.md").bufferedReader().use { it.readText() }
+                val parsed = parseSkillMd(markdown) ?: error("Invalid Superpowers skill: $folder")
+                val id = slugify(parsed.name)
+                if (id.isBlank() || _skills.value.any { it.id == id }) return@runCatching
+                val destination = File(skillsDir, id)
+                for (child in context.assets.list(assetPath).orEmpty()) {
+                    if (child != "SKILL.md") copyResources("$assetPath/$child", File(destination, child))
+                }
+                add(parsed.name, parsed.description, parsed.body, parsed.version, ImportSource.BUNDLED,
+                    "https://github.com/Gustavojv065/superpowers/tree/22f0b463e7a5e579904dd6211a520321035526f7/skills/$folder")
+            }.onFailure { Log.w(TAG, "Superpowers skill install failed: $folder", it) }
         }
     }
 
